@@ -74,7 +74,7 @@ Records are plain files (`RESULTS.json`, Markdown reports, Lean files), so work 
    git clone https://github.com/ziwaa-se/tex-proof-check-kit.git
    ```
 
-   (Or use GitHub's **Code → Download ZIP** and unzip it in `~/proofcheck`.)
+   (Or download a ZIP: **Code → Download ZIP** on this page, or **Source code (zip)** under the latest [release](https://github.com/ziwaa-se/tex-proof-check-kit/releases/latest). Unzip it in `~/proofcheck` and rename the unzipped folder (`tex-proof-check-kit-main` or `tex-proof-check-kit-1.3`) to `tex-proof-check-kit`, so that the sentence in step 2 works as written.)
 2. Open `~/proofcheck` in the Claude desktop app or in VS Code, start a **new** Claude chat, and send:
 
    ```

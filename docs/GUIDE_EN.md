@@ -25,7 +25,7 @@ It never repairs a proof, never searches for a different proof, and never edits 
   Read tex-proof-check-kit/CLAUDE_START_HERE.md and follow it.
   ```
 
-  (If you unzipped GitHub's ZIP, the folder may be called `tex-proof-check-kit-main`; use that name in the sentence.)
+  (If you downloaded a ZIP from GitHub, the unzipped folder is called `tex-proof-check-kit-main`, or `tex-proof-check-kit-1.3` for a release. Rename it to `tex-proof-check-kit`, or use its actual name in the sentence.)
 
   Claude checks the machine and sets up Lean once (it asks before downloading anything). It then makes a **new folder for each paper** (`papers/<name>-check`), helps you put the paper's files in, checks that nothing is missing, and tells you how to start. Send the same sentence again whenever you want to check another paper, continue, re-check a corrected version, or make a report. It finds your existing projects and never mixes two papers in one folder.
 - **By hand:** sections 2–4 below.

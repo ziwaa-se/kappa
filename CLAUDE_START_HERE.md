@@ -18,7 +18,7 @@ Run every script from the kit: `<kit>/autosetup/<script>`.
 
 ## A. Find the kit, then look around
 
-1. If the user pointed you to a ZIP (for example `tex-proof-check-kit-main.zip` from GitHub) rather than a folder, unpack it into `<base>` without overwriting: `unzip -n <zip> -d <base>`, or `python3 -m zipfile -e <zip> <base>` if `unzip` is missing. The kit is the unpacked top folder. If an older kit folder also exists, use the newer one (compare `template/KIT_VERSION`); existing projects are upgraded in step D.4.
+1. If the user pointed you to a ZIP (for example `tex-proof-check-kit-main.zip`, or `tex-proof-check-kit-1.3.zip` from a release) rather than a folder, unpack it into `<base>` without overwriting: `unzip -n <zip> -d <base>`, or `python3 -m zipfile -e <zip> <base>` if `unzip` is missing. The kit is the unpacked top folder. If an older kit folder also exists, use the newer one (compare `template/KIT_VERSION`); existing projects are upgraded in step D.4.
 2. Run `<kit>/autosetup/doctor.sh <base>`, `python3 <kit>/autosetup/projects.py <base>` and, if `<base>/lean-env` exists, `<kit>/autosetup/lean_env.sh <base> --check`. If that prints `INCOMPLETE`, your summary must say so, with its consequence: proof steps needing a missing Mathlib part will stop as `TRANSLATION_BLOCKED`. See step B. Summarize for the user in a few lines: what is ready, what is missing, and which paper projects exist.
 
 ## B. Fix what is missing (only once per machine)
