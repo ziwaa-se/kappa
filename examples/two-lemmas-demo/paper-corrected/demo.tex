@@ -1,0 +1,29 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\newtheorem{lemma}{Lemma}
+
+\title{Two quick inequalities}
+\author{Demo paper for the TeX proof-check kit}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{lemma}\label{lem:square}
+For all real numbers $a$ and $b$ we have $a^2 + b^2 \ge 2ab$.
+\end{lemma}
+
+\begin{proof}
+We have $a^2 + b^2 - 2ab = (a-b)^2 \ge 0$.
+\end{proof}
+
+\begin{lemma}\label{lem:xsquare}
+For every real number $x$ with $x \le 0$ or $x \ge 1$ we have $x^2 \ge x$.
+\end{lemma}
+
+\begin{proof}
+We have $x^2 - x = x(x-1)$. If $x \le 0$, both factors are nonpositive; if $x \ge 1$,
+both are nonnegative. In either case their product is nonnegative, and hence $x^2 \ge x$.
+\end{proof}
+
+\end{document}

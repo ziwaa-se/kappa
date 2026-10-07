@@ -1,0 +1,70 @@
+{
+  "_comment": "Machine-readable state (kit v1.3; optional fields models_used and tier may be added). pv-architect fills 'results' at /pv-setup; the coordinator keeps it current. The _example_* entries show every field and are ignored by the scripts. Field meanings: verification/rules/PIPELINE.md (stage/reason table, naming) and VERDICTS.md. Check with: python3 scripts/pv_status.py validate",
+  "paper": {
+    "title": "",
+    "main_tex": "source/main.tex",
+    "pdf": "",
+    "numbering_basis": ""
+  },
+  "lean": {
+    "toolchain": "",
+    "mathlib_rev": "",
+    "packages": "output of scripts/pv_lean.sh packages",
+    "pvtools_sha256": ""
+  },
+  "run_scope": [],
+  "defs": [],
+  "results": [],
+  "external_tools": [],
+  "_example_defs": {
+    "id": "DEFS",
+    "file": "pv_work/Defs.lean",
+    "gate": "verification/audits/DEFS_gate.md",
+    "built": true,
+    "_note": "use {\"id\": \"NONE\"} when the paper needs no shared definitions"
+  },
+  "_example_result": {
+    "id": "L01",
+    "pdf_number": "A.1",
+    "kind": "Lemma",
+    "title": "near-identity diffeomorphism",
+    "label": "lem:diffeo",
+    "statement_loc": "source/app.tex:7-9",
+    "proof_loc": "source/app.tex:10-16",
+    "depends_on": [],
+    "stage": "INVENTORIED",
+    "statement_fixed": false,
+    "round": 1,
+    "reason": "",
+    "verdict": "UNFINISHED",
+    "conditions": [],
+    "gaps": [],
+    "debts": [],
+    "unencoded": [],
+    "issues": [],
+    "upstream_issues": [],
+    "partial": "",
+    "lean_main": "pv_work/L01.lean:120 Paper.L01.main",
+    "evidence": {
+      "gate": "verification/audits/L01_gate.md",
+      "final": "verification/audits/L01_final.md",
+      "issues": [],
+      "reconnect": ""
+    },
+    "summary_en": "",
+    "updated": "YYYY-MM-DD HH:MM"
+  },
+  "_example_tool": {
+    "id": "L02_L01Consumed",
+    "lean": "pv_work/L02Stmt.lean:12",
+    "meaning": "one-sentence statement read from the Lean definition",
+    "provenance": "i | ii | iii | iv | v | p (predecessor clause <ID>_<PredID>Consumed; set 'predecessor'). Gap hypotheses are NOT registered here (use the result's 'gaps')",
+    "predecessor": "L01",
+    "source_loc": "source/app.tex:171",
+    "consumers": [
+      "L09 (step S3)"
+    ],
+    "mathlib_search": "#check … / searched names …",
+    "human_check": "what exactly to check"
+  }
+}

@@ -1,0 +1,19 @@
+# macOS / editors
+.DS_Store
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+
+# Lean build output (paper projects live outside this repository, but just in case)
+*.olean
+*.ilean
+.lake/
+
+# Folders the guided setup creates in the base folder; never inside the kit
+/papers/
+/lean-env/
+
+# Archives
+*.zip

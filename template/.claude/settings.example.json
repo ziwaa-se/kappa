@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(scripts/pv_lean.sh *)",
+      "Bash(python3 scripts/pv_status.py *)",
+      "Bash(python3 scripts/pv_snapshot.py *)",
+      "Bash(python3 scripts/pv_usage.py *)",
+      "Bash(python3 scripts/pv_audit_mech.py *)",
+      "Bash(lake env lean *)",
+      "Bash(date)",
+      "Bash(date *)",
+      "Bash(tail *)",
+      "Bash(diff *)",
+      "Edit(pv_work/**)",
+      "Write(pv_work/**)",
+      "Edit(verification/**)",
+      "Write(verification/**)"
+    ],
+    "deny": [
+      "WebFetch",
+      "WebSearch",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(lake update *)",
+      "Bash(lake exe cache *)",
+      "Bash(lake build *)",
+      "Edit(source/**)",
+      "Write(source/**)",
+      "Edit(verification/rules/**)",
+      "Write(verification/rules/**)",
+      "Edit(verification/source_baseline/**)",
+      "Write(verification/source_baseline/**)",
+      "Edit(pv_work/PVTools.lean)",
+      "Write(pv_work/PVTools.lean)",
+      "Edit(.claude/**)",
+      "Write(.claude/**)"
+    ]
+  }
+}

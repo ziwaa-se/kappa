@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="372" style="background:#fff" viewBox="0 0 1000 372" role="img" aria-label="End-to-end flow: the LaTeX source, compiled PDF and a Lean installation go into /pv-setup, where pv-architect inventories the numbered results; /pv-run passes each result through pv-drafter, pv-gate, pv-prover and pv-auditor, with pv-issue-checker for suspected paper errors; /pv-report compiles and fact-checks the report; the outputs are an author report, a files-to-check index, an external-inputs worksheet and a progress table. A coordinator session dispatches every stage." font-family="IBM Plex Sans, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+      <defs>
+        <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16201C"/></marker>
+        <marker id="ar1g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1D7555"/></marker>
+      </defs>
+      <!-- coordinator band -->
+      <rect x="200" y="10" width="600" height="46" rx="7" fill="#E6ECE9" stroke="#D3DCD8"/>
+      <text x="500" y="30" text-anchor="middle" font-size="13.5" font-weight="600" fill="#16201C">Coordinator · your Claude Code session</text>
+      <text x="500" y="47" text-anchor="middle" font-size="11.5" fill="#56655E">assigns work · checks compiler logs · writes the records · reports progress</text>
+      <g stroke="#56655E" stroke-dasharray="3 4" fill="none">
+        <line x1="340" y1="56" x2="340" y2="104"/><line x1="610" y1="56" x2="610" y2="104"/><line x1="790" y1="56" x2="790" y2="104"/>
+      </g>
+      <text x="346" y="80" font-size="10.5" fill="#56655E">dispatches</text>
+
+      <!-- column titles -->
+      <g font-size="11" font-weight="600" letter-spacing="1.2" fill="#56655E">
+        <text x="20" y="96">INPUT</text>
+        <text x="210" y="96">1 · /pv-setup</text>
+        <text x="400" y="96">2 · /pv-run · every result</text>
+        <text x="690" y="96">3 · /pv-report</text>
+        <text x="850" y="96">OUTPUT</text>
+      </g>
+
+      <!-- inputs -->
+      <g font-size="12" fill="#16201C">
+        <rect x="20" y="106" width="150" height="48" rx="6" fill="#FFFFFF" stroke="#16201C"/>
+        <text x="32" y="126" font-weight="600">LaTeX source</text><text x="32" y="143" font-size="11" fill="#56655E">.tex, includes, macros</text>
+        <rect x="20" y="164" width="150" height="48" rx="6" fill="#FFFFFF" stroke="#16201C"/>
+        <text x="32" y="184" font-weight="600">Compiled PDF</text><text x="32" y="201" font-size="11" fill="#56655E">fixes theorem numbers</text>
+        <rect x="20" y="222" width="150" height="48" rx="6" fill="#FFFFFF" stroke="#16201C"/>
+        <text x="32" y="242" font-weight="600">Lean 4 + Mathlib</text><text x="32" y="259" font-size="11" fill="#56655E">installed once</text>
+      </g>
+
+      <!-- setup -->
+      <rect x="210" y="106" width="150" height="164" rx="6" fill="#FFFFFF" stroke="#16201C"/>
+      <rect x="222" y="118" width="96" height="22" rx="11" fill="#DDEFE6"/>
+      <text x="270" y="133" text-anchor="middle" font-size="12" font-weight="600" fill="#1D7555">pv-architect</text>
+      <g font-size="11.5" fill="#16201C">
+        <text x="222" y="162">reads the whole paper</text>
+        <text x="222" y="180">lists every numbered</text>
+        <text x="222" y="195">result and its proof</text>
+        <text x="222" y="213">orders them by</text>
+        <text x="222" y="228">dependency</text>
+        <text x="222" y="246">flags cited results</text>
+      </g>
+
+      <!-- run: four agents -->
+      <g font-size="12">
+        <rect x="400" y="106" width="250" height="36" rx="6" fill="#FFFFFF" stroke="#16201C"/>
+        <text x="412" y="129" font-weight="600" fill="#1D7555">pv-drafter</text><text x="500" y="129" font-size="11.5" fill="#16201C">Lean statement + open steps</text>
+        <rect x="400" y="156" width="250" height="36" rx="6" fill="#FFFFFF" stroke="#16201C"/>
+        <text x="412" y="179" font-weight="600" fill="#1D7555">pv-gate</text><text x="500" y="179" font-size="11.5" fill="#16201C">matches the paper?</text>
+        <rect x="400" y="206" width="250" height="36" rx="6" fill="#FFFFFF" stroke="#16201C"/>
+        <text x="412" y="229" font-weight="600" fill="#1D7555">pv-prover</text><text x="500" y="229" font-size="11.5" fill="#16201C">proves it, paper's route only</text>
+        <rect x="400" y="256" width="250" height="36" rx="6" fill="#FFFFFF" stroke="#16201C"/>
+        <text x="412" y="279" font-weight="600" fill="#1D7555">pv-auditor</text><text x="500" y="279" font-size="11.5" fill="#16201C">independent final audit</text>
+      </g>
+      <g stroke="#16201C" fill="none" marker-end="url(#ar1)">
+        <line x1="525" y1="142" x2="525" y2="154"/><line x1="525" y1="192" x2="525" y2="204"/><line x1="525" y1="242" x2="525" y2="254"/>
+      </g>
+      <!-- issue checker -->
+      <rect x="400" y="318" width="250" height="36" rx="6" fill="#FFFFFF" stroke="#B24E26" stroke-dasharray="4 3"/>
+      <text x="412" y="341" font-size="12" font-weight="600" fill="#B24E26">pv-issue-checker</text><text x="532" y="341" font-size="11.5" fill="#16201C">is the paper wrong?</text>
+      <path d="M 400 224 C 372 224, 372 336, 398 336" fill="none" stroke="#B24E26" stroke-dasharray="4 3" marker-end="url(#ar1)"/>
+      <text x="336" y="300" font-size="10.5" fill="#B24E26" text-anchor="middle">step not</text>
+      <text x="336" y="313" font-size="10.5" fill="#B24E26" text-anchor="middle">justified</text>
+
+      <!-- report -->
+      <g font-size="12">
+        <rect x="690" y="106" width="130" height="58" rx="6" fill="#FFFFFF" stroke="#16201C"/>
+        <text x="702" y="128" font-weight="600" fill="#1D7555">pv-compiler</text>
+        <text x="702" y="147" font-size="11.5" fill="#16201C">gathers every audit</text>
+        <rect x="690" y="194" width="130" height="58" rx="6" fill="#FFFFFF" stroke="#16201C"/>
+        <text x="702" y="216" font-weight="600" fill="#1D7555">pv-factcheck</text>
+        <text x="702" y="235" font-size="11.5" fill="#16201C">re-checks the report</text>
+      </g>
+      <line x1="755" y1="164" x2="755" y2="192" stroke="#16201C" marker-end="url(#ar1)"/>
+      <text x="761" y="182" font-size="10.5" fill="#56655E">draft report</text>
+
+      <!-- outputs -->
+      <g font-size="12" fill="#16201C">
+        <rect x="850" y="106" width="130" height="40" rx="6" fill="#FFFFFF" stroke="#1D7555"/>
+        <text x="862" y="130" font-weight="600">Author report</text>
+        <rect x="850" y="154" width="130" height="40" rx="6" fill="#FFFFFF" stroke="#1D7555"/>
+        <text x="862" y="178" font-weight="600">Files-to-check</text>
+        <rect x="850" y="202" width="130" height="40" rx="6" fill="#FFFFFF" stroke="#1D7555"/>
+        <text x="862" y="219" font-weight="600">External-inputs</text><text x="862" y="234" font-weight="600">worksheet</text>
+        <rect x="850" y="250" width="130" height="40" rx="6" fill="#FFFFFF" stroke="#1D7555"/>
+        <text x="862" y="274" font-weight="600">Progress table</text>
+      </g>
+
+      <!-- main flow arrows -->
+      <g stroke="#16201C" fill="none" marker-end="url(#ar1)">
+        <line x1="170" y1="188" x2="208" y2="188"/>
+        <line x1="360" y1="124" x2="398" y2="124"/>
+        <line x1="820" y1="223" x2="848" y2="223"/>
+      </g>
+      <path d="M 650 268 C 674 268, 666 150, 688 150" fill="none" stroke="#16201C" marker-end="url(#ar1)"/>
+      <text x="656" y="186" font-size="10.5" fill="#56655E">verdicts</text>
+      <path d="M 650 290 C 760 300, 800 280, 848 272" fill="none" stroke="#1D7555" stroke-dasharray="4 3" marker-end="url(#ar1g)"/>
+      <text x="755" y="305" font-size="10.5" fill="#1D7555" text-anchor="middle">after every verdict</text>
+      <text x="379" y="116" font-size="10.5" fill="#56655E" text-anchor="middle">in order</text>
+      <text x="189" y="180" font-size="10.5" fill="#56655E" text-anchor="middle">paper</text>
+    </svg>

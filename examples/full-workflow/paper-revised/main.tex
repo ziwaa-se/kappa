@@ -1,0 +1,92 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Rpos}{\mathbb{R}_{>0}}
+
+\title{A short note on three elementary inequalities}
+\author{Benchmark manuscript for the TeX proof-check kit}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We record three elementary inequalities for real numbers that are used
+repeatedly in later work.  The note is self-contained except for one
+classical inequality, which we quote from the literature.
+\end{abstract}
+
+\section{Notation}
+
+Throughout, $\R$ denotes the real numbers and $\Rpos$ the positive real
+numbers.  For real numbers $x,y,z$ we write
+\[
+  S(x,y,z) = \frac{x}{y+z} + \frac{y}{z+x} + \frac{z}{x+y}
+\]
+whenever the three denominators are nonzero.
+
+\section{Results}
+
+\begin{lemma}\label{lem:amgm}
+For all real numbers $a$ and $b$ we have
+\[
+  ab \le \frac{a^2+b^2}{2},
+\]
+with equality if and only if $a = b$.
+\end{lemma}
+
+\begin{proof}
+Since $(a-b)^2 \ge 0$, expanding the square gives $a^2 - 2ab + b^2 \ge 0$,
+that is, $2ab \le a^2 + b^2$.  Dividing by $2$ gives the inequality.
+Moreover, equality holds if and only if $(a-b)^2 = 0$, that is, if and only
+if $a = b$.
+\end{proof}
+
+\begin{proposition}\label{prop:nesbitt}
+For all $x,y,z \in \Rpos$ we have
+\[
+  S(x,y,z) \ge \frac{3\,(xy+yz+zx)}{2\,(x^2+y^2+z^2)}.
+\]
+\end{proposition}
+
+\begin{proof}
+By Nesbitt's inequality \cite[Theorem~1]{Nesbitt1903}, $S(x,y,z) \ge 3/2$
+for all $x,y,z \in \Rpos$.  Applying Lemma~\ref{lem:amgm} to the pairs
+$(x,y)$, $(y,z)$ and $(z,x)$ and adding the three inequalities gives
+\[
+  xy + yz + zx \le x^2 + y^2 + z^2 .
+\]
+Since $x^2+y^2+z^2 > 0$, dividing by it yields
+$\frac{xy+yz+zx}{x^2+y^2+z^2} \le 1$, and hence
+$\frac{3\,(xy+yz+zx)}{2\,(x^2+y^2+z^2)} \le \frac{3}{2} \le S(x,y,z)$.
+\end{proof}
+
+\begin{lemma}\label{lem:quot}
+For every real number $x > -1$ we have
+\[
+  \frac{x^2}{1+x} \ge x - 1 .
+\]
+\end{lemma}
+
+\begin{proof}
+Since $1+x > 0$, multiplying both sides by $1+x$ preserves the inequality, so the claim
+is equivalent to $x^2 \ge (x-1)(x+1) = x^2 - 1$, which is obvious.
+\end{proof}
+
+\begin{remark}
+Lemma~\ref{lem:quot} is used in the companion paper only for $x \ge 0$.
+\end{remark}
+
+\begin{thebibliography}{9}
+\bibitem{Nesbitt1903}
+A.~M. Nesbitt, Problem 15114, \emph{Educational Times} \textbf{55} (1903), 37.
+\end{thebibliography}
+
+\end{document}

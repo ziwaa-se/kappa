@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="262" style="background:#fff" viewBox="0 0 1000 262" role="img" aria-label="One result: pv-drafter writes the Lean statement, pv-gate checks it against the paper and sends it back on FAIL, pv-prover proves it along the paper's route, pv-auditor audits the proof and assigns verified unconditionally or conditionally; a step the paper does not justify goes to pv-issue-checker and an independent review, and a confirmed problem becomes an issue; anything else stops as unfinished with a reason." font-family="IBM Plex Sans, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+      <defs>
+        <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16201C"/></marker>
+        <marker id="ar2r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B24E26"/></marker>
+      </defs>
+      <g font-size="12">
+        <rect x="16" y="58" width="106" height="52" rx="6" fill="#E6ECE9" stroke="#D3DCD8"/>
+        <text x="28" y="80" font-weight="600" fill="#16201C">Paper</text><text x="28" y="97" font-size="11" fill="#56655E">statement + proof</text>
+
+        <rect x="152" y="58" width="120" height="52" rx="6" fill="#FFFFFF" stroke="#16201C"/>
+        <text x="164" y="80" font-weight="600" fill="#1D7555">pv-drafter</text><text x="164" y="97" font-size="11" fill="#16201C">steps left open</text>
+
+        <rect x="302" y="58" width="120" height="52" rx="6" fill="#FFFFFF" stroke="#16201C"/>
+        <text x="314" y="80" font-weight="600" fill="#1D7555">pv-gate</text><text x="314" y="97" font-size="11" fill="#16201C">matches the paper?</text>
+
+        <rect x="452" y="58" width="120" height="52" rx="6" fill="#FFFFFF" stroke="#16201C"/>
+        <text x="464" y="80" font-weight="600" fill="#1D7555">pv-prover</text><text x="464" y="97" font-size="11" fill="#16201C">paper's route only</text>
+
+        <rect x="602" y="58" width="110" height="52" rx="6" fill="#FFFFFF" stroke="#16201C"/>
+        <text x="614" y="80" font-weight="600" fill="#1D7555">pv-auditor</text><text x="614" y="97" font-size="11" fill="#16201C">final audit</text>
+
+        <rect x="452" y="176" width="120" height="52" rx="6" fill="#FFFFFF" stroke="#B24E26" stroke-dasharray="4 3"/>
+        <text x="464" y="198" font-weight="600" font-size="11.5" fill="#B24E26">pv-issue-checker</text><text x="464" y="215" font-size="11" fill="#16201C">classifies the gap</text>
+
+        <rect x="602" y="176" width="110" height="52" rx="6" fill="#FFFFFF" stroke="#B24E26" stroke-dasharray="4 3"/>
+        <text x="614" y="198" font-weight="600" fill="#B24E26">pv-auditor</text><text x="614" y="215" font-size="11" fill="#16201C">second opinion</text>
+      </g>
+
+      <!-- verdict panel -->
+      <rect x="800" y="30" width="184" height="212" rx="8" fill="#FFFFFF" stroke="#D3DCD8"/>
+      <text x="812" y="50" font-size="10.5" font-weight="600" letter-spacing="1.1" fill="#56655E">VERDICT</text>
+      <g font-size="12">
+        <rect x="812" y="60" width="6" height="36" fill="#1D7555"/>
+        <text x="826" y="75" font-weight="600" fill="#16201C">Verified, unconditional</text><text x="826" y="90" font-size="10.5" fill="#56655E">no unproved inputs</text>
+        <rect x="812" y="104" width="6" height="36" fill="#2F66A3"/>
+        <text x="826" y="119" font-weight="600" fill="#16201C">Verified, conditional</text><text x="826" y="134" font-size="10.5" fill="#56655E">rests on listed citations</text>
+        <rect x="812" y="148" width="6" height="36" fill="#B24E26"/>
+        <text x="826" y="163" font-weight="600" fill="#16201C">Issue recorded</text><text x="826" y="178" font-size="10.5" fill="#56655E">confirmed paper problem</text>
+        <rect x="812" y="192" width="6" height="36" fill="#7F8B86"/>
+        <text x="826" y="207" font-weight="600" fill="#16201C">Unfinished</text><text x="826" y="222" font-size="10.5" fill="#56655E">stopped, reason recorded</text>
+      </g>
+
+      <g stroke="#16201C" fill="none" marker-end="url(#ar2)">
+        <line x1="122" y1="84" x2="150" y2="84"/>
+        <line x1="272" y1="84" x2="300" y2="84"/>
+        <line x1="422" y1="84" x2="450" y2="84"/>
+        <line x1="572" y1="84" x2="600" y2="84"/>
+        <path d="M 712 76 L 808 78"/>
+        <path d="M 712 92 L 808 120"/>
+      </g>
+      <text x="437" y="76" font-size="10.5" fill="#56655E" text-anchor="middle">PASS</text>
+      <text x="587" y="76" font-size="10.5" fill="#56655E" text-anchor="middle">builds</text>
+      <text x="752" y="70" font-size="10.5" fill="#56655E" text-anchor="middle">PASS</text>
+      <!-- gate fail loop -->
+      <path d="M 362 58 C 362 22, 212 22, 212 56" fill="none" stroke="#16201C" stroke-dasharray="4 3" marker-end="url(#ar2)"/>
+      <text x="287" y="24" font-size="10.5" fill="#56655E" text-anchor="middle">FAIL · redraft (at most twice)</text>
+      <!-- issue branch -->
+      <line x1="512" y1="110" x2="512" y2="174" stroke="#B24E26" stroke-dasharray="4 3" marker-end="url(#ar2r)"/>
+      <text x="518" y="140" font-size="10.5" fill="#B24E26">step not</text>
+      <text x="518" y="153" font-size="10.5" fill="#B24E26">justified by paper</text>
+      <line x1="572" y1="202" x2="600" y2="202" stroke="#B24E26" stroke-dasharray="4 3" marker-end="url(#ar2r)"/>
+      <path d="M 712 194 L 808 166" fill="none" stroke="#B24E26" stroke-dasharray="4 3" marker-end="url(#ar2r)"/>
+      <text x="742" y="174" font-size="10.5" fill="#B24E26" text-anchor="middle">confirmed</text>
+      <path d="M 712 216 L 808 212" fill="none" stroke="#56655E" stroke-dasharray="4 3" marker-end="url(#ar2)"/>
+      <text x="756" y="234" font-size="10.5" fill="#56655E" text-anchor="middle">not confirmed</text>
+    </svg>
