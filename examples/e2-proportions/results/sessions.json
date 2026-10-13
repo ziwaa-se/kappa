@@ -1,0 +1,65 @@
+[
+ {
+  "file": "session_1.json",
+  "total_cost_usd": 0.3240798,
+  "num_turns": 15,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-12T21:41:53",
+  "ended": "2026-10-12T21:43:04"
+ },
+ {
+  "file": "session_2.json",
+  "total_cost_usd": 5.4965741,
+  "num_turns": 6,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-12T21:43:04",
+  "ended": "2026-10-12T22:15:40"
+ },
+ {
+  "file": "session_3.json",
+  "total_cost_usd": 5.929993000000002,
+  "num_turns": 5,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-12T22:15:41",
+  "ended": "2026-10-12T22:48:40"
+ },
+ {
+  "file": "session_4.json",
+  "total_cost_usd": 0.6302306,
+  "num_turns": 6,
+  "is_error": true,
+  "terminal_reason": "api_error",
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-12T22:48:41",
+  "ended": "2026-10-12T22:51:07"
+ },
+ {
+  "file": "session_5.json",
+  "total_cost_usd": 2.3612328,
+  "num_turns": 54,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-13T01:05:00",
+  "ended": "2026-10-13T01:10:21"
+ }
+]

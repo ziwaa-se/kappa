@@ -1,0 +1,5 @@
+{"_paper": "E3 The oracle risk of linear shrinkage, round 1; see ANSWER_KEY.md",
+ "2.1": {"expect": ["UNCONDITIONAL"]},
+ "2.2": {"expect": ["ISSUE:PAPER_ARGUMENT_GAP"]},
+ "2.3": {"expect": ["CONDITIONAL:iv"]},
+ "2.4": {"expect": ["UNCONDITIONAL"], "accept": ["CONDITIONAL:iv"]}}

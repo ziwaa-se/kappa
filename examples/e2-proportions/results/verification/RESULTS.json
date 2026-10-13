@@ -1,0 +1,347 @@
+{
+  "_comment": "Machine-readable state (kit v1.3.1; optional fields models_used, tier, session_budget_usd, uses_defs, recheck, history may appear). pv-architect fills 'results' at /pv-setup; the coordinator keeps it current. The _example_* entries show every field and are ignored by the scripts. Field meanings: verification/rules/PIPELINE.md (stage/reason table, naming) and VERDICTS.md. Check with: python3 scripts/pv_status.py validate",
+  "paper": {
+    "title": "Variance bounds for proportions and sums",
+    "main_tex": "source/main.tex",
+    "pdf": "source/main.pdf",
+    "numbering_basis": "main.aux \\newlabel"
+  },
+  "lean": {
+    "toolchain": "leanprover/lean4:v4.19.0",
+    "mathlib_rev": "",
+    "packages": "linked; mathlib modules compiled: 6305 of 6305",
+    "pvtools_sha256": "445fe54fd278873b57a4b2e1af82a7e7d49447d8bb4fa5c13b23cbece65197ad"
+  },
+  "run_scope": [
+    "L03",
+    "P02",
+    "P03"
+  ],
+  "defs": [
+    {
+      "id": "DEFS",
+      "file": "pv_work/Defs.lean",
+      "gate": "verification/audits/DEFS_gate.md",
+      "built": true
+    }
+  ],
+  "results": [
+    {
+      "id": "L01",
+      "pdf_number": "2.1",
+      "kind": "Lemma",
+      "title": "quarter bound",
+      "label": "lem:quarter",
+      "statement_loc": "source/main.tex:38-40",
+      "proof_loc": "source/main.tex:42-45",
+      "depends_on": [],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "UNCONDITIONAL",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/L01_gate.md",
+        "final": "verification/audits/L01_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D04"
+      ],
+      "updated": "2026-10-12 22:09",
+      "lean_main": "pv_work/L01.lean:21 Paper.L01.L01_main",
+      "summary_en": "Lemma 2.1 verified unconditionally.",
+      "models_used": [
+        "sonnet",
+        "opus"
+      ]
+    },
+    {
+      "id": "L02",
+      "pdf_number": "2.2",
+      "kind": "Lemma",
+      "title": "positivity of variance",
+      "label": "lem:positive",
+      "statement_loc": "source/main.tex:47-49",
+      "proof_loc": "source/main.tex:51-53",
+      "depends_on": [],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B1"
+      ],
+      "evidence": {
+        "gate": "verification/audits/L02_gate.md",
+        "final": "verification/audits/L02_final.md",
+        "issues": [
+          "verification/audits/L02_issue_1.md"
+        ]
+      },
+      "uses_defs": [
+        "D01",
+        "D03",
+        "D04"
+      ],
+      "updated": "2026-10-12 22:13",
+      "partial": "Verified unconditionally under the open reading I=(0,1); false under the closed reading.",
+      "lean_main": "pv_work/L02.lean:17 Paper.L02.L02_main",
+      "summary_en": "Lemma 2.2 proved for I=(0,1); I open/closed not stated and the lemma is false on [0,1] at p=0,1 (DOMAIN_CLARIFICATION).",
+      "models_used": [
+        "sonnet",
+        "opus"
+      ]
+    },
+    {
+      "id": "P01",
+      "pdf_number": "2.3",
+      "kind": "Proposition",
+      "title": "midpoint concavity of sqrt",
+      "label": "prop:concave",
+      "statement_loc": "source/main.tex:55-58",
+      "proof_loc": "source/main.tex:60-63",
+      "depends_on": [],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "UNCONDITIONAL",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/P01_gate_r2.md",
+        "final": "verification/audits/P01_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D03",
+        "D04"
+      ],
+      "updated": "2026-10-12 22:15",
+      "lean_main": "pv_work/P01.lean:60 Paper.P01.P01_main",
+      "summary_en": "Proposition 2.3 verified unconditionally (I read as [0,1]; concavity of sqrt(p(1-p)) derived from mathlib).",
+      "models_used": [
+        "sonnet",
+        "opus"
+      ]
+    },
+    {
+      "id": "L03",
+      "pdf_number": "2.4",
+      "kind": "Lemma",
+      "title": "linear bound",
+      "label": "lem:linear",
+      "statement_loc": "source/main.tex:65-67",
+      "proof_loc": "source/main.tex:69-71",
+      "depends_on": [
+        "L01"
+      ],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B3"
+      ],
+      "evidence": {
+        "gate": "verification/audits/L03_gate.md",
+        "issues": [
+          "verification/audits/L03_issue_1.md"
+        ],
+        "final": "verification/audits/L03_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D03",
+        "D04"
+      ],
+      "updated": "2026-10-12 22:48",
+      "partial": "S1 (application of Lemma 2.1) and assembly verified modulo the S2 gap; S2 (main.tex:70) is false.",
+      "lean_main": "pv_work/L03ModGaps.lean:18 Paper.L03.L03_main_mod_gaps",
+      "summary_en": "Lemma 2.4 is false as printed (n=1, p=1/10); step main.tex:70 does not follow from Lemma 2.1 (ERROR).",
+      "gaps": [
+        "L03_S2_Gap"
+      ],
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "P02",
+      "pdf_number": "2.5",
+      "kind": "Proposition",
+      "title": "uniform bound in n",
+      "label": "prop:uniform",
+      "statement_loc": "source/main.tex:73-75",
+      "proof_loc": "source/main.tex:77-79",
+      "depends_on": [
+        "L01"
+      ],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "UNCONDITIONAL",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/P02_gate.md",
+        "final": "verification/audits/P02_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D04"
+      ],
+      "updated": "2026-10-12 22:22",
+      "lean_main": "pv_work/P02.lean:23 Paper.P02.P02_main",
+      "summary_en": "Proposition 2.5 verified unconditionally (C=1/4 via Lemma 2.1).",
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "P03",
+      "pdf_number": "2.6",
+      "kind": "Proposition",
+      "title": "sample variance of sum",
+      "label": "prop:sum",
+      "statement_loc": "source/main.tex:81-83",
+      "proof_loc": "source/main.tex:85-88",
+      "depends_on": [],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B2"
+      ],
+      "evidence": {
+        "gate": "verification/audits/P03_gate.md",
+        "final": "verification/audits/P03_final.md",
+        "issues": [
+          "verification/audits/P03_issue_1.md"
+        ]
+      },
+      "uses_defs": [
+        "D02"
+      ],
+      "updated": "2026-10-12 22:29",
+      "partial": "S2 (nonnegativity step) and assembly verified modulo the S1 gap; S1 (main.tex:86) is false.",
+      "lean_main": "pv_work/P03ModGaps.lean:26 Paper.P03.P03_main_mod_gaps",
+      "summary_en": "Proposition 2.6: proof step main.tex:86 is false (missing cross term); conclusion not refuted (PAPER_ARGUMENT_GAP).",
+      "gaps": [
+        "P03_S1_Gap"
+      ],
+      "models_used": [
+        "sonnet"
+      ]
+    }
+  ],
+  "external_tools": [],
+  "source_defs": [
+    {
+      "id": "D01",
+      "name": "V_n(p) = p(1-p)/n",
+      "loc": "source/main.tex:26-29",
+      "label": "def:vp"
+    },
+    {
+      "id": "D02",
+      "name": "sample mean and sample variance s^2(u)",
+      "loc": "source/main.tex:31-34",
+      "label": "def:svar"
+    },
+    {
+      "id": "D03",
+      "name": "convention: I is the unit interval",
+      "loc": "source/main.tex:24-24"
+    },
+    {
+      "id": "D04",
+      "name": "convention: n >= 1 integer",
+      "loc": "source/main.tex:24-24"
+    }
+  ],
+  "_example_defs": {
+    "id": "DEFS",
+    "file": "pv_work/Defs.lean",
+    "gate": "verification/audits/DEFS_gate.md",
+    "built": true,
+    "_note": "use {\"id\": \"NONE\"} when the paper needs no shared definitions"
+  },
+  "_example_result": {
+    "id": "L01",
+    "pdf_number": "A.1",
+    "kind": "Lemma",
+    "title": "near-identity diffeomorphism",
+    "label": "lem:diffeo",
+    "statement_loc": "source/app.tex:7-9",
+    "proof_loc": "source/app.tex:10-16",
+    "depends_on": [],
+    "stage": "INVENTORIED",
+    "statement_fixed": false,
+    "round": 1,
+    "reason": "",
+    "verdict": "UNFINISHED",
+    "conditions": [],
+    "gaps": [],
+    "debts": [],
+    "unencoded": [],
+    "issues": [],
+    "upstream_issues": [],
+    "partial": "",
+    "lean_main": "pv_work/L01.lean:120 Paper.L01.main",
+    "evidence": {
+      "gate": "verification/audits/L01_gate.md",
+      "final": "verification/audits/L01_final.md",
+      "issues": [],
+      "reconnect": ""
+    },
+    "summary_en": "",
+    "updated": "YYYY-MM-DD HH:MM",
+    "uses_defs": [
+      "D01"
+    ]
+  },
+  "_example_tool": {
+    "id": "L02_L01Consumed",
+    "lean": "pv_work/L02Stmt.lean:12",
+    "meaning": "one-sentence statement read from the Lean definition",
+    "provenance": "i | ii | iii | iv | v | p (predecessor clause <ID>_<PredID>Consumed; set 'predecessor'). Gap hypotheses are NOT registered here (use the result's 'gaps')",
+    "predecessor": "L01",
+    "source_loc": "source/app.tex:171",
+    "consumers": [
+      "L09 (step S3)"
+    ],
+    "mathlib_search": "#check … / searched names …",
+    "human_check": "what exactly to check"
+  },
+  "_example_source_def": {
+    "id": "D01",
+    "name": "weighted negative Sobolev norm",
+    "loc": "source/sec_setting.tex:12-16",
+    "label": "def:hminus",
+    "_note": "one entry per defined object, with its own exact lines (v1.3.1)"
+  }
+}

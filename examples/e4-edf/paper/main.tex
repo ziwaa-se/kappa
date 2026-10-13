@@ -1,0 +1,76 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\title{Three facts about the empirical distribution function}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We collect an elementary property of the empirical distribution function of a sample, its almost sure uniform
+convergence, and the limit law of the Kolmogorov--Smirnov statistic.
+\end{abstract}
+
+\section{Setting}
+
+\begin{definition}\label{def:edf}
+For $n \ge 1$ and $x = (x_1, \dots, x_n) \in \mathbb{R}^n$, the \emph{empirical distribution function} is
+$F_n(t) = \frac1n \#\{ i : x_i \le t \}$ for $t \in \mathbb{R}$.
+\end{definition}
+
+When $X_1, X_2, \dots$ are random variables, $F_n$ denotes the empirical distribution function of
+$(X_1, \dots, X_n)$, and $D_n = \sup_{t \in \mathbb{R}} \lvert F_n(t) - F(t) \rvert$, where $F$ is the distribution
+function of $X_1$.
+
+\section{Results}
+
+\begin{lemma}\label{lem:steps}
+For every $x \in \mathbb{R}^n$, $F_n$ is nondecreasing, and $n F_n(t) \in \{0, 1, \dots, n\}$ for every
+$t \in \mathbb{R}$.
+\end{lemma}
+
+\begin{proof}
+If $s \le t$, every $i$ with $x_i \le s$ also satisfies $x_i \le t$, so $F_n(s) \le F_n(t)$. The number
+$n F_n(t)$ counts a subset of $\{1, \dots, n\}$.
+\end{proof}
+
+\begin{proposition}\label{prop:gc}
+If $X_1, X_2, \dots$ are independent and identically distributed, then $D_n \to 0$ almost surely.
+\end{proposition}
+
+\begin{proof}
+This is the Glivenko--Cantelli theorem.
+\end{proof}
+
+\begin{theorem}\label{thm:ks}
+If $X_1, X_2, \dots$ are independent and identically distributed with a continuous distribution function $F$, then
+$\sqrt{n}\, D_n$ converges in distribution to $\sup_{0 \le u \le 1} \lvert B(u) \rvert$, where $B$ is a Brownian
+bridge on $[0, 1]$. The limit has the distribution function
+$K(z) = 1 - 2 \sum_{k \ge 1} (-1)^{k-1} e^{-2 k^2 z^2}$ for $z > 0$.
+\end{theorem}
+
+\begin{proof}
+The convergence is Donsker's invariance principle for the empirical process \cite{donsker}, applied to the
+supremum, which is a continuous functional. The form of $K$ is due to Kolmogorov \cite{kolmogorov}.
+\end{proof}
+
+\begin{thebibliography}{2}
+\bibitem{donsker}
+M.~D. Donsker.
+\newblock Justification and extension of Doob's heuristic approach to the Kolmogorov--Smirnov theorems.
+\newblock \emph{Annals of Mathematical Statistics}, 23:277--281, 1952.
+\bibitem{kolmogorov}
+A.~N. Kolmogorov.
+\newblock Sulla determinazione empirica di una legge di distribuzione.
+\newblock \emph{Giornale dell'Istituto Italiano degli Attuari}, 4:83--91, 1933.
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,116 @@
+[
+ {
+  "file": "session_1.json",
+  "total_cost_usd": 0.35817049999999995,
+  "num_turns": 24,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-12T21:41:58",
+  "ended": "2026-10-12T21:43:17"
+ },
+ {
+  "file": "session_2.json",
+  "total_cost_usd": 5.432579700000001,
+  "num_turns": 7,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-12T21:43:17",
+  "ended": "2026-10-12T22:19:44"
+ },
+ {
+  "file": "session_3.json",
+  "total_cost_usd": 1.6528260000000001,
+  "num_turns": 29,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-12T22:19:44",
+  "ended": "2026-10-12T22:45:57"
+ },
+ {
+  "file": "session_4.json",
+  "total_cost_usd": 1.9769769999999998,
+  "num_turns": 36,
+  "is_error": true,
+  "terminal_reason": "api_error",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-12T22:45:58",
+  "ended": "2026-10-12T22:52:04"
+ },
+ {
+  "file": "session_5.json",
+  "total_cost_usd": 0.42841419999999997,
+  "num_turns": 47,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-13T01:04:59",
+  "ended": "2026-10-13T01:06:20"
+ },
+ {
+  "file": "session_6.json",
+  "total_cost_usd": 0.3452318,
+  "num_turns": 28,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-13T01:09:34",
+  "ended": "2026-10-13T01:10:39"
+ },
+ {
+  "file": "session_7.json",
+  "total_cost_usd": 3.537934799999999,
+  "num_turns": 8,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-13T01:10:39",
+  "ended": "2026-10-13T01:20:23"
+ },
+ {
+  "file": "session_8.json",
+  "total_cost_usd": 1.2506889000000003,
+  "num_turns": 8,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-13T01:20:24",
+  "ended": "2026-10-13T01:25:12"
+ },
+ {
+  "file": "session_9.json",
+  "total_cost_usd": 2.2647788000000006,
+  "num_turns": 75,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-13T01:25:13",
+  "ended": "2026-10-13T01:32:25"
+ }
+]

@@ -1,4 +1,4 @@
-# TeX Proof-Check Kit v1.3.1: quick start
+# TeX Proof-Check Kit v1.3.2: quick start
 
 The kit checks the proofs **already written** in a LaTeX paper. It translates them into Lean 4, compiles them, and gives each numbered result one of four verdicts. It never repairs a proof, never searches for a new one, and never edits the paper. (A repair mode is planned; see the README's Roadmap.)
 

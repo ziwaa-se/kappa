@@ -1,0 +1,109 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\title{Elementary bounds on the sample variance}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We collect elementary facts about the sample mean and the sample variance of a finite set of real observations:
+two identities, an upper bound for observations in a bounded interval, Samuelson's inequality, and a bound in
+terms of the raw second moment.
+\end{abstract}
+
+\section{Setting}
+
+Throughout, $n \ge 1$ is an integer and $x = (x_1, \dots, x_n) \in \mathbb{R}^n$.
+
+\begin{definition}\label{def:mean}
+The \emph{sample mean} of $x$ is $\bar x = \frac{1}{n} \sum_{i=1}^n x_i$.
+\end{definition}
+
+\begin{definition}\label{def:var}
+For $n \ge 2$, the \emph{sample variance} of $x$ is
+\[
+  s^2 = \frac{1}{n-1} \sum_{i=1}^n (x_i - \bar x)^2 ,
+\]
+and the \emph{sample standard deviation} is $s = \sqrt{s^2} \ge 0$.
+\end{definition}
+
+\section{Results}
+
+\begin{lemma}\label{lem:centred}
+$\sum_{i=1}^n (x_i - \bar x) = 0$.
+\end{lemma}
+
+\begin{proof}
+By the definition of $\bar x$, $\sum_{i=1}^n (x_i - \bar x) = \sum_{i=1}^n x_i - n \bar x = 0$.
+\end{proof}
+
+\begin{lemma}\label{lem:shortcut}
+$\sum_{i=1}^n (x_i - \bar x)^2 = \sum_{i=1}^n x_i^2 - n \bar x^2$.
+\end{lemma}
+
+\begin{proof}
+Expanding the square and using $\sum_{i=1}^n x_i = n \bar x$, we obtain the claim.
+\end{proof}
+
+\begin{proposition}\label{prop:popoviciu}
+Suppose that $n \ge 2$ and that $a \le x_i \le b$ for $i = 1, \dots, n$. Then
+\[
+  s^2 \le \frac{n}{n-1} \cdot \frac{(b-a)^2}{4} .
+\]
+\end{proposition}
+
+\begin{proof}
+Popoviciu's inequality on variances \cite{popoviciu} states that
+$\frac{1}{n} \sum_{i=1}^n (x_i - \bar x)^2 \le \frac{(b-a)^2}{4}$ whenever $x_1, \dots, x_n$ lie in $[a, b]$.
+Multiplying both sides by $\frac{n}{n-1}$ gives the claim.
+\end{proof}
+
+\begin{proposition}[Samuelson's inequality]\label{prop:samuelson}
+Suppose that $n \ge 2$. Then $|x_i - \bar x| \le \frac{n-1}{\sqrt{n}} \, s$ for every $i = 1, \dots, n$.
+\end{proposition}
+
+\begin{proof}
+Let $z_j = (x_j - \bar x)/s$ for $j = 1, \dots, n$. By Lemma~\ref{lem:centred}, $\sum_{j=1}^n z_j = 0$, and by
+the definition of $s^2$, $\sum_{j=1}^n z_j^2 = n - 1$. Fix $i$. Then $z_i = -\sum_{j \ne i} z_j$, so by the
+Cauchy--Schwarz inequality
+\[
+  z_i^2 \le (n-1) \sum_{j \ne i} z_j^2 = (n-1)\bigl(n - 1 - z_i^2\bigr) .
+\]
+Hence $n z_i^2 \le (n-1)^2$, that is, $|z_i| \le (n-1)/\sqrt{n}$. Multiplying by $s$ gives the claim.
+\end{proof}
+
+\begin{lemma}\label{lem:raw}
+Suppose that $n \ge 2$. Then $s^2 \le \frac{1}{n} \sum_{i=1}^n x_i^2$.
+\end{lemma}
+
+\begin{proof}
+By Lemma~\ref{lem:shortcut}, $(n-1) s^2 = \sum_{i=1}^n x_i^2 - n \bar x^2 \le \sum_{i=1}^n x_i^2$.
+Dividing by $n$ gives the claim.
+\end{proof}
+
+\begin{corollary}\label{cor:unit}
+Suppose that $n \ge 2$ and that $|x_i| \le 1$ for $i = 1, \dots, n$. Then $s^2 \le 2$.
+\end{corollary}
+
+\begin{proof}
+By Lemma~\ref{lem:raw}, $s^2 \le \frac{1}{n} \sum_{i=1}^n x_i^2 \le 1 \le 2$.
+\end{proof}
+
+\begin{thebibliography}{1}
+\bibitem{popoviciu}
+T.~Popoviciu.
+\newblock Sur les \'equations alg\'ebriques ayant toutes leurs racines r\'eelles.
+\newblock \emph{Mathematica (Cluj)}, 9:129--145, 1935.
+\end{thebibliography}
+
+\end{document}

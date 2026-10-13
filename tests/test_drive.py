@@ -184,6 +184,36 @@ class Driver(KitTestCase):
         self.assertEqual(p.returncode, 8, p.out)
         self.assertEqual(st["reason"], "report_incomplete")
 
+    def test_report_waits_when_its_agents_hit_the_limit(self):           # v1.3.2
+        pr = Project(self.tmp, results=[result("L01")])
+        cut = {"result": "The compiler agent terminated early due to a usage limit; the report is not done."}
+        report = {"files": {"verification/report/AUTHOR_REPORT.md": "report\n",
+                            "verification/report/work/factcheck.md": "factcheck\n"}}
+        p, st, fc = self.drive(pr, [passes("L01"), cut, report], "--report", "--auto-resume")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertEqual(st["reason"], "done_report")
+        self.assertEqual(len([l for l in p.out.splitlines() if l.startswith("SLEPT")]), 1, p.out)
+        self.assertEqual(len(fc.calls()), 3)
+
+    def test_invalid_records_get_one_resume_session(self):               # v1.3.2
+        pr = Project(self.tmp, results=[result("L01"), result("L02")])
+        broken = dict(passes("L01"), set={"L02": {"verdict": "ISSUE", "stage": "STOPPED"}})   # ISSUE without evidence
+        repair = {"set": {"L02": {"verdict": "UNFINISHED", "stage": "INVENTORIED"}}, "result": "reconciled",
+                  "run": ["python3 scripts/pv_status.py init-checklist --force"]}
+        p, st, fc = self.drive(pr, [broken, repair, passes("L02")], PV_BATCH="1")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertEqual(st["reason"], "done")
+        self.assertIn("pv-resume/SKILL.md", fc.prompts()[1])
+        self.assertIn("one resume session reconciles the records", p.out)
+
+    def test_records_still_invalid_after_the_resume_session_stop_the_driver(self):
+        pr = Project(self.tmp, results=[result("L01"), result("L02")])
+        broken = dict(passes("L01"), set={"L02": {"verdict": "ISSUE", "stage": "STOPPED"}})
+        p, st, fc = self.drive(pr, [broken, {"result": "could not reconcile"}], PV_BATCH="1")
+        self.assertEqual(p.returncode, 5, p.out)
+        self.assertEqual(st["reason"], "validate_failed")
+        self.assertEqual(len(fc.calls()), 2)
+
     def test_refused_kit_commands_stop_the_driver(self):                 # PENDING #2
         pr = Project(self.tmp, results=[result("L01")])
         claude_dir = self.tmp / "claude-home"

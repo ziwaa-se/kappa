@@ -41,6 +41,19 @@ The four steps took 57, 17, under 1, and 20 minutes ($34 in total at list price)
 
 A shorter example, [`examples/two-lemmas-demo`](examples/two-lemmas-demo/), has one lemma that is verified and one with a planted error. It takes about 22 minutes, and is the one to run first.
 
+### Examples with answer keys
+
+Four short papers were written to exercise every verdict and issue class, each with an answer key fixed before its
+run. Each folder has the paper, the key, the run's complete record and a README with the score, the cost and the time
+(v1.3.1, October 2026).
+
+| Example | What it tests | Verdicts as in the key, or an outcome it allows | Time, cost |
+|---|---|---|---|
+| [`e1-sample-variance`](examples/e1-sample-variance/) | a false lemma with a counterexample, a cited inequality, an uncovered case, a corollary built on the false lemma | 5 of 6 (the sixth: the kit found a second, real gap) | 82 min, $14.54 |
+| [`e2-proportions`](examples/e2-proportions/) | an ambiguous interval, a "well known" fact, a false lemma, quantifier order, a step needing a missing hypothesis | 5 of 6 | 75 min, $14.74 |
+| [`e3-shrinkage`](examples/e3-shrinkage/) | an argument gap in a true lemma, an inherited condition, then a revision through `/pv-revise` | 4 of 4, and all verified after the revision | 71 + 23 min, $17.25 |
+| [`e4-edf`](examples/e4-edf/) | the edge of Mathlib: a named but unproved theorem, a statement that needs a Brownian bridge | 3 of 3 | 81 min, $14.32 |
+
 ## How it works
 
 ![Workflow](docs/diagrams/workflow-overview.png)
@@ -160,7 +173,9 @@ tex-proof-check-kit/
 ├── docs/                     GUIDE_EN, QUICKSTART, CHEATSHEET, MANUAL, diagrams/, lean-demo/
 ├── examples/
 │   ├── full-workflow/        every verdict, a revision and a human check: the real output of one run
-│   └── two-lemmas-demo/      a 20-minute example to try first
+│   ├── two-lemmas-demo/      a 20-minute example to try first
+│   ├── e1-…, e2-…, e3-…, e4-…  four papers with answer keys fixed before their runs, and the runs' records
+│   └── tools/                replay a run offline, score it against a key, audit a blind run, sanitize a record
 ├── bench/                    benchmark paper, answer key, runner and measured results
 └── tests/                    offline tests of the scripts; Lean integration tests with PV_TEST_LEAN_ENV
 ```

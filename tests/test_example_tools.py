@@ -3,7 +3,7 @@ addresses) and examples/tools/blind_audit.py (no access to the answer key or the
 import json
 import re
 
-from helpers import KIT, PY, KitTestCase, Project, result, run
+from helpers import KIT, PY, KitTestCase, Project, result, run, tool
 
 TOOLS = KIT / "examples" / "tools"
 
@@ -17,6 +17,15 @@ class Sanitize(KitTestCase):
         text = (self.tmp / "out/verification/audits/L01_gate.md").read_text()
         self.assertEqual(text, "read <project>/source/main.tex as <user>\nSTATEMENT GATE: PASS\n")
         self.assertTrue((self.tmp / "out/verification/RESULTS.json").exists())
+
+    def test_revision_archives_are_copied(self):
+        pr = Project(self.tmp, results=[result("L01")])
+        pr.write("verification/audits/rev2/L01_final.md", "FINAL AUDIT: PASS\n")
+        pr.write("pv_work/superseded/rev2/L01.lean", "theorem x : True := trivial\n")
+        p = run([PY, str(TOOLS / "sanitize.py"), str(pr.root), str(self.tmp / "out")], cwd=self.tmp)
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertTrue((self.tmp / "out/verification/audits/rev2/L01_final.md").exists())
+        self.assertTrue((self.tmp / "out/pv_work/superseded/rev2/L01.lean").exists())
 
     def test_email_addresses_stop_the_copy(self):
         pr = Project(self.tmp, results=[result("L01")])
@@ -54,3 +63,33 @@ class BlindAudit(KitTestCase):
         p = self.audit(pr)
         self.assertEqual(p.returncode, 1)
         self.assertIn("3 tool calls touched", p.out)
+
+
+class Score(KitTestCase):
+    def test_scores_against_a_key(self):
+        pr = Project(self.tmp, results=[result("L01", pdf_number="2.1"), result("L02", pdf_number="2.2"),
+                                        result("P01", pdf_number="2.3")], tools=[tool("T1", "i")])
+        pr.make_passed("L01")
+        pr.make_passed("P01", verdict="CONDITIONAL", conditions=["T1"])
+        key = self.tmp / "key.json"
+        key.write_text(json.dumps({"2.1": {"expect": ["UNCONDITIONAL"]}, "2.2": {"expect": ["ISSUE:ERROR"]},
+                                   "2.3": {"expect": ["CONDITIONAL:ii"], "accept": ["CONDITIONAL:i"]},
+                                   "2.4": {"expect": ["UNCONDITIONAL"]}}))
+        p = run([PY, str(TOOLS / "score.py"), str(pr.root), str(key)], cwd=self.tmp)
+        self.assertEqual(p.returncode, 1, p.out)
+        self.assertIn("| 2.1 | L01 | UNCONDITIONAL | UNCONDITIONAL | agrees |", p.out)
+        self.assertIn("| 2.2 | L02 | ISSUE:ERROR | UNFINISHED | differs |", p.out)
+        self.assertIn("| 2.3 | P01 | CONDITIONAL:ii | CONDITIONAL:i | accepted |", p.out)
+        self.assertIn("| 2.4 | — | UNCONDITIONAL | not registered | missing |", p.out)
+
+    def test_predecessor_clause_of_an_issue_counts_as_iv(self):
+        pr = Project(self.tmp, results=[result("L01", pdf_number="2.1"), result("C01", pdf_number="2.2")],
+                     tools=[dict(tool("C01_L01Consumed", "p"), predecessor="L01")])
+        pr.make_passed("C01", verdict="CONDITIONAL", conditions=["C01_L01Consumed"])
+        state = json.loads((pr.root / "verification/RESULTS.json").read_text())
+        state["results"][0].update(verdict="ISSUE", stage="STOPPED", issues=["B1"])
+        (pr.root / "verification/RESULTS.json").write_text(json.dumps(state))
+        key = self.tmp / "key.json"
+        key.write_text(json.dumps({"2.2": {"expect": ["CONDITIONAL:iv"]}}))
+        p = run([PY, str(TOOLS / "score.py"), str(pr.root), str(key)], cwd=self.tmp)
+        self.assertIn("| 2.2 | C01 | CONDITIONAL:iv | CONDITIONAL:iv, CONDITIONAL:p | agrees |", p.out)

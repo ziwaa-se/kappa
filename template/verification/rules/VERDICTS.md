@@ -84,7 +84,7 @@ A suspected issue that review failed to confirm (`ISSUE_UNCONFIRMED`) is also un
 
 | Code | Meaning |
 |---|---|
-| `FAIR_IMPLICIT_STEP` | A step a competent reader would routinely fill in. Adopt it as usual, and state how it is filled in |
+| `FAIR_IMPLICIT_STEP` | A step a competent reader would routinely fill in. Adopt it as usual, and state how it is filled in. Not for a fact the source asserts as known: that is a (ii) input (§4.1) |
 | `EDITORIAL` | Typos, inconsistent notation, ordering problems |
 
 ### 2.3 Formalization side (**mistakes made in writing the proof in Lean, or inability to write it**; never a paper issue)
@@ -132,6 +132,8 @@ Mathematical content that the source uses but that this project does not prove i
 | (iv) | A clause of one of the source's own lemmas, where that lemma's proof has a recorded issue. Set `predecessor` to that lemma's ID: if a revision resolves the issue and the lemma is verified, the clause is reconnected like a (p) clause (`PIPELINE.md` stage 6b; v1.3.1) |
 | (v) | A standard fact with no interface in the pinned mathlib |
 | (p) | A **consumed clause** of a predecessor result in the paper, used while the predecessor is not yet fully proved, named `<ID>_<PredID>Consumed`. Once the predecessor passes the final audit, it must be reconnected (`PIPELINE.md` stage 6b); if the predecessor ends up ISSUE or UNFINISHED, it counts as (iv) |
+
+**Asserted facts stay inputs (v1.3.2).** A fact that the source states explicitly and justifies only by calling it known ("it is well known that …", "by the classical …", "a standard result") is a (ii) input (or (i) when cited), **even when mathlib proves it**. Do not discharge it as a `FAIR_IMPLICIT_STEP`: the reader of the report must see that the paper asserts it without an argument. When mathlib proves it, say so in the input's `human_check` ("also provable from mathlib: `<lemma>`") and in the report's observations; the result stays CONDITIONAL. `FAIR_IMPLICIT_STEP` is for steps the source does not state at all, or states as an evident consequence of what it has just written.
 
 A **gap hypothesis** `<ID>_S<k>_Gap` is not an external input. It appears only in `<ID>ModGaps.lean`, is recorded in the result's `gaps` field, and is **not** registered in `external_tools`.
 

@@ -1,0 +1,7 @@
+{"_paper": "E2 Variance bounds for proportions and sums; see ANSWER_KEY.md",
+ "2.1": {"expect": ["UNCONDITIONAL"]},
+ "2.2": {"expect": ["ISSUE:DOMAIN_CLARIFICATION"], "accept": ["ISSUE:ERROR", "UNCONDITIONAL"]},
+ "2.3": {"expect": ["CONDITIONAL:ii"], "accept": ["CONDITIONAL:v"]},
+ "2.4": {"expect": ["ISSUE:ERROR"]},
+ "2.5": {"expect": ["UNCONDITIONAL"]},
+ "2.6": {"expect": ["ISSUE:PAPER_ASSUMPTION_GAP", "ISSUE:PAPER_ARGUMENT_GAP"]}}

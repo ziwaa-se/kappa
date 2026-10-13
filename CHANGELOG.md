@@ -8,6 +8,38 @@ Not yet available; see the README's [Roadmap](README.md#roadmap). This version o
 - **Completing unfinished steps:** an optional, longer proof search for steps stopped by formalization difficulty.
 - **Closing conditions automatically** when a cited result is available in Mathlib.
 
+## v1.3.2 (2026-10-13)
+
+Fixes for five problems found while running the examples and the published case studies on v1.3.1.
+
+- **The driver waits out a usage limit that interrupts the report.** When agents of the report session hit the
+  limit and the report is missing, `pv_drive.sh --report` sleeps until the reset and makes the report again, instead
+  of stopping with `report_incomplete` (in v1.3.1 the report-mode loop treated `limit_in_agents` as progress).
+- **The driver repairs records left half-written by an interrupted session.** If `validate` is not VALID at the
+  start of a loop iteration, the driver runs one resume session (the reconcile steps of `/pv-resume`) and validates
+  again; it stops with `validate_failed` only if the records are still not VALID.
+- **A renamed main file is a new version, not a different paper.** `source-check` recognises a new `.tex` file with
+  the same title as the missing main file (arXiv `paper_v2.tex` → `paper_v3.tex`) and reports CHANGED with "main file
+  renamed"; `defs-changed` follows the rename; new command `pv_status.py set-main source/<file>.tex`; `/pv-revise`
+  says what to do.
+- **Asserted facts stay inputs.** A fact the paper asserts as known ("well known", "classical", "standard") is an
+  input of provenance (ii), or (i) if cited, even when Mathlib proves it; it is no longer discharged as a
+  `FAIR_IMPLICIT_STEP` (VERDICTS §4.1, and the drafter, gate, auditor and issue-checker cards). The report notes when
+  Mathlib proves it.
+- **The cascade ignores auxiliary definitions a rewritten proof no longer needs.** A definition that disappears from
+  a re-gated statement file does not count as a changed statement when the dependents' Lean files never mention it,
+  so the dependents are rebuilt instead of redone. Changed definitions still count.
+- Tests for all five (driver scenarios with the fake `claude`, record keeping, renamed main files).
+
+### Example tools
+
+- `examples/tools/score.py` scores a finished run against an answer key written before the run (JSON; agrees / accepted alternative / found with another class / differs / missing).
+  A (p) clause whose predecessor ended as an issue counts as (iv), as the rules treat it in the report.
+- `examples/tools/sanitize.py` also copies the records of earlier revisions (archived audits and reports, superseded
+  Lean files, the records kept before each revision), the driver's log, and the end time of each session.
+- Four new examples with answer keys fixed before their runs, and the complete records of those runs (v1.3.1):
+  `examples/e1-sample-variance`, `e2-proportions`, `e3-shrinkage` (with a revision round) and `e4-edf`.
+
 ## v1.3.1 (2026-10-12)
 
 Fixes and improvements from using v1.3 on longer, unattended runs and on revisions. Each problem was first reproduced on v1.3, then fixed and covered by a test (`tests/`, new in this version). Projects made with v1.3 upgrade with `install.sh <project> --upgrade`; then copy the new `settings.example.json` over `settings.json` if you agree with it (MANUAL, section 2, step 4).

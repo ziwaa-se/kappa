@@ -1,0 +1,33 @@
+[21:41] session 1 (sonnet, cap $30): 
+You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful cho...
+  -> cost $0.32, turns 15, completed
+  NOTE: Claude Code reports this folder as not trusted. The driver passes the permission file with --settings;
+        if kit commands are refused, open the folder once in Claude Code interactively and accept the trust dialog.
+  permission denials in session 1: 2 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_1.json)
+[21:43] session 2 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $5.50, turns 6, completed
+  permission denials in session 2: 7 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_2.json)
+[22:15] session 3 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $5.93, turns 5, completed
+Nothing left to start: every result has a verdict or a recorded reason.
+[22:48] session 4 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $0.63, turns 6, ERROR api_error
+[22:51] usage limit reached (session 4, resets 2026-10-13 01:00 (America/Indianapolis)); sleeping 8032s, then continuing (wait 1 of at most 20)
+[01:05] continuing after the usage-limit wait
+[01:05] session 5 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $2.36, turns 54, completed
+  permission denials in session 5: 6 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_5.json)
+## Verification progress — Variance bounds for proportions and sums (2026-10-13 01:10)
+
+**6 numbered results: 3 verified (unconditional) · 0 verified (conditional) · 3 issue recorded · 0 unfinished.**
+
+| No. | ID | Result | Verdict | Stage | Conditions / issues / where stopped |
+|---|---|---|---|---|---|
+| 2.1 | L01 | Lemma quarter bound | Verified (unconditional) | FINAL_PASSED | Lemma 2.1 verified unconditionally. |
+| 2.2 | L02 | Lemma positivity of variance | Issue recorded | STOPPED | Lemma 2.2 proved for I=(0,1); I open/closed not stated and the lemma is false on [0,1] at p=0,1 (DOMAIN_CLARIFICATION). |
+| 2.3 | P01 | Proposition midpoint concavity of sqrt | Verified (unconditional) | FINAL_PASSED | Proposition 2.3 verified unconditionally (I read as [0,1]; concavity of sqrt(p(1-p)) derived from mathlib). |
+| 2.4 | L03 | Lemma linear bound | Issue recorded | STOPPED | Lemma 2.4 is false as printed (n=1, p=1/10); step main.tex:70 does not follow from Lemma 2.1 (ERROR). |
+| 2.5 | P02 | Proposition uniform bound in n | Verified (unconditional) | FINAL_PASSED | Proposition 2.5 verified unconditionally (C=1/4 via Lemma 2.1). |
+| 2.6 | P03 | Proposition sample variance of sum | Issue recorded | STOPPED | Proposition 2.6: proof step main.tex:86 is false (missing cross term); conclusion not refuted (PAPER_ARGUMENT_GAP). |
+
+DRIVER STOPPED: done_report — the report is in verification/report/ (AUTHOR_REPORT.md, EXTERNAL_TOOLS_WORKSHEET.md, FILES_TO_CHECK.md)

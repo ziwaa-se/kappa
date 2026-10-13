@@ -153,6 +153,26 @@ class Revision(KitTestCase):
         self.assertNotIn("recheck", self.pr.result("D01"))
         self.assertEqual(self.pr.result("D01")["evidence"]["recheck"], "verification/audits/D01_recheck.md")
 
+    def test_dropped_auxiliary_definition_asks_only_for_a_recheck(self):
+        # v1.3.2: the old proof needed an auxiliary definition in the statement file; the rewritten one does not
+        self.pr.write("verification/audits/P01_gate.md", gate_report("P01", {"Conclusion": "100", "Hyp": "200",
+                                                                             "harmonicMean": "300"}))
+        self.pr.write("pv_work/D01Stmt.lean", "def D01Consumed : Prop := Paper.P01.Conclusion\n")
+        self.pr.status("reset", "P01", "--revision", "2")
+        p = self.regate({"Conclusion": "100", "Hyp": "200"})
+        self.assertIn("gated statement unchanged", p.out)
+        self.assertIn("dropped, unused by dependents: harmonicMean", p.out)
+        self.assertEqual(self.pr.result("D01")["recheck"]["kind"], "rebuild")
+
+    def test_dropped_definition_used_by_a_dependent_counts_as_a_change(self):
+        self.pr.write("verification/audits/P01_gate.md", gate_report("P01", {"Conclusion": "100", "Hyp": "200",
+                                                                             "harmonicMean": "300"}))
+        self.pr.write("pv_work/D01.lean", "theorem t : Paper.P01.harmonicMean 1 1 = 1 := by sorry\n")
+        self.pr.status("reset", "P01", "--revision", "2")
+        p = self.regate({"Conclusion": "100", "Hyp": "200"})
+        self.assertIn("gated statement changed", p.out)
+        self.assertEqual(self.pr.result("D01")["verdict"], "UNFINISHED")
+
     def test_changed_statement_resets_the_dependents_one_level(self):
         self.pr.status("reset", "P01", "--revision", "2")
         p = self.regate({"Conclusion": "101", "Hyp": "200"})
@@ -190,3 +210,37 @@ class Definitions(KitTestCase):
     def test_unknown_definition_ids_are_errors(self):
         pr = Project(self.tmp, results=[result("P01", uses_defs=["D09"])])
         self.assertIn("uses_defs D09 is not in source_defs", pr.status("validate").out)
+
+
+class RenamedMain(KitTestCase):
+    """v1.3.2: a revision that renames the main file (arXiv v2 -> v3) is a new version, not a different paper."""
+
+    def setUp(self):
+        super().setUp()
+        self.pr = Project(self.tmp, results=[result("L01", uses_defs=["D01"])])
+        d = self.pr.state()
+        d["paper"] = dict(d.get("paper") or {}, main_tex="source/paper_v2.tex")
+        d["source_defs"] = [{"id": "D01", "loc": "source/paper_v2.tex:3-3", "name": "norm"}]
+        self.pr.write_state(d)
+        self.old = "\\documentclass{article}\\title{Valid inference}\n\\begin{document}\nLet $N = 1$.\n\\end{document}\n"
+        for where in ("source", "verification/source_baseline"):
+            self.pr.write(f"{where}/paper_v2.tex", self.old)
+        (self.pr.root / "source/paper_v2.tex").unlink()
+
+    def test_same_title_is_a_new_version(self):
+        self.pr.write("source/paper_v3.tex", self.old.replace("\\end{document}", "A new remark.\n\\end{document}"))
+        p = self.pr.status("source-check")
+        self.assertIn("SOURCE CHANGED", p.out)
+        self.assertIn("main file renamed: source/paper_v2.tex -> source/paper_v3.tex", p.out)
+        p = self.pr.status("defs-changed")
+        self.assertIn("UNCHANGED", p.out)
+        self.assertIn("source/paper_v3.tex:3-3", p.out)
+        p = self.pr.status("set-main", "source/paper_v3.tex")
+        self.assertEqual(p.returncode, 0, p.out)
+        paper = self.pr.state()["paper"]
+        self.assertEqual(paper["main_tex"], "source/paper_v3.tex")
+        self.assertEqual(paper["previous_main_tex"], ["source/paper_v2.tex"])
+
+    def test_other_title_is_a_different_paper(self):
+        self.pr.write("source/paper_v3.tex", self.old.replace("Valid inference", "Another paper"))
+        self.assertIn("DIFFERENT PAPER", self.pr.status("source-check").out)

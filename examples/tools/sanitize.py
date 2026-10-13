@@ -5,11 +5,12 @@ e-mail addresses. Used to publish the kit's examples; run it yourself.
 Usage: python3 examples/tools/sanitize.py <project> <dest>/results [--allow-email noreply.github.com]
 
 Copies verification/ records, audits and the report, the pv_work Lean files of the results (not PVTools.lean, not
-probes), the driver's session summaries (cost, turns, models; not the full JSON), and a token report from
+probes), the records of earlier revisions (archived audits and reports, superseded Lean files, the records before each revision), the driver's log, the driver's session summaries (cost, turns, models; not the full JSON), and a token report from
 pv_usage.py. In every text file the project path becomes `<project>`, the home folder `~` and the user name
 `<user>`. Stops without writing anything if an e-mail address remains that is not allowed.
 """
 import argparse
+import datetime
 import json
 import os
 import re
@@ -23,7 +24,16 @@ COPY = ["verification/RESULTS.json", "verification/PAPER_VERIFICATION.md", "veri
         "verification/EXTERNAL_TOOLS.md", "verification/AUDIT.md", "verification/INVENTORY.md",
         "verification/DOC_ERRATA.md"]
 TREES = [("verification/audits", "*.md"), ("verification/report", "*.md"), ("verification/report/work", "factcheck*.md"),
-         ("verification/report/work", "AUTHOR_REPORT_v1.md")]
+         ("verification/report/work", "AUTHOR_REPORT_v1.md"),
+         # records of earlier revisions: archived audits, earlier reports and the superseded Lean files
+         ("verification/audits", "rev*/*.md"), ("verification/report_archive", "*/*.md"),
+         ("verification/report_archive", "*/work/factcheck*.md"), ("pv_work/superseded", "rev*/*.lean"),
+         ("pv_work/superseded", "rev*/README.md"),
+         # the driver's own log (session start times, usage-limit waits, the stop reason)
+         ("pv_work/logs/drive", "driver_*.out"),
+         # the records as they stood before each revision (kept by /pv-revise as a snapshot)
+         ("verification/snapshots", "*before-revision*/verification/RESULTS.json"),
+         ("verification/snapshots", "*before-revision*/verification/BLOCKERS.md")]
 
 
 def clean(text, project, home, user):
@@ -61,7 +71,10 @@ def main():
             continue
         sessions.append({"file": f.name, "total_cost_usd": d.get("total_cost_usd"), "num_turns": d.get("num_turns"),
                          "is_error": d.get("is_error"), "terminal_reason": d.get("terminal_reason"),
-                         "models": sorted((d.get("modelUsage") or {}).keys())})
+                         "models": sorted((d.get("modelUsage") or {}).keys()),
+                         "started": (datetime.datetime.fromtimestamp(f.stat().st_birthtime).isoformat(timespec="seconds")
+                                     if hasattr(f.stat(), "st_birthtime") else None),
+                         "ended": datetime.datetime.fromtimestamp(f.stat().st_mtime).isoformat(timespec="seconds")})
     files["sessions.json"] = json.dumps(sessions, indent=1) + "\n"
     usage = subprocess.run([sys.executable, str(proj / "scripts/pv_usage.py"), "--project", str(proj)],
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)

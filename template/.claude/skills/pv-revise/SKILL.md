@@ -12,6 +12,7 @@ Follow `CLAUDE.md` and `verification/rules/`, especially "Cascade reset on state
 
 1. Run `date`, then take a snapshot: `python3 scripts/pv_snapshot.py save --label before-revision`. The snapshot includes the `.tex` files, so the source text cited by the old audit reports can still be found.
 2. **Compare.** Run `diff -ruN verification/source_baseline source`, and list the added, deleted and modified files and line ranges.
+   **Renamed main file (v1.3.2).** If `python3 scripts/pv_status.py source-check` reports "main file renamed: A -> B" (the new version has a new file name and the same title), run `python3 scripts/pv_status.py set-main B`, compare the old file with the new one (`diff -u verification/source_baseline/<A> source/<B>`), and in step 4 change every `file:line` reference from A to B. A missing main file with a different title is a different paper: stop.
 3. **Find the affected objects.** For each numbered result and each shared definition, decide which case applies:
    - (a) the statement changed;
    - (b) the proof changed;

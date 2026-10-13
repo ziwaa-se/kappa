@@ -64,7 +64,7 @@ main() {
   # Continue the numbering of earlier sessions (the driver may be re-run after an interruption).
   k=$(ls "$LOGDIR"/session_*.json 2>/dev/null | sed 's/.*session_\([0-9]*\)\.json/\1/' | sort -n | tail -1)
   k=${k:-0}
-  worked=0; restarts=0; trust_noted=0; before=""
+  worked=0; restarts=0; trust_noted=0; before=""; resumed=0
   kind=ok; wait_s=0; reset_at=-; msg=-
   status running "started"
 
@@ -85,8 +85,20 @@ Read .claude/skills/pv-setup/SKILL.md and follow it with $setup. Stop when the s
   fi
 
   while true; do
-    python3 scripts/pv_status.py validate > "$LOGDIR/validate.txt" 2>&1 || {
-      cat "$LOGDIR/validate.txt"; finish validate_failed "validate is not VALID (see $LOGDIR/validate.txt)"; }
+    if ! python3 scripts/pv_status.py validate > "$LOGDIR/validate.txt" 2>&1; then
+      # (v1.3.2) a session cut off by a usage limit can leave the records half-written: one resume session
+      # reconciles them (pv-resume); the driver stops only if they are still not VALID afterwards
+      if [[ $resumed -eq 0 && $k -gt 0 ]]; then
+        resumed=1
+        echo "[$(date '+%H:%M')] validate is not VALID; one resume session reconciles the records ($(tail -1 "$LOGDIR/validate.txt"))"
+        session "$UNATTENDED
+The previous session ended before its records were complete, and 'python3 scripts/pv_status.py validate' is not VALID (its output is in $LOGDIR/validate.txt). Read .claude/skills/pv-resume/SKILL.md and carry out its reconcile steps yourself (the skill is user-invocable only, so do not use the Skill tool): reconcile the half-finished outputs with the records, using only pv_status.py commands, until validate is VALID. Do not start new results and do not continue the /pv-run loop: the driver does that next." "$BUDGET"
+        after_session || resumed=0      # the resume session itself hit the limit: try again after the wait
+        continue
+      fi
+      cat "$LOGDIR/validate.txt"; finish validate_failed "validate is not VALID (see $LOGDIR/validate.txt)"
+    fi
+    resumed=0
     # Results already under way (e.g. after an interruption) come first, then new ready ones.
     local inflight ready recon ids second budget
     inflight=$(python3 -c "
@@ -177,20 +189,26 @@ after_session() {
       if [[ "$kind" == "limit_in_agents" && "$(python3 scripts/pv_drive_status.py progress)" != "$before" ]]; then
         return 0     # some agents hit the limit, but the session still made progress; the next session will tell
       fi
-      if [[ $auto -eq 0 ]]; then
-        finish usage_limit "usage limit reached in session $k (resets ${reset_at}); run the driver again after the reset, or use --auto-resume"
-      fi
-      restarts=$((restarts + 1))
-      [[ $restarts -le $MAX_RESTARTS ]] || finish max_restarts "more than $MAX_RESTARTS usage-limit waits"
-      status waiting_usage_limit "usage limit in session $k; sleeping ${wait_s}s"
-      echo "[$(date '+%H:%M')] usage limit reached (session $k, resets ${reset_at}); sleeping ${wait_s}s, then continuing (wait $restarts of at most $MAX_RESTARTS)"
-      ${PV_SLEEP_CMD:-sleep} "$wait_s"
-      echo "[$(date '+%H:%M')] continuing after the usage-limit wait"
-      status running "resumed after a usage-limit wait"
+      limit_wait
       return 1 ;;
   esac
   return 0
 }
+
+limit_wait() {  # stop (without --auto-resume) or sleep until the reset that the last session reported
+  if [[ $auto -eq 0 ]]; then
+    finish usage_limit "usage limit reached in session $k (resets ${reset_at}); run the driver again after the reset, or use --auto-resume"
+  fi
+  restarts=$((restarts + 1))
+  [[ $restarts -le $MAX_RESTARTS ]] || finish max_restarts "more than $MAX_RESTARTS usage-limit waits"
+  status waiting_usage_limit "usage limit in session $k; sleeping ${wait_s}s"
+  echo "[$(date '+%H:%M')] usage limit reached (session $k, resets ${reset_at}); sleeping ${wait_s}s, then continuing (wait $restarts of at most $MAX_RESTARTS)"
+  ${PV_SLEEP_CMD:-sleep} "$wait_s"
+  echo "[$(date '+%H:%M')] continuing after the usage-limit wait"
+  status running "resumed after a usage-limit wait"
+}
+
+report_done() { [[ -f verification/report/AUTHOR_REPORT.md && -f verification/report/work/factcheck.md ]]; }
 
 session_budget() {  # the largest session_budget_usd among the given results, and at least PV_BUDGET_USD
   python3 - "$BUDGET" "$@" <<'EOF'
@@ -218,9 +236,14 @@ make_report() {
     session "$UNATTENDED
 Read .claude/skills/pv-report/SKILL.md and carry out its steps yourself (the skill is user-invocable only, so do not use the Skill tool). Wait for the subagents you start before ending your turn." "$BUDGET"
     after_session || continue
+    # (v1.3.2) agents of the report session hit the limit and the report is missing: wait, then make it again
+    if [[ "$kind" == "limit_in_agents" ]] && ! report_done; then
+      limit_wait
+      continue
+    fi
     break
   done
-  if [[ -f verification/report/AUTHOR_REPORT.md && -f verification/report/work/factcheck.md ]]; then
+  if report_done; then
     finish done_report "the report is in verification/report/ (AUTHOR_REPORT.md, EXTERNAL_TOOLS_WORKSHEET.md, FILES_TO_CHECK.md)"
   fi
   finish report_incomplete "the report session ended without verification/report/AUTHOR_REPORT.md and work/factcheck.md; see $LOGDIR/session_$k.json"

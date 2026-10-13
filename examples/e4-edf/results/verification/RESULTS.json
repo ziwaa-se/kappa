@@ -1,0 +1,255 @@
+{
+  "_comment": "Machine-readable state (kit v1.3.1; optional fields models_used, tier, session_budget_usd, uses_defs, recheck, history may appear). pv-architect fills 'results' at /pv-setup; the coordinator keeps it current. The _example_* entries show every field and are ignored by the scripts. Field meanings: verification/rules/PIPELINE.md (stage/reason table, naming) and VERDICTS.md. Check with: python3 scripts/pv_status.py validate",
+  "paper": {
+    "title": "Three facts about the empirical distribution function",
+    "main_tex": "source/main.tex",
+    "pdf": "source/main.pdf",
+    "numbering_basis": "source/main.aux \\newlabel entries"
+  },
+  "lean": {
+    "toolchain": "leanprover/lean4:v4.19.0",
+    "mathlib_rev": "",
+    "packages": "linked; mathlib modules compiled: 6305 of 6305",
+    "pvtools_sha256": "445fe54fd278873b57a4b2e1af82a7e7d49447d8bb4fa5c13b23cbece65197ad"
+  },
+  "run_scope": [
+    "L01",
+    "P01",
+    "T01"
+  ],
+  "defs": [
+    {
+      "id": "DEFS",
+      "file": "pv_work/Defs.lean",
+      "gate": "verification/audits/DEFS_gate.md",
+      "built": true
+    }
+  ],
+  "results": [
+    {
+      "id": "L01",
+      "pdf_number": "2.1",
+      "kind": "Lemma",
+      "title": "EDF monotone, integer steps",
+      "label": "lem:steps",
+      "statement_loc": "source/main.tex:35-38",
+      "proof_loc": "source/main.tex:40-43",
+      "depends_on": [],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "UNCONDITIONAL",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/L01_gate.md",
+        "final": "verification/audits/L01_final.md"
+      },
+      "uses_defs": [
+        "D01"
+      ],
+      "updated": "2026-10-12 22:12",
+      "lean_main": "pv_work/L01.lean:33 Paper.L01.L01_main",
+      "summary_en": "EDF is nondecreasing and n F_n(t) is an integer in 0..n; proved along the printed route.",
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "P01",
+      "pdf_number": "2.2",
+      "kind": "Proposition",
+      "title": "Glivenko-Cantelli",
+      "label": "prop:gc",
+      "statement_loc": "source/main.tex:45-47",
+      "proof_loc": "source/main.tex:49-51",
+      "depends_on": [],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "CONDITIONAL",
+      "conditions": [
+        "GlivenkoCantelli"
+      ],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/P01_gate.md",
+        "final": "verification/audits/P01_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D02",
+        "D03"
+      ],
+      "updated": "2026-10-12 22:15",
+      "lean_main": "pv_work/P01.lean:18 Paper.P01.P01_main",
+      "summary_en": "D_n tends to 0 a.s. for iid samples; holds given the cited Glivenko-Cantelli theorem, which is the source's whole proof.",
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "T01",
+      "pdf_number": "2.3",
+      "kind": "Theorem",
+      "title": "Kolmogorov-Smirnov limit law",
+      "label": "thm:ks",
+      "statement_loc": "source/main.tex:53-58",
+      "proof_loc": "source/main.tex:60-63",
+      "depends_on": [],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "CONDITIONAL",
+      "conditions": [
+        "DonskerUniformSup",
+        "KolmogorovFormula"
+      ],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/T01_gate.md",
+        "final": "verification/audits/T01_final_r2.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D02",
+        "D03"
+      ],
+      "updated": "2026-10-13 01:08",
+      "partial": "",
+      "lean_main": "pv_work/T01.lean:436 Paper.T01.T01",
+      "summary_en": "Verified conditionally: the gated statement is proved in full (S1-S6), conditional on DonskerUniformSup and KolmogorovFormula.",
+      "gaps": [],
+      "models_used": [
+        "sonnet",
+        "opus"
+      ]
+    }
+  ],
+  "external_tools": [
+    {
+      "id": "GlivenkoCantelli",
+      "lean": "pv_work/P01Stmt.lean:26",
+      "meaning": "Glivenko-Cantelli theorem: for iid real random variables on any probability space, sup_t |F_n - F| tends to 0 almost surely",
+      "provenance": "i",
+      "source_loc": "source/main.tex:50",
+      "consumers": [
+        "P01 - step S1"
+      ],
+      "mathlib_search": "#check probes found no Glivenko-Cantelli or empirical-CDF declaration in mathlib, see verification/audits/P01_gate.md; ProbabilityTheory.strong_law_ae exists",
+      "human_check": "Confirm the encoded statement equals the classical Glivenko-Cantelli theorem. The parameter equals the conclusion of P01 itself, flagged as goal-shaped under VERDICTS 4.2, accepted by gate and auditor because the source proof is the bare citation with no cite given."
+    },
+    {
+      "id": "DonskerUniformSup",
+      "lean": "pv_work/T01Stmt.lean:60",
+      "meaning": "Donsker invariance principle at the level of the sup statistic: for iid uniform[0,1] samples sqrt(n) D_n converges in distribution to the sup of a Brownian bridge",
+      "provenance": "i",
+      "source_loc": "source/main.tex:61",
+      "consumers": [
+        "T01 - step S5, conv clause"
+      ],
+      "mathlib_search": "#check probes found no Brownian bridge, Brownian motion, TendstoInDistribution or Donsker in mathlib, see pv_work/logs/gate_T01_checks_1.log",
+      "human_check": "Confirm this uniform-sample sup statement is what Donsker 1952 gives; it is weaker than the source use since only the uniform case is assumed. The measurability of D_n in the sample point is proved (T01_S1)."
+    },
+    {
+      "id": "KolmogorovFormula",
+      "lean": "pv_work/T01Stmt.lean:69",
+      "meaning": "Kolmogorov: the sup of a Brownian bridge has distribution function K(z)=1-2 sum (-1)^(k-1) exp(-2 k^2 z^2) for z>0",
+      "provenance": "i",
+      "source_loc": "source/main.tex:62",
+      "consumers": [
+        "T01 - step S6, cdf clause"
+      ],
+      "mathlib_search": "No Brownian bridge in mathlib, see pv_work/logs/gate_T01_checks_1.log",
+      "human_check": "Confirm the formula and its z>0 domain against Kolmogorov 1933. The parameter equals the cdf clause of T01 because the source proves that clause by citation only."
+    }
+  ],
+  "source_defs": [
+    {
+      "id": "D01",
+      "name": "empirical distribution function F_n of x in R^n",
+      "loc": "source/main.tex:24-27",
+      "label": "def:edf"
+    },
+    {
+      "id": "D02",
+      "name": "F_n for random variables X_1,X_2,...",
+      "loc": "source/main.tex:29-30"
+    },
+    {
+      "id": "D03",
+      "name": "Kolmogorov-Smirnov statistic D_n (F distribution function of X_1)",
+      "loc": "source/main.tex:30-31"
+    }
+  ],
+  "_example_defs": {
+    "id": "DEFS",
+    "file": "pv_work/Defs.lean",
+    "gate": "verification/audits/DEFS_gate.md",
+    "built": true,
+    "_note": "use {\"id\": \"NONE\"} when the paper needs no shared definitions"
+  },
+  "_example_result": {
+    "id": "L01",
+    "pdf_number": "A.1",
+    "kind": "Lemma",
+    "title": "near-identity diffeomorphism",
+    "label": "lem:diffeo",
+    "statement_loc": "source/app.tex:7-9",
+    "proof_loc": "source/app.tex:10-16",
+    "depends_on": [],
+    "stage": "INVENTORIED",
+    "statement_fixed": false,
+    "round": 1,
+    "reason": "",
+    "verdict": "UNFINISHED",
+    "conditions": [],
+    "gaps": [],
+    "debts": [],
+    "unencoded": [],
+    "issues": [],
+    "upstream_issues": [],
+    "partial": "",
+    "lean_main": "pv_work/L01.lean:120 Paper.L01.main",
+    "evidence": {
+      "gate": "verification/audits/L01_gate.md",
+      "final": "verification/audits/L01_final.md",
+      "issues": [],
+      "reconnect": ""
+    },
+    "summary_en": "",
+    "updated": "YYYY-MM-DD HH:MM",
+    "uses_defs": [
+      "D01"
+    ]
+  },
+  "_example_tool": {
+    "id": "L02_L01Consumed",
+    "lean": "pv_work/L02Stmt.lean:12",
+    "meaning": "one-sentence statement read from the Lean definition",
+    "provenance": "i | ii | iii | iv | v | p (predecessor clause <ID>_<PredID>Consumed; set 'predecessor'). Gap hypotheses are NOT registered here (use the result's 'gaps')",
+    "predecessor": "L01",
+    "source_loc": "source/app.tex:171",
+    "consumers": [
+      "L09 (step S3)"
+    ],
+    "mathlib_search": "#check … / searched names …",
+    "human_check": "what exactly to check"
+  },
+  "_example_source_def": {
+    "id": "D01",
+    "name": "weighted negative Sobolev norm",
+    "loc": "source/sec_setting.tex:12-16",
+    "label": "def:hminus",
+    "_note": "one entry per defined object, with its own exact lines (v1.3.1)"
+  }
+}

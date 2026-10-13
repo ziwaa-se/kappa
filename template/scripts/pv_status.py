@@ -39,6 +39,9 @@ Usage (from the project root):
   python3 scripts/pv_status.py refresh-records     (v1.3.1) regenerate the current-evidence index in AUDIT.md and
                                                    the registry table in EXTERNAL_TOOLS.md from RESULTS.json
                                                    (record, reset and add-tool do this themselves)
+  python3 scripts/pv_status.py set-main source/F.tex
+                                                   (v1.3.2) record a new name of the main file, after a revision
+                                                   renamed it (source-check reports "main file renamed")
   python3 scripts/pv_status.py defs-changed        (v1.3.1) for each shared definition in source_defs: is its text
                                                    in source/ still the text of the baseline? Lists the results
                                                    that use each changed definition (/pv-revise, case (c))
@@ -770,9 +773,13 @@ def gate_fingerprints(rid, path):
     return fps or None
 
 
-def statement_unchanged(rid, old_gate, new_gate, old_main):
+def statement_unchanged(rid, old_gate, new_gate, old_main, consumer_text=""):
     """True when the definitions and the main theorem of rid's new gate snapshot equal the old ones. Step
-    obligations (S<k>) may differ: other results consume only the statement."""
+    obligations (S<k>) may differ: other results consume only the statement.
+    (v1.3.2) A definition that the new snapshot no longer has does not count as a change when the dependents'
+    Lean files (consumer_text) never mention it: it served only the old proof steps (an auxiliary of a rewritten
+    proof), since the main theorem, whose fingerprint is compared, compiles without it. A definition that is still
+    there but changed always counts, because the main theorem's fingerprint covers names, not definition bodies."""
     old, new = gate_fingerprints(rid, old_gate), gate_fingerprints(rid, new_gate)
     if not old or not new:
         return False, "a gate snapshot is missing, so the statement counts as changed"
@@ -782,10 +789,23 @@ def statement_unchanged(rid, old_gate, new_gate, old_main):
         keys.add(main)
     if not keys:
         return False, "the old snapshot has no definitions or main theorem to compare"
-    diff = sorted(k for k in keys if new.get(k) != old[k])
+    removed = sorted(k for k in keys if k not in new and k != main)
+    unused = [k for k in removed if not re.search(rf"\b{re.escape(k.split('.')[-1])}\b", consumer_text)]
+    diff = sorted(k for k in keys if new.get(k) != old[k] and k not in unused)
     if diff:
         return False, "changed: " + ", ".join(diff[:6]) + (" …" if len(diff) > 6 else "")
-    return True, f"{len(keys)} declarations identical (definitions{' and ' + main.split('.')[-1] if main in old else ''})"
+    note = f"; dropped, unused by dependents: {', '.join(k.split('.')[-1] for k in unused)}" if unused else ""
+    return True, (f"{len(keys) - len(unused)} declarations identical "
+                  f"(definitions{' and ' + main.split('.')[-1] if main in old else ''}){note}")
+
+
+def consumer_lean_text(ids):
+    """The text of the Lean files of the given results (statement, draft, proof, gap file), for usage checks."""
+    out = []
+    for rid in ids:
+        for p in sorted((ROOT / "pv_work").glob(f"{rid}*.lean")):
+            out.append(p.read_text(errors="replace"))
+    return "\n".join(out)
 
 
 def direct_dependents(data, ids):
@@ -1045,9 +1065,10 @@ def cascade_after_gate(data, rid, new_gate):
     changed, they are reset (one level; their own dependents are then marked pending in turn)."""
     r = next(x for x in data["results"] if x.get("id") == rid)
     h = (r.get("history") or [{}])[-1]
-    same, why = statement_unchanged(rid, (h.get("evidence") or {}).get("gate"), new_gate, h.get("lean_main") or "")
     waiting = [x for x in data["results"] if isinstance(x.get("recheck"), dict) and x["recheck"].get("kind") == "pending"
                and rid in x["recheck"].get("upstream", [])]
+    same, why = statement_unchanged(rid, (h.get("evidence") or {}).get("gate"), new_gate, h.get("lean_main") or "",
+                                    consumer_lean_text([x["id"] for x in waiting]))
     names = ", ".join(x["id"] for x in waiting) or "none"
     if same:
         for x in waiting:
@@ -1274,6 +1295,17 @@ def defs_changed(data):
             continue
         rel, a, b = m.group(1), int(m.group(2)), int(m.group(3) or m.group(2))
         old_f, new_f = base / rel, ROOT / "source" / rel
+        if not new_f.exists():     # (v1.3.2) the file was renamed in the new version
+            main = (data.get("paper") or {}).get("main_tex", "")
+            prev = [p[len("source/"):] for p in (data.get("paper") or {}).get("previous_main_tex", [])]
+            if rel in prev and main.startswith("source/"):
+                new_f = ROOT / main
+            else:
+                src_files = {str(p.relative_to(ROOT / "source")) for p in (ROOT / "source").rglob("*.tex")}
+                base_files = {str(p.relative_to(base)) for p in base.rglob("*.tex")}
+                nr = renamed_main(rel, base_files, src_files)
+                if nr:
+                    new_f = ROOT / "source" / nr
         if not old_f.exists():
             status, where = "NO BASELINE FILE", ""
         else:
@@ -1287,7 +1319,7 @@ def defs_changed(data):
                 status = "UNCHANGED"
                 first = old_lines[0].strip() if old_lines else ""
                 hit = next((i for i, l in enumerate(new_lines, 1) if first and l.strip() == first), None)
-                where = f"source/{rel}:{hit}-{hit + (b - a)}" if hit else ""
+                where = f"source/{new_f.relative_to(ROOT / 'source')}:{hit}-{hit + (b - a)}" if hit else ""
             else:
                 status = "CHANGED"
         if status != "UNCHANGED":
@@ -1336,6 +1368,38 @@ def title_of(tex):
     return re.sub(r"\s+", " ", m.group(1)).strip() if m else ""
 
 
+def renamed_main(rel, base_files, src_files):
+    """(v1.3.2) The new name of the main file when the baseline's main file is gone from source/: the one new .tex
+    file with a \\documentclass and the same title. None if there is no such file or more than one."""
+    base, src = ROOT / "verification" / "source_baseline", ROOT / "source"
+    t_old = title_of(base / rel)
+    if not t_old:
+        return None
+    cands = [k for k in src_files if k.endswith(".tex") and k not in base_files
+             and "\\documentclass" in (src / k).read_text(errors="replace") and title_of(src / k) == t_old]
+    return cands[0] if len(cands) == 1 else None
+
+
+def set_main(path):
+    """(v1.3.2) Record a new name of the main file (after a revision renamed it)."""
+    data = load()
+    rel = path[len("source/"):] if path.startswith("source/") else path
+    f = ROOT / "source" / rel
+    if not f.is_file() or "\\documentclass" not in f.read_text(errors="replace"):
+        sys.exit(f"refused: source/{rel} is not a LaTeX main file (no \\documentclass)")
+    paper = data.setdefault("paper", {})
+    old = paper.get("main_tex", "")
+    previous = paper.setdefault("previous_main_tex", [])
+    if old and old != f"source/{rel}" and old not in previous:
+        previous.append(old)
+    paper["main_tex"] = f"source/{rel}"
+    STATE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    with (ROOT / "verification" / "AUDIT.md").open("a") as fh:
+        fh.write(f"\n## main file renamed — {now()} (pv_status.py set-main)\n- before: {old}\n- now: source/{rel}\n")
+    print(f"main file: {old or '(none)'} -> source/{rel}")
+    return validate(load())
+
+
 def source_state(data=None):
     """Compare source/ with verification/source_baseline/. Returns (status, details):
     NO_BASELINE, SAME, CHANGED (a new version of the same paper?) or DIFFERENT_PAPER (title changed or main file gone)."""
@@ -1352,6 +1416,10 @@ def source_state(data=None):
     main = ((data or {}).get("paper") or {}).get("main_tex", "") if data else ""
     rel = main[len("source/"):] if main.startswith("source/") else main
     if rel and rel in a and rel not in b:
+        new_rel = renamed_main(rel, a, b)
+        if new_rel:
+            return "CHANGED", [f"main file renamed: source/{rel} -> source/{new_rel} (same title); "
+                               f"run 'pv_status.py set-main source/{new_rel}' during /pv-revise"] + changed
         return "DIFFERENT_PAPER", [f"the main file {main} is no longer in source/"] + changed[:10]
     t_old, t_new = title_of(base / rel) if rel else "", title_of(src / rel) if rel else ""
     if t_old and t_new and t_old != t_new:
@@ -1457,6 +1525,10 @@ def main():
         if len(a) < 2:
             sys.exit("usage: pv_status.py add-tool '<JSON object with the fields of _example_tool>'")
         sys.exit(add_tool(a[1]))
+    if cmd == "set-main":
+        if len(a) < 2:
+            sys.exit("usage: pv_status.py set-main source/<file>.tex")
+        sys.exit(set_main(a[1]))
     if cmd == "set-deps":
         if len(a) < 2:
             sys.exit("usage: pv_status.py set-deps ID [DEP ...]")

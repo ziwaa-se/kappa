@@ -1,0 +1,20 @@
+Nothing left to start: every result has a verdict or a recorded reason.
+[01:02] session 5 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $3.81, turns 38, completed
+  NOTE: Claude Code reports this folder as not trusted. The driver passes the permission file with --settings;
+        if kit commands are refused, open the folder once in Claude Code interactively and accept the trust dialog.
+  permission denials in session 5: 6 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_5.json)
+## Verification progress — Elementary bounds on the sample variance (2026-10-13 01:14)
+
+**6 numbered results: 3 verified (unconditional) · 1 verified (conditional) · 2 issue recorded · 0 unfinished.**
+
+| No. | ID | Result | Verdict | Stage | Conditions / issues / where stopped |
+|---|---|---|---|---|---|
+| 2.1 | L01 | Lemma centred sum is zero | Verified (unconditional) | FINAL_PASSED | Centred sum is zero; verified in Lean with no external inputs. |
+| 2.2 | L02 | Lemma variance shortcut identity | Verified (unconditional) | FINAL_PASSED | Variance shortcut identity; verified in Lean with no external inputs. |
+| 2.3 | P01 | Proposition Popoviciu bound for s^2 | Verified (conditional) | FINAL_PASSED | Popoviciu-based variance bound verified in Lean, conditional on the cited Popoviciu inequality. |
+| 2.4 | P02 | Proposition Samuelson's inequality | Verified (unconditional) | FINAL_PASSED | Samuelson's inequality verified in Lean with no external inputs; the s=0 case (main.tex:76) is a ruled FAIR_IMPLICIT_STEP fill-in. |
+| 2.5 | L03 | Lemma variance bounded by raw moment | Issue recorded | STOPPED | Lemma is false: s^2 <= (1/n) sum x_i^2 fails for n=2, x=(1,-1); verified counterexample in Lean. |
+| 2.6 | C01 | Corollary variance bound for unit interval | Issue recorded | STOPPED | Printed proof at main.tex:99 passes through s^2 <= 1, false at n=2, x=(1,-1) (own PAPER_ARGUMENT_GAP, B02; upstream B01). The conclusion s^2 <= 2 is not shown false. |
+
+DRIVER STOPPED: done_report — the report is in verification/report/ (AUTHOR_REPORT.md, EXTERNAL_TOOLS_WORKSHEET.md, FILES_TO_CHECK.md)
