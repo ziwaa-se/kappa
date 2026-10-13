@@ -21,9 +21,20 @@ PLANTED = "2.3"
 ROLES = ["coordinator", "pv-architect", "pv-drafter", "pv-gate", "pv-prover", "pv-auditor", "pv-issue-checker"]
 
 
+def kit_label(d, meta):
+    """The kit version of a run: recorded by run_bench.sh (v1.3.1+), else the project's KIT_VERSION, else the path."""
+    ver = meta.get("kit_version")
+    if not ver and (d / "KIT_VERSION").exists():
+        ver = (d / "KIT_VERSION").read_text().strip()
+    if ver and ver != "unknown":
+        return "v" + ver
+    return "v1.3" if "v1.3" in str(meta.get("kit")) else "v1.2.1"
+
+
 def load_run(d):
     d = Path(d).resolve()
     meta = json.loads((d / "bench_logs" / "meta.json").read_text())
+    meta["kit_label"] = kit_label(d, meta)
     usage = json.loads(subprocess.run([sys.executable, str(USAGE), "--project", str(d), "--json"],
                                       capture_output=True, text=True, check=True).stdout)
     state = json.loads((d / "verification" / "RESULTS.json").read_text())
@@ -92,7 +103,7 @@ def main():
     for r in runs:
         ok, det, fa, unf = score(r)
         n = max(1, sum(1 for k in EXPECTED if r["results"].get(k, {}).get("verdict") not in (None, "UNFINISHED")))
-        kit = "v1.3" if "v1.3" in str(r["meta"].get("kit")) else "v1.2.1"
+        kit = r["meta"]["kit_label"]
         L.append(f"| {r['label']} | {kit} | {r['meta'].get('coordinator_model')}"
                  f"{' + driver' if r['meta'].get('driver') else ''} | {r['sessions']} | {r['active_min']:.0f} min | "
                  f"{fmt_tok(r['usage']['total_tokens'])} | ${r['usage']['total_cost_usd']:.2f} | ${r['cli_cost']:.2f} | "
@@ -100,7 +111,7 @@ def main():
     # Per kit: mean and range over repeated runs (is the difference stable?)
     kits = {}
     for r in runs:
-        kit = "v1.3" if "v1.3" in str(r["meta"].get("kit")) else "v1.2.1"
+        kit = r["meta"]["kit_label"]
         kits.setdefault(kit, []).append(r)
     if any(len(v) > 1 for v in kits.values()):
         L.append("\n### Per kit, over repeated runs (mean, and min–max)\n")

@@ -29,7 +29,20 @@ case "$mode" in
     command -v elan >/dev/null 2>&1 || { echo "elan is missing: install it first (CLAUDE_START_HERE.md step B)"; exit 2; }
     [[ -e "$env" ]] || "$kit/install.sh" "$env" --pinned || exit 1
     echo "Downloading Lean 4.19.0 and Mathlib (a few GB, typically 5-20 minutes) ..."
-    (cd "$env" && lake exe cache get) || { echo "lake exe cache get failed (network?). Retry later; as a last resort: cd $env && lake build"; exit 1; }
+    if ! (cd "$env" && lake exe cache get 2>&1 | tee "$base/lean-env-cache.log"; exit "${PIPESTATUS[0]}"); then
+      # macOS 26 and later refuse to load the `cache` helper as linked by Lean 4.19.0's bundled linker
+      # ("__DATA_CONST segment missing SG_READ_ONLY flag"). Relink it with the system compiler and try again.
+      if [[ "$(uname)" == Darwin ]] && grep -q "SG_READ_ONLY\|dyld" "$base/lean-env-cache.log" && command -v xcrun >/dev/null 2>&1; then
+        echo "Relinking Mathlib's cache tool with the system compiler (macOS refused the bundled linker's output) ..."
+        prefix="$(cd "$env" && lean --print-prefix)"
+        rm -f "$env/.lake/packages/mathlib/.lake/build/bin/cache" "$env/.lake/packages/mathlib/.lake/build/bin/cache.hash" \
+              "$env/.lake/packages/mathlib/.lake/build/bin/cache.trace"
+        (cd "$env" && SDKROOT="$(xcrun --show-sdk-path)" LIBRARY_PATH="$prefix/lib" LEAN_CC="$(xcrun -f clang)" lake exe cache get) || {
+          echo "lake exe cache get failed again; see $base/lean-env-cache.log"; exit 1; }
+      else
+        echo "lake exe cache get failed (network?). Retry later; as a last resort: cd $env && lake build"; exit 1
+      fi
+    fi
     ready && { echo "LEAN-ENV READY: $env"; completeness; exit 0; } || { echo "PVTools did not build; see $env/pv_work/logs/"; exit 1; } ;;
   --from)
     src="${3:?existing project}"; src="$(cd "$src" && pwd)"

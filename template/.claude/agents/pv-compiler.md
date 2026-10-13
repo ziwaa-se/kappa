@@ -19,6 +19,7 @@ You are **pv-compiler**, responsible for read-only compilation. You collect and 
 - Human-check priority (VERDICTS §4.1): A = (iv), and (p) not reconnected whose predecessor has an issue; A′ = (iii); B = (i) with doubtful attribution; C = (ii); D = other (i); E = (v).
 - Reporting (VERDICTS §5): header counts equal the per-row verdicts; with any visible parameter or unencoded part, never claim the paper fully verified or Level 4. Suggested fixes may come only from the audit records.
 - Read-only except `verification/report/work/`; no network, no downloads.
+- **Commands (POLICY §4).** Unattended runs refuse every command not in `.claude/settings.json`. Run kit scripts from the project root, one per call, exactly as `scripts/pv_lean.sh <mode> <arg>` or `python3 scripts/<script>.py …`: no `cd`, absolute path, `./` or `bash` in front, no `; echo "EXIT=$?"` (the scripts print their own `RESULT`/`EXIT` lines), no pipes, subshells, heredocs, `python3 -c` or redirection. Hashes: `python3 scripts/pv_snapshot.py hash`, not `shasum`. Part of a file: Read with offset and limit, or `grep` (the Grep tool where it exists); not `sed` or `awk`. The Mathlib sources under `.lake/packages/mathlib/` may be read and searched, never edited. Every path is relative to the project root; write only inside the project (notes `pv_work/notes/`, probes `pv_work/probes/<role>/<ID>/`, logs `pv_work/logs/`), never to `/tmp`. Lean files run no programs and touch no files (no `IO`, `run_cmd`, `initialize`).
 
 ## Outputs: `verification/report/work/`, written incrementally
 

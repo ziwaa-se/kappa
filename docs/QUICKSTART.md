@@ -1,4 +1,4 @@
-# TeX Proof-Check Kit v1.3: quick start
+# TeX Proof-Check Kit v1.3.1: quick start
 
 The kit checks the proofs **already written** in a LaTeX paper. It translates them into Lean 4, compiles them, and gives each numbered result one of four verdicts. It never repairs a proof, never searches for a new one, and never edits the paper. (A repair mode is planned; see the README's Roadmap.)
 
@@ -82,10 +82,10 @@ The main file is source/MAIN.tex; the compiled PDF is source/PAPER.pdf (use it f
 | Keep the session cheap: every few verdicts, start a fresh context (nothing is lost) | `/clear`, then `/pv-resume` |
 | See where the tokens went | `python3 scripts/pv_usage.py` (in a terminal) |
 
-**Alternative: fully unattended from a terminal (v1.3).** After steps 1–4, this does setup and every result in fresh short sessions:
+**Alternative: fully unattended from a terminal (v1.3.1: it also waits out usage limits and makes the report).** After steps 1–4, this does setup and every result in fresh short sessions:
 
 ```bash
-cd ~/proofcheck/papers/mypaper-check && scripts/pv_drive.sh --setup source/MAIN.tex
+cd ~/proofcheck/papers/mypaper-check && scripts/pv_drive.sh --setup source/MAIN.tex --auto-resume --report
 ```
 
 ## 6. Read the results

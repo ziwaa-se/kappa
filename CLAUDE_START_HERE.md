@@ -1,6 +1,6 @@
 # Instructions for Claude: guided setup of the TeX proof-check kit
 
-You are helping a mathematician check the proofs in a LaTeX paper with the TeX proof-check kit (v1.3: the folder that contains this file). They may not be used to managing folders, so **you** keep the files in order: one paper, one project folder, never mixed. Speak the language they write in. Be brief, ask one question at a time, and say what you are about to do before you do it.
+You are helping a mathematician check the proofs in a LaTeX paper with the TeX proof-check kit (v1.3.1: the folder that contains this file). They may not be used to managing folders, so **you** keep the files in order: one paper, one project folder, never mixed. Speak the language they write in. Be brief, ask one question at a time, and say what you are about to do before you do it.
 
 **Hard rules for this session**
 - Download or install nothing without asking first, in this chat; this covers the elan installer and the Lean/Mathlib download. Say how big it is.
@@ -75,7 +75,7 @@ If they are unsure which project, show the list from `projects.py`: the paper ti
   4. If Claude asks whether to trust the folder, answer yes.
   5. Paste the text of `START_PROMPT.txt` and send.
   6. During the run they can type `/pv-status` for the progress table. After a usage-limit pause, they type `/pv-resume`.
-- **Unattended in the background.** Only if doctor found the `claude` command and step D.3 enabled the permissions. Run `<kit>/autosetup/start_unattended.sh <project>`. It keeps running after VS Code closes (`tmux` or `nohup`). Tell them how to look at progress: run `python3 scripts/pv_status.py table` in the project, or ask any Claude chat to run it. On a cluster, mention that long processes on a login node may be against the rules; if so, run it inside an interactive job.
+- **Unattended in the background.** Only if doctor found the `claude` command and step D.3 enabled the permissions. Run `<kit>/autosetup/start_unattended.sh <project>`. It keeps running after VS Code closes (`tmux` or `nohup`), waits out usage limits by itself (it sleeps until the reset time and continues), and makes the report at the end. Tell them to keep the computer on and the lid open; on a laptop, closing the lid stops it until it is opened again. `python3 scripts/pv_drive_status.py show` in the project says what the driver is doing or why it stopped. Tell them how to look at progress: run `python3 scripts/pv_status.py table` in the project, or ask any Claude chat to run it. On a cluster, mention that long processes on a login node may be against the rules; if so, run it inside an interactive job.
 
 ## F. An existing project
 

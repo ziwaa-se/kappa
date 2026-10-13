@@ -25,7 +25,7 @@ The check runs in this chat and needs no attention. Only a question about the pa
 
 **While it runs, in that chat:**
 - `/pv-status` shows the progress table.
-- `/pv-resume` continues after a usage-limit pause or a disconnect; nothing is lost.
+- `/pv-resume` continues after a usage-limit pause or a disconnect; nothing is lost. (A check started in the background with Claude's help continues by itself after the limit resets; keep the computer on and the lid open.)
 - `/clear` then `/pv-resume` every few results keeps the cost down.
 
 **The results** are in `~/proofcheck/papers/<short-name>-check/verification/report/`. Read `AUTHOR_REPORT.md` first; it has a summary table at the top.

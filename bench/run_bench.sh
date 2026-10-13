@@ -50,11 +50,13 @@ PROMPT_ALL="$PROMPT_SETUP"'
 # Headless sessions stop background subagents 600 s after their last turn; wait up to 3 hours instead.
 export CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=10800000
 start=$(date +%s)
+kitver=$(cat KIT_VERSION 2>/dev/null || echo unknown); cliver=$(claude --version 2>/dev/null | head -1)
 cat > bench_logs/meta.json <<EOF
-{"label": "$label", "kit": "$kit", "coordinator_model": "$model", "driver": $driver, "start_epoch": $start}
+{"label": "$label", "kit": "$kit", "kit_version": "$kitver", "claude_code": "$cliver", "coordinator_model": "$model", "driver": $driver, "start_epoch": $start}
 EOF
 if [[ $driver -eq 1 ]]; then
-  PV_COORD_MODEL="$model" PV_BUDGET_USD="$budget" PV_LOG_DIR=bench_logs PV_SETUP_PROMPT="$PROMPT_SETUP" scripts/pv_drive.sh --setup source/main.tex \
+  resume=""; grep -q -- "--auto-resume" scripts/pv_drive.sh && resume="--auto-resume"   # v1.3.1 and later
+  PV_COORD_MODEL="$model" PV_BUDGET_USD="$budget" PV_LOG_DIR=bench_logs PV_SETUP_PROMPT="$PROMPT_SETUP" scripts/pv_drive.sh --setup source/main.tex $resume \
     > bench_logs/drive.out 2>&1
   ec=$?
 else

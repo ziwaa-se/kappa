@@ -129,7 +129,7 @@ Mathematical content that the source uses but that this project does not prove i
 | (i) | An external result explicitly cited by the source (give the `\cite` location) |
 | (ii) | A fact the source asserts without proof |
 | (iii) | Something the source **never states** but the proof silently uses (must be prominently flagged) |
-| (iv) | A clause of one of the source's own lemmas, where that lemma's proof has a recorded issue |
+| (iv) | A clause of one of the source's own lemmas, where that lemma's proof has a recorded issue. Set `predecessor` to that lemma's ID: if a revision resolves the issue and the lemma is verified, the clause is reconnected like a (p) clause (`PIPELINE.md` stage 6b; v1.3.1) |
 | (v) | A standard fact with no interface in the pinned mathlib |
 | (p) | A **consumed clause** of a predecessor result in the paper, used while the predecessor is not yet fully proved, named `<ID>_<PredID>Consumed`. Once the predecessor passes the final audit, it must be reconnected (`PIPELINE.md` stage 6b); if the predecessor ends up ISSUE or UNFINISHED, it counts as (iv) |
 

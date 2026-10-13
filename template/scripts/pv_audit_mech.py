@@ -22,10 +22,17 @@ What it does (VERIFICATION_METHODS.md §1–§3, pv-auditor steps 1–5):
   8. project constants reached by the walk, grouped by module, with the audit record that covers each module
   9. declarations of <module> that are not in the snapshot (helper lemmas): listed for the auditor to review
  10. #pv_hyp_usage of every gated theorem (and <main>_mod_gaps): USED / UNUSED per hypothesis
+ 11. (v1.3.1) conditions traced from the gated theorems: an external input (RESULTS.json external_tools) is a
+     condition when a hypothesis that the proof USES mentions its constant; "formal only" when only UNUSED
+     hypotheses mention it; inputs registered for <ID> but never reached are listed. Writes a line
+     `TRACED CONDITIONS: <ids> | none` for the auditor's CONDITIONS line
+ 12. (v1.3.1) who last wrote the audited files, from the guard hook's log pv_work/logs/writes.jsonl: FAIL if it
+     was the coordinator (it does not write proofs)
 
 Writes verification/audits/<ID>_mech.md (then _mech_r2.md, ...). Its last line is
   MECH CHECKS: PASS            or   MECH CHECKS: FAIL (<items>)
-Items 8–10 are never PASS/FAIL by themselves: they are the judgement work left to the auditor (listed under
+The report's header names who ran this script (role, agent, session), from the same log. Items 8–11 are never
+PASS/FAIL by themselves: they are the judgement work left to the auditor (listed under
 "For the auditor"). Probes go to pv_work/probes/auditor/<ID>/auditor_<ID>_mech*.lean.
 """
 import argparse
@@ -92,8 +99,8 @@ def parse_probe(text):
     """Parse the output of a PVTools probe. Lean prints info messages as plain lines (no file:line prefix);
     warnings and errors carry a `file:line:col: severity:` prefix."""
     out = {"fps": {}, "axiom_bad": [], "axioms_ok": None, "walk_axioms": None, "sorry": None, "reached": [],
-           "hyp": {}, "errors": []}
-    cur_mod = cur_hyp = None
+           "hyp": {}, "errors": [], "walks": {}}
+    cur_mod = cur_hyp = cur_walk = None
     lines = text.splitlines()
     for n, raw in enumerate(lines):
         if raw.startswith("EXIT="):
@@ -131,8 +138,15 @@ def parse_probe(text):
             if am:
                 out["walk_axioms"] = [x.strip() for x in am.group(1).split(",") if x.strip()]
                 out["sorry"] = am.group(2) == "true"
+        elif line.startswith("WALK "):
+            wm = re.match(r"WALK (?:declaration|module) (\S+)", line)
+            cur_walk = wm.group(1) if wm else None
+            if cur_walk:
+                out["walks"].setdefault(cur_walk, [])
         elif line.startswith("REACHED|"):
             out["reached"].append(line.split("|"))
+            if cur_walk:
+                out["walks"][cur_walk].append(line.split("|"))
     return out
 
 
@@ -148,6 +162,73 @@ def declares_something(lean_file):
     except Exception:
         return True
     return bool(DECL.search(text))
+
+
+def write_log():
+    """Records of the guard hook (scripts/pv_guard.py), oldest first; [] when the hook is not installed."""
+    f = WORK / "logs" / "writes.jsonl"
+    out = []
+    if f.exists():
+        for line in f.read_text(errors="replace").splitlines():
+            try:
+                out.append(json.loads(line))
+            except ValueError:
+                pass
+    return out
+
+
+def who_ran(rid, log):
+    """The role that called pv_audit_mech.py for rid most recently, from the guard hook's log."""
+    for rec in reversed(log):
+        cmd = rec.get("command", "")
+        if rec.get("script") == "pv_audit_mech.py" and re.search(rf"pv_audit_mech\.py\s+{re.escape(rid)}(\s|$)", cmd):
+            return rec
+    return None
+
+
+def last_writer(rel, log):
+    for rec in reversed(log):
+        if rec.get("path") == rel and not rec.get("refused"):
+            return rec
+    return None
+
+
+IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_.']*")
+
+
+def trace_conditions(rid, state, targets, walks, hyps):
+    """Item 11: (conditions, formal only, reached but unclassified, registered but not reached) as sorted id lists."""
+    tools = {t["id"]: t for t in state.get("external_tools", []) if isinstance(t, dict) and t.get("id")}
+    const = {}
+    for tid, t in tools.items():
+        parts = str(t.get("lean", "")).split()
+        const[tid] = parts[1] if len(parts) > 1 else tid
+    cond, formal, loose = set(), set(), set()
+    for name in targets:
+        reached = {p[2] for p in walks.get(name, []) if len(p) > 2}
+        used_ids, unused_ids = set(), set()
+        for l in hyps.get(name, []):
+            u = l.split("|")
+            if len(u) > 4 and u[0] == "HYP":
+                (used_ids if u[3] == "USED" else unused_ids).update(IDENT.findall(u[4]))
+        for tid, c in const.items():
+            short = c.split(".")[-1]
+            hit = lambda ids: c in ids or any(i.endswith("." + short) or i == short for i in ids)
+            if hit(used_ids):
+                cond.add(tid)
+            elif hit(unused_ids):
+                formal.add(tid)
+            elif c in reached:
+                loose.add(tid)
+    r = next((x for x in state.get("results", []) if isinstance(x, dict) and x.get("id") == rid), {})
+    registered = set(map(str, r.get("conditions") or []))
+    for tid, t in tools.items():
+        if any(str(cn).split(" ")[0] == rid for cn in (t.get("consumers") or [])):
+            registered.add(tid)
+    formal -= cond
+    loose -= cond | formal
+    missing = registered - cond - formal - loose
+    return sorted(cond), sorted(formal), sorted(loose), sorted(missing)
 
 
 def run_probe(rid, tag, body):
@@ -357,8 +438,9 @@ def main():
     # 10. hypothesis usage of gated theorems (probe 2)
     hyp_targets = [n for n in gated_thms if n in final] + [n for n in fps.get(mod, {}) if n.endswith("_mod_gaps")]
     hyp_rows = []
+    walks2 = {}
     if hyp_targets:
-        body = f"import {mod}\nimport PVTools\n" + "".join(f"#pv_hyp_usage {n}\n" for n in hyp_targets)
+        body = f"import {mod}\nimport PVTools\n" + "".join(f"#pv_hyp_usage {n}\n#pv_walk_decl {n}\n" for n in hyp_targets)
         ec2, r2, P2, probe2 = run_probe(rid, "mech2", body)
         for name, hl in P2["hyp"].items():
             used = [l.split("|") for l in hl if l.startswith("HYP|")]
@@ -368,6 +450,39 @@ def main():
                             f"{warn[0][:120] if warn else ''} |")
         for e in P2["errors"][:2]:
             manual.append("hypothesis-usage probe error: " + e[:300])
+        walks2 = P2["walks"]
+
+    # 11. conditions traced from the gated theorems (PENDING #16, #24)
+    cond, formal, loose, missing = trace_conditions(rid, state, hyp_targets, walks2, P2["hyp"] if hyp_targets else {})
+    traced = ", ".join(cond) if cond else "none"
+    detail = [f"conditions: {traced}"]
+    if formal:
+        detail.append("formal only (UNUSED hypotheses): " + ", ".join(formal))
+        manual.append(f"external inputs mentioned only by UNUSED hypotheses ({', '.join(formal)}): they are not conditions "
+                      f"of the proof; report them, and list them as formal-only, not under CONDITIONS")
+    if loose:
+        detail.append("reached but not in a hypothesis: " + ", ".join(loose))
+        manual.append(f"external inputs reached by the walk but not visible in a hypothesis type ({', '.join(loose)}): "
+                      f"decide by hand (a bundled hypothesis, or a type cut off at 100 characters)")
+    if missing:
+        detail.append("registered for this result but not reached: " + ", ".join(missing))
+        manual.append(f"external inputs registered for {rid} but not reached by any gated theorem ({', '.join(missing)}): "
+                      f"they are not conditions; say so in the report so that the records are corrected")
+    add(f"| 11 | conditions traced from the gated theorems | INFO | {'; '.join(detail)[:900]} |")
+
+    # 12. who last wrote the audited files (PENDING #19)
+    log = write_log()
+    for rel in [f"pv_work/{mod}.lean"] + ([f"pv_work/{stmt}.lean"] if stmt else []):
+        w = last_writer(rel, log)
+        if not log:
+            add(f"| 12 | last writer of `{rel}` | NOT RECORDED | no guard hook log (pv_work/logs/writes.jsonl) |")
+        elif w is None:
+            add(f"| 12 | last writer of `{rel}` | NOT RECORDED | no write of this file in the guard hook log |")
+        elif w.get("role") == "coordinator":
+            fails.append("writer")
+            add(f"| 12 | last writer of `{rel}` | FAIL | the coordinator, {w.get('time')} (it does not write proofs, POLICY §3) |")
+        else:
+            add(f"| 12 | last writer of `{rel}` | PASS | {w.get('role')} (agent {str(w.get('agent_id'))[:8]}), {w.get('time')} |")
 
     # report
     AUDITS.mkdir(parents=True, exist_ok=True)
@@ -377,8 +492,11 @@ def main():
         out_path = AUDITS / f"{rid}_mech_r{k}.md"
     verdict = ("PASS" + (f" ({len(manual)} manual checks listed above)" if manual else "")) if not fails else \
         "FAIL (" + ", ".join(dict.fromkeys(fails)) + ")"
+    ran = who_ran(rid, log)
+    by = (f"{ran.get('role')} (agent {str(ran.get('agent_id'))[:8] or '-'}, session {str(ran.get('session'))[:8]})"
+          if ran else "not recorded (no guard hook log entry for this call)")
     rep = [f"# Mechanical audit checks — {rid} (`{mod}`)", "",
-           f"Run by the auditor with `python3 scripts/pv_audit_mech.py {' '.join(sys.argv[1:])}` on {stamp}. "
+           f"Run by: {by}, with `python3 scripts/pv_audit_mech.py {' '.join(sys.argv[1:])}` on {stamp}. "
            f"Probes: `{probe1}`" + (f", `{probe2}`" if hyp_targets else "") + ".", "",
            "| # | Check | Result | Detail |", "|---|---|---|---|", *lines, "",
            "## Project constants reached (item 8)", "",
@@ -389,6 +507,8 @@ def main():
            (", ".join(f"`{n}`" for n in new_decls) if new_decls else "None."), "",
            "## Hypothesis usage of gated theorems (item 10)", "",
            "| Theorem | Hypotheses | UNUSED | Warning |", "|---|---:|---|---|", *(hyp_rows or ["| — | — | — | — |"]), "",
+           "## Conditions traced (item 11)", "",
+           f"TRACED CONDITIONS: {traced}", "",
            "## For the auditor (judgement not done by this script)", "",
            *(f"- {m}" for m in manual),
            "- trace every USED external parameter to the step that really uses it (`#pv_hyp_usage` on helpers)",

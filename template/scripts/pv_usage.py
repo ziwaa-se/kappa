@@ -17,6 +17,11 @@ Where the transcripts are: ~/.claude/projects/<project path with every non-alpha
 Cost is an ESTIMATE at list API prices (PRICES below, per million tokens; check them against the current price
 list). On a subscription plan the same weighting roughly tracks how fast the usage limit is consumed. A response is
 counted once even though the transcript repeats it for every content block (deduplicated by message id).
+
+Two figures (v1.3.1). Claude Code reports its own estimate per headless session (`total_cost_usd`, and `costUSD` per
+model). This script reads every transcript, so it also covers interactive sessions and sessions outside the driver.
+When the driver's session files exist (pv_work/logs/drive/, bench_logs/), the report ends with a per-model comparison
+of the two for the same sessions. Token counts agree; a model whose costs differ has an out-of-date row in PRICES.
 """
 import argparse
 import csv
@@ -34,6 +39,7 @@ PRICES = {
     "claude-opus-5-5": (4.0, 20.0, 5.0, 8.0, 0.20),
     "claude-opus-5": (5.0, 25.0, 6.25, 10.0, 0.50),
     "claude-opus-4": (5.0, 25.0, 6.25, 10.0, 0.50),
+    "claude-sonnet-5-5": (2.0, 10.0, 2.5, 4.0, 0.10),   # v1.3.1: cache reads at 0.10, as the CLI's costUSD shows
     "claude-sonnet-5": (2.0, 10.0, 2.5, 4.0, 0.20),
     "claude-sonnet-4": (3.0, 15.0, 3.75, 6.0, 0.30),
     "claude-haiku-4-5": (1.0, 5.0, 1.25, 2.0, 0.10),
@@ -170,6 +176,7 @@ def collect(project, claude_dir, since):
                 models[model] += c
             rows.append({
                 "role": role, "session": session, "file": str(f), "description": desc,
+                "cost_by_model": {m: round(c, 6) for m, c in models.items()},
                 "result": "-" if role in ("coordinator", "pv-architect", "pv-compiler", "pv-factcheck")
                           else result_id(desc, prompt[:3000], ids),
                 "model": max(models, key=models.get) if models else "",
@@ -214,6 +221,48 @@ def table(title, groups, order=None):
           f"{fmt(tot['cache_read'])} | {fmt(tot['output'])} | **${tot['cost_usd']:.2f}** | 100% | {tot['minutes']:.0f} |")
 
 
+def cli_check(project, rows):
+    """Compare, per model, this script's estimate with the cost Claude Code reported for the same headless sessions."""
+    cli, seen = defaultdict(float), set()
+    for f in list((project / "pv_work" / "logs" / "drive").glob("*.json")) + list((project / "bench_logs").glob("*.json")):
+        try:
+            d = json.loads(f.read_text())
+        except Exception:
+            continue
+        sid = d.get("session_id") if isinstance(d, dict) else None
+        if not sid or sid in seen or not isinstance(d.get("modelUsage"), dict):
+            continue
+        seen.add(sid)
+        for m, v in d["modelUsage"].items():
+            cli[re.sub(r"\[.*\]$", "", m)] += float(v.get("costUSD") or 0)
+    if not seen:
+        return None
+    est, other = defaultdict(float), 0.0
+    for r in rows:
+        for m, c in r.get("cost_by_model", {}).items():
+            if r["session"] in seen:
+                est[m] += c
+            else:
+                other += c
+    out = {"sessions": len(seen), "models": {}, "outside_cost_usd": round(other, 2)}
+    for m in sorted(set(cli) | set(est)):
+        out["models"][m] = {"transcripts": round(est.get(m, 0), 2), "claude_code": round(cli.get(m, 0), 2)}
+    return out
+
+
+def print_cli_check(chk):
+    print(f"\n### Check against the cost Claude Code reported ({chk['sessions']} headless sessions)\n")
+    print("| model | this script | Claude Code | difference |")
+    print("|---|---:|---:|---:|")
+    for m, v in chk["models"].items():
+        a, b = v["transcripts"], v["claude_code"]
+        diff = f"{100 * (a - b) / b:+.1f}%" if b else "—"
+        print(f"| {m} | ${a:.2f} | ${b:.2f} | {diff} |")
+    print(f"\nSessions without a Claude Code figure (interactive or setup sessions, not in the driver logs): "
+          f"${chk['outside_cost_usd']:.2f}. A difference of more than a few cents for one model means its row in "
+          f"PRICES is out of date; the token counts are the same.")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--project", default=str(Path(__file__).resolve().parent.parent))
@@ -230,22 +279,27 @@ def main():
     wall = round((max(ends) - min(starts)).total_seconds() / 60, 1) if starts and ends else 0.0
     if a.csv:
         with open(a.csv, "w", newline="") as fh:
-            w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()) if rows else ["role"])
+            fields = [k for k in (rows[0].keys() if rows else ["role"]) if k != "cost_by_model"]
+            w = csv.DictWriter(fh, fieldnames=fields, extrasaction="ignore")
             w.writeheader()
             w.writerows(rows)
+    chk = cli_check(project, rows)
     if a.json:
         out = {"project": str(project), "wall_minutes": wall, "rows": rows,
                "by_role": {k: dict(v) for k, v in group(rows, "role").items()},
                "by_model": {k: dict(v) for k, v in group(rows, "model").items()},
                "by_result": {k: dict(v) for k, v in group(rows, "result").items()},
                "total_cost_usd": round(sum(r["cost_usd"] for r in rows), 4),
-               "total_tokens": sum(r["input"] + r["output"] + r["cache_write"] + r["cache_read"] for r in rows)}
+               "total_tokens": sum(r["input"] + r["output"] + r["cache_write"] + r["cache_read"] for r in rows),
+               "claude_code_check": chk}
         print(json.dumps(out, indent=1))
         return
     print(f"## Token use — {project.name} (wall clock {wall:.0f} min; costs are list-price estimates)")
     table("By role", group(rows, "role"), ROLES)
     table("By model", group(rows, "model"))
     table("By result", group(rows, "result"))
+    if chk:
+        print_cli_check(chk)
 
 
 if __name__ == "__main__":

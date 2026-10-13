@@ -13,7 +13,8 @@
 #                                               mathlib modules are compiled (linked: never run `lake build`)
 #
 # Every compile writes a numbered log pv_work/logs/<name>_<k>.log whose last line is "EXIT=<code>", and prints one
-# RESULT line with the same code. Exit codes: the compiler's own code; 3 for a refused build. Build modules in
+# RESULT line with the same code. Exit codes: the compiler's own code; 3 for a refused build; 5 for a file that uses
+# IO, run_cmd or initialize (refused before compiling: POLICY §4, Lean files run no programs and touch no files). Build modules in
 # dependency order; after rebuilding a module, rebuild every pv_work module that imports it. Name probes
 # <role>_<ID>_<what>.lean (e.g. auditor_T01_walk.lean) so log names never collide (macOS is case-insensitive).
 set -uo pipefail
@@ -32,6 +33,18 @@ sha256() {
   elif command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1" | cut -d' ' -f1
   else python3 -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' "$1"; fi
 }
+# v1.3.1 (POLICY §4): Lean code can run programs, touch files and reach the network (IO actions, run_cmd,
+# initialize), which would bypass every permission rule. Such files are refused before they are compiled.
+io_guard() {
+  local hits
+  hits=$(grep -nE '(^|[^A-Za-z0-9_.])IO([.[:space:]]|$)|(^|[^A-Za-z0-9_])(run_cmd|initialize|builtin_initialize)([^A-Za-z0-9_]|$)' "$1" \
+    | grep -vE '^[0-9]+:[[:space:]]*--' | head -3 | tr '\n' ';')
+  if [[ -n "$hits" ]]; then
+    echo "REFUSED $(basename "$1" .lean) exit=5: the file uses IO, run_cmd or initialize; Lean files run no programs and touch no files (POLICY §4): $hits"
+    exit 5
+  fi
+}
+
 [[ -n "$mode" ]] || usage
 
 if [[ "$mode" == "packages" ]]; then
@@ -51,6 +64,7 @@ case "$mode" in
     id="${3:-}"; [[ -n "$id" ]] || usage
     file="$WORK/$target.lean"; [[ -f "$file" ]] || { echo "no such file: $file"; exit 2; }
     [[ -f "$WORK/$target.olean" ]] || { echo "no delivered pv_work/$target.olean to compare with"; exit 2; }
+    io_guard "$file"
     out="$WORK/probes/auditor/$id/rebuild"; mkdir -p "$out"
     cd "$ROOT" || exit 2
     LEAN_PATH="$WORK:${LEAN_PATH:-}" lake env lean -R "$WORK" -o "$out/$target.olean" "$file" > "$out/$target.rebuild.log" 2>&1
@@ -64,6 +78,7 @@ case "$mode" in
   *) echo "unknown mode: $mode"; usage ;;
 esac
 [[ -f "$file" ]] || { echo "no such file: $file"; exit 2; }
+io_guard "$file"
 
 k=1
 while [[ -e "$LOGS/${base}_${k}.log" ]]; do k=$((k + 1)); done

@@ -32,10 +32,10 @@ Write the following files from the templates:
    - §1 overall conclusion;
    - §2 verdicts, result by result;
    - §3 all external dependencies, with the "Checked by a person" column of `python3 scripts/pv_status.py tools` (who, when, against what; "not yet" otherwise);
-   - §4 substantive issues for the authors (cite only suggestions already present in the audit records);
+   - §4 substantive issues for the authors (cite only suggestions already present in the audit records). Keep the boundary cases ruled by a gate or an audit apart from your own observations, in the two tables of the template: an observation of yours is never presented as a review finding, and names what it rests on (v1.3.1);
    - §5 editorial slips and presentational suggestions;
    - §6 human-check list;
-   - §7 formalization-side limits;
+   - §7 formalization-side limits, including the Lean and Mathlib versions and the line from `scripts/pv_lean.sh packages` on how many Mathlib modules are compiled (v1.3.1);
    - §8 process disclosure (violations, coordinator errors, corrected items);
    - §9 evidence entry points.
 2. `verification/report/EXTERNAL_TOOLS_WORKSHEET.md`: for each parameter, give the priority (per the table in `VERDICTS.md` §4: A for (iv), and for (p) whose predecessor has an issue and could not be reconnected; A′ for (iii); B for (i) with doubtful attribution; C for (ii); D for the remaining (i); E for (v)), the **Lean definition quoted verbatim**, the source location, the mathematical meaning, the check points and a checkbox. Gap hypotheses (g) are not external inputs; list them under the corresponding issue in §4 of the report.

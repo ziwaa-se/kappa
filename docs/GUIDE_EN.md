@@ -1,4 +1,4 @@
-# TeX Proof-Check Kit v1.3: the complete workflow
+# TeX Proof-Check Kit v1.3.1: the complete workflow
 
 This guide takes you from a new computer to a finished report. It also covers what to do when the paper changes or when you check a condition yourself. The prompts in 8.1, 8.3, 8.4 and 8.5 were sent verbatim, in this order, in an end-to-end test on the test paper `bench/paper`; the record is `bench/results/WORKFLOW_TEST.md`. Slash commands such as `/pv-status` are Claude Code's standard way to start the same steps.
 
@@ -69,13 +69,13 @@ cd ~/proofcheck/papers/mypaper-check && lake exe cache get
 scripts/pv_lean.sh build PVTools
 ```
 
-- The second command downloads Lean 4.19.0 and Mathlib once: a few GB, 5–20 minutes.
+- The second command downloads Lean 4.19.0 and Mathlib once: a few GB, 5–20 minutes. On macOS 26 or later it can fail with a `dyld` message about `SG_READ_ONLY`; the guided setup's `autosetup/lean_env.sh <base> --download` works around this (it relinks Mathlib's cache tool with the system compiler).
 - The third must end with `exit=0`.
 - If this computer already has a project with the same Lean version, use `--lean-from <that project>` instead of `--pinned`, which skips the download.
 
 **Add the paper.** Copy into `~/proofcheck/papers/mypaper-check/source/`: the main `.tex`, every file it `\input`s, the macro files, and the compiled **PDF and `.aux`**. The `.aux` gives exact theorem numbers.
 
-**Allow unattended running** (recommended). Read `.claude/settings.example.json` first: it allows only the kit's own commands, and it forbids network access and edits to the paper.
+**Allow unattended running** (recommended). Read `.claude/settings.example.json` first: it allows only the kit's own commands, it forbids network access and edits to the paper, and its hook (`scripts/pv_guard.py`) refuses writes outside the project, proof edits by the coordinator and edits by reviewers of what they review (MANUAL, section 2, step 4).
 
 ```bash
 cd ~/proofcheck/papers/mypaper-check && cp .claude/settings.example.json .claude/settings.json
@@ -96,10 +96,13 @@ The run is unattended: it records problems and keeps going. It reports briefly a
 ### 4B. From a terminal, fully unattended
 
 ```bash
-cd ~/proofcheck/papers/mypaper-check && scripts/pv_drive.sh --setup source/main.tex
+cd ~/proofcheck/papers/mypaper-check && scripts/pv_drive.sh --setup source/main.tex --auto-resume --report
 ```
 
-It runs the setup, then every result in short fresh sessions of at most 3 results each, which keeps the cost down. The results are the same as with 4A.
+It runs the setup, then every result in short fresh sessions of at most 3 results each, which keeps the cost down, and finally the report. The results are the same as with 4A.
+- `--auto-resume`: when the usage limit is reached, it sleeps until the reset time and continues by itself. Keep the computer on and the lid open (on macOS it prevents idle sleep while it runs).
+- The last line of its output says why it stopped, and `python3 scripts/pv_drive_status.py show` prints the same (MANUAL, section 3, lists the exit statuses).
+- `autosetup/start_unattended.sh ~/proofcheck/papers/mypaper-check` starts it in the background, so that you can close the terminal.
 
 ### 4C. In VS Code connected to a cluster
 
@@ -124,7 +127,7 @@ The kit's scripts are written for macOS and Linux, but they have so far been run
 | Keep a long run cheap | Every few verdicts: `/clear`, then `/pv-resume` |
 | See where the tokens went | `python3 scripts/pv_usage.py` (in a terminal) |
 
-When the usage limit runs out, the run stops, and it does not restart by itself when the limit resets; type `/pv-resume`.
+When the usage limit runs out, an interactive run (4A, 4C) stops, and it does not restart by itself when the limit resets; type `/pv-resume`. The driver with `--auto-resume` (4B) continues by itself.
 
 ---
 
@@ -227,6 +230,8 @@ result. Faithful translation only; no internet, no downloads. Finally show the t
 python3 scripts/pv_status.py followup.
 ```
 
+What gets redone (v1.3.1): the results whose statement, proof or used definitions changed. The results that use them keep their verdicts until a changed result has passed its gate again; if its statement turned out the same, they are only rebuilt and re-checked mechanically, otherwise they are redone too. The MANUAL, section 4, has the details.
+
 ### 8.4 You checked a condition
 
 ```
@@ -296,9 +301,11 @@ A research paper costs far more than the test paper. To keep it down:
 | Every step asks for approval | `.claude/settings.json` is missing, or the folder was not trusted when opened |
 | `install.sh: permission denied` | Run it as `bash ~/proofcheck/tex-proof-check-kit/install.sh …` |
 | `lake: command not found` | Open a new terminal, or run `source ~/.elan/env` |
-| `lake exe cache get` fails | Retry (usually the network); as a last resort, `lake build` (slow, hours) |
+| `lake exe cache get` fails | Retry (usually the network). On macOS 26 or later with a `dyld … SG_READ_ONLY` message: `autosetup/lean_env.sh <base> --download`. As a last resort, `lake build` (slow, hours) |
 | A step is `TRANSLATION_BLOCKED` with a missing Mathlib module | The project links another project's Mathlib; install with `--pinned`, or with `--lean-from` without `--link-packages` |
-| The run stopped after the usage limit | `/pv-resume` after the limit resets |
+| The run stopped after the usage limit | `/pv-resume` after the limit resets; the driver with `--auto-resume` continues by itself |
+| The driver stopped with exit status 7 (`permissions`) | Kit commands were refused: open the folder once in Claude Code, accept the trust dialog, run the driver again |
+| A write was refused with `pv_guard: …` | The guard hook (MANUAL, section 2, step 4). Working by hand: `PV_GUARD=warn` |
 | You are unsure what a verdict or code means | `verification/rules/VERDICTS.md`, or ask Claude in the project |
 | `validate` warns that `source/` changed or holds a different paper | New version of the same paper: `/pv-revise` (8.3). A different paper: put the original files back and make a new project |
 | In VS Code the kit's commands (`/pv-status` …) are unknown | The chat was not opened in the project folder: File → Open Folder… → the project, then a new chat |

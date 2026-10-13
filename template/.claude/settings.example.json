@@ -6,7 +6,8 @@
       "Bash(python3 scripts/pv_snapshot.py *)",
       "Bash(python3 scripts/pv_usage.py *)",
       "Bash(python3 scripts/pv_audit_mech.py *)",
-      "Bash(lake env lean *)",
+      "Bash(python3 scripts/pv_drive_status.py *)",
+      "Bash(python3 scripts/pv_settings.py *)",
       "Bash(date)",
       "Bash(date *)",
       "Bash(tail *)",
@@ -21,9 +22,19 @@
       "WebSearch",
       "Bash(curl *)",
       "Bash(wget *)",
+      "Bash(git clone *)",
+      "Bash(pip install *)",
+      "Bash(pip3 install *)",
+      "Bash(python3 -m pip *)",
+      "Bash(ssh *)",
+      "Bash(scp *)",
+      "Bash(rsync *)",
+      "Bash(elan *)",
       "Bash(lake update *)",
-      "Bash(lake exe cache *)",
+      "Bash(lake exe *)",
       "Bash(lake build *)",
+      "Edit(.lake/**)",
+      "Write(.lake/**)",
       "Edit(source/**)",
       "Write(source/**)",
       "Edit(verification/rules/**)",
@@ -33,7 +44,22 @@
       "Edit(pv_work/PVTools.lean)",
       "Write(pv_work/PVTools.lean)",
       "Edit(.claude/**)",
-      "Write(.claude/**)"
+      "Write(.claude/**)",
+      "Edit(scripts/**)",
+      "Write(scripts/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/pv_guard.py\""
+          }
+        ]
+      }
     ]
   }
 }

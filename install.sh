@@ -62,7 +62,18 @@ if [[ $upgrade -eq 1 ]]; then
     rel="${f#$SRC/}"
     target="$dest/$rel"
     case "$rel" in
-      CLAUDE.md|KIT_VERSION|.claude/agents/*|.claude/skills/*|.claude/settings.example.json|scripts/*|\
+      .claude/settings.example.json)   # v1.3.1: written for this project's own path (scripts/pv_settings.py)
+        tmp_ex="$(mktemp)"
+        python3 "$SRC/scripts/pv_settings.py" expand --root "$dest" --base "$f" --out "$tmp_ex" > /dev/null
+        if [[ ! -e "$target" ]]; then
+          mkdir -p "$(dirname "$target")"; mv "$tmp_ex" "$target"; echo "ADDED    $rel"; added=$((added + 1))
+        elif cmp -s "$tmp_ex" "$target"; then
+          rm -f "$tmp_ex"; same=$((same + 1))
+        else
+          mkdir -p "$(dirname "$backup/$rel")"; mv "$target" "$backup/$rel"; mv "$tmp_ex" "$target"
+          echo "REPLACED $rel"; replaced=$((replaced + 1))
+        fi ;;
+      CLAUDE.md|KIT_VERSION|.claude/agents/*|.claude/skills/*|scripts/*|\
       verification/rules/*|verification/report/templates/*|pv_work/probes/README.md|pv_work/notes/README.md)
         if [[ ! -e "$target" ]]; then
           mkdir -p "$(dirname "$target")"; cp -p "$f" "$target"; echo "ADDED    $rel"; added=$((added + 1))
@@ -89,16 +100,8 @@ if [[ $upgrade -eq 1 ]]; then
   echo "kit files: replaced $replaced, added $added, unchanged $same; project files left as they are: $kept"
   [[ $replaced -gt 0 ]] && echo "old versions of the replaced files: kit_backup/$stamp/"
   if [[ -f "$dest/.claude/settings.json" ]]; then
-    python3 - "$dest/.claude/settings.json" "$dest/.claude/settings.example.json" <<'PY'
-import json, sys
-cur, new = (json.load(open(p)).get("permissions", {}) for p in sys.argv[1:3])
-miss = [x for x in new.get("allow", []) if x not in cur.get("allow", [])]
-if miss:
-    print("Your .claude/settings.json was NOT changed. This kit version suggests these extra allow entries:")
-    for x in miss:
-        print("    " + x)
-    print("Add them yourself if you agree (the kit's docs/MANUAL.md, section 2, step 4), or copy settings.example.json over settings.json.")
-PY
+    echo "Your .claude/settings.json was NOT changed. Compared with this kit version's suggestions:"
+    python3 "$dest/scripts/pv_settings.py" check --root "$dest" | sed 's/^/  /' || true
   fi
   printf '\n## Kit upgrade — %s\n- %s -> %s with install.sh --upgrade; replaced files are in kit_backup/%s/. Verdicts recorded before this date were produced with the earlier kit.\n' \
     "$(date '+%Y-%m-%d %H:%M')" "$old_ver" "$new_ver" "$stamp" >> "$dest/verification/AUDIT.md"
@@ -123,6 +126,8 @@ while IFS= read -r -d '' f; do
   copied=$((copied + 1))
 done < <(find "$SRC" -type f -not -name '.DS_Store' -not -name '*.pyc' -not -path '*/__pycache__/*' -print0)
 chmod +x "$dest/scripts/"*.sh "$dest/scripts/"*.py 2>/dev/null || true
+fresh_settings=0
+cmp -s "$SRC/.claude/settings.example.json" "$dest/.claude/settings.example.json" && fresh_settings=1
 echo "kit files: copied $copied, skipped $skipped (existing files were left untouched)"
 
 write_lakefile() {  # $1 = mathlib rev
@@ -177,6 +182,12 @@ if [[ -n "$lean_from" ]]; then
   echo
   echo "Checking the Lean environment (building PVTools) ..."
   (cd "$dest" && scripts/pv_lean.sh build PVTools) || { echo "PVTools build failed; see the log above and docs/MANUAL.md"; exit 1; }
+fi
+
+# v1.3.1: the suggested permission file lists this project's absolute paths (agents write commands both ways) and,
+# for linked Lean packages, read access to them (written after the packages are in place)
+if [[ $fresh_settings -eq 1 ]]; then
+  python3 "$dest/scripts/pv_settings.py" expand --root "$dest" > /dev/null
 fi
 
 echo

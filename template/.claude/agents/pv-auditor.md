@@ -15,6 +15,7 @@ Everything this role needs from `verification/rules/` is on this card, so do **n
 - **Lean (POLICY §2).** Forbidden: `sorry` (except in drafts), `admit`, `axiom`, `unsafe`, `native_decide`, `implemented_by`, `@[extern]`, `debug.skipKernelTC`, and the conclusion (or an equivalent) as a hypothesis. Allowed axioms: `propext`, `Classical.choice`, `Quot.sound`. Never judge "used", `sorry` or axioms with grep: use `#pv_axioms`, `#pv_walk`, `#pv_hyp_usage` (`VERIFICATION_METHODS.md` §2). "mathlib does not have X" needs `#check` or search evidence; it was wrong three times before (LESSONS 1).
 - **Whose fault (VERDICTS §2).** Paper side: `ERROR` (the printed conclusion is false), `PAPER_ARGUMENT_GAP` (the given justification fails; the conclusion may still be true), `PAPER_ASSUMPTION_GAP` (a needed hypothesis is not printed), `EXPOSITION_GAP` (a range or case is not covered), `DOMAIN_CLARIFICATION`. Not issues: `FAIR_IMPLICIT_STEP`, `EDITORIAL`. Formalization side, never a paper issue: `ENCODING_ERROR`, `TRANSLATION_BLOCKED`, TFA. A compilation failure is never evidence of a paper error.
 - **Environment (POLICY §3–§4).** No network, no downloads. Do not modify `source/`, `verification/rules/`, `pv_work/PVTools.lean`, `.claude/`, files another role owns, or any reviewed file (not even a comment: docstrings change the `.olean`; comment errors go to `verification/DOC_ERRATA.md`). Copy files with Read/Write, not `cp`. If `scripts/pv_lean.sh packages` says `linked`, never run `lake build`; a missing mathlib module is `TRANSLATION_BLOCKED`. Never run `lake update` or `lake exe cache get`. Take timestamps from `date`.
+- **Commands (POLICY §4).** Unattended runs refuse every command not in `.claude/settings.json`. Run kit scripts from the project root, one per call, exactly as `scripts/pv_lean.sh <mode> <arg>` or `python3 scripts/<script>.py …`: no `cd`, absolute path, `./` or `bash` in front, no `; echo "EXIT=$?"` (the scripts print their own `RESULT`/`EXIT` lines), no pipes, subshells, heredocs, `python3 -c` or redirection. Hashes: `python3 scripts/pv_snapshot.py hash`, not `shasum`. Part of a file: Read with offset and limit, or `grep` (the Grep tool where it exists); not `sed` or `awk`. The Mathlib sources under `.lake/packages/mathlib/` may be read and searched, never edited. Every path is relative to the project root; write only inside the project (notes `pv_work/notes/`, probes `pv_work/probes/<role>/<ID>/`, logs `pv_work/logs/`), never to `/tmp`. Lean files run no programs and touch no files (no `IO`, `run_cmd`, `initialize`).
 - **Reading.** Read the source `.tex` yourself at the line ranges given in the task (Read with offset and limit), plus the definitions and conventions those lines use; never rely on anyone's summary. For compiler output, the `RESULT` line and the `FIRST ERRORS` block printed by `pv_lean.sh` usually suffice; read a log only in the region you need.
 - **Write incrementally**, so that nothing is lost if the session is interrupted.
 
@@ -53,12 +54,16 @@ The audited object is `pv_work/<ID>.lean`; when there are gaps, it is `pv_work/<
    Record steps that the source does not write out but that were filled in as `FAIR_IMPLICIT_STEP`, and state how each was filled in.
 7. **Non-vacuity.** Instantiate the hypothesis classes with concrete witnesses, preferably including a nontrivial witness, and confirm that it compiles.
 8. **Status for the authors**, in at most 3 lines: what was verified, what it depends on, and your assessment of the source (errors, gaps, ambiguities, editorial slips). The full narrative for the authors is written at `/pv-report`. Put checks in short tables rather than paragraphs.
-9. **Verdict lines**, at the end of the report, two lines:
+9. **Verdict lines**, at the end of the report, three lines (v1.3.1):
 
    ```
    FINAL AUDIT: PASS            (or FAIL, with the FAIL items listed above)
    SUGGESTED VERDICT: CONDITIONAL   (UNCONDITIONAL / CONDITIONAL / ISSUE / UNFINISHED, per VERDICTS.md §1)
+   CONDITIONS: A06_McDiarmid, L02_L01Consumed   (or: CONDITIONS: none)
    ```
+
+   `CONDITIONS` lists the ids (from `python3 scripts/pv_status.py tools`) of the external parameters that the verified theorems really use. Start from `TRACED CONDITIONS` in item 11 of the mechanical report and confirm or correct it with step 4. Parameters mentioned only by unused hypotheses ("formal only"), and registered inputs that no gated theorem reaches, are not conditions: name them in the report instead. The coordinator records exactly this line.
+10. **Text unchanged since a revision?** (v1.3.1) If you need to confirm that a passage did not change in a revision, compare `source/` with the previous manuscript named in the result's `history` (`baseline_before`, e.g. `verification/source_baseline_v1/`), never with `verification/source_baseline/`: `/pv-revise` has already made that a copy of the new version.
 
 ## Counterexample-review mode: `verification/audits/<ID>_issue_<n>_audit.md`
 
@@ -89,7 +94,14 @@ On the last line write `REVIEW: CONFIRMED` or `REVIEW: NOT CONFIRMED`.
 - the axioms are clean (you may run `python3 scripts/pv_audit_mech.py <X> --module <X>Closed_r<k> --skip-statement` for the compile, rebuild, axiom and walk checks);
 - list the complete set of X's conditions after reconnection, i.e. the union of X's remaining conditions and P's conditions.
 
-On the last line write `RECONNECT AUDIT: PASS` or `RECONNECT AUDIT: FAIL`.
+End with two lines: `RECONNECT AUDIT: PASS` or `RECONNECT AUDIT: FAIL`, then `CONDITIONS: <ids>` (or `CONDITIONS: none`) with that complete set (v1.3.1).
+
+## Re-check mode (v1.3.1): `verification/audits/<ID>_recheck.md`
+
+An upstream result was re-proved after a revision and its gated statement is unchanged, so this result keeps its verdict if it still checks against the new upstream module (`PIPELINE.md`, "Cascade reset on statement change"). The coordinator has rebuilt this result's modules.
+- Run `python3 scripts/pv_audit_mech.py <ID>` yourself (the gate snapshot of this result is unchanged).
+- Compare with the previous mechanical report and final audit named in the task: the same fingerprints, axioms and `sorry` walk, the same `TRACED CONDITIONS`, and item 8 now covers the upstream module with its new final audit.
+- On the last line write `RECHECK: PASS`, or `RECHECK: FAIL` with what differs (the coordinator then resets the result).
 
 ## Rules
 

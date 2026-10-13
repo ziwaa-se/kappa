@@ -1,4 +1,4 @@
-# TeX Proof-Check Kit v1.3: reference manual
+# TeX Proof-Check Kit v1.3.1: reference manual
 
 > **Start with** [`GUIDE_EN.md`](GUIDE_EN.md), the complete workflow on one page. It covers setup, including the guided setup with [`CLAUDE_START_HERE.md`](../CLAUDE_START_HERE.md), the prompts to send, what you get, re-checking after corrections, recording conditions you checked, and upgrading. This manual is the detailed reference.
 
@@ -33,24 +33,30 @@ tex-proof-check-kit/
 ├── CLAUDE_START_HERE.md         guided setup: instructions that a new Claude chat follows
 ├── CHANGELOG.md                 version history
 ├── install.sh                   installs the template into a new paper project (or --upgrade an existing one)
-├── autosetup/                   scripts used by the guided setup (doctor, shared Lean environment, new project, ...)
+├── autosetup/                   scripts used by the guided setup (doctor, shared Lean environment, new project, ...),
+│                                and import_legacy.py (importing an earlier check, section 4)
 ├── lean-pins/                   the tested Lean/Mathlib versions (used by install.sh --pinned)
 ├── docs/                        GUIDE_EN, QUICKSTART, CHEATSHEET, this MANUAL, diagrams/, lean-demo/
 ├── examples/full-workflow/      every verdict, a revision and a human check: the real output of one run
 ├── examples/two-lemmas-demo/    a two-lemma demo paper with the real output of a run
 ├── bench/                       benchmark: a 3-result test paper with a planted error, the answer key,
 │                                the runner, the comparison script and the measured results (see section 9)
+├── tests/                       offline tests of the scripts (no model, no network); Lean integration tests
+│                                run when PV_TEST_LEAN_ENV names a Lean environment (tests/README.md)
 └── template/                    content installed into a new project
     ├── CLAUDE.md                core rules Claude reads automatically at every start
     ├── .claude/agents/          definitions of the 8 subagents (roles)
     ├── .claude/skills/          6 slash commands: /pv-setup /pv-run /pv-status /pv-resume /pv-report /pv-revise
-    ├── .claude/settings.example.json   suggested permission settings (inactive by default; see section 2, step 4)
+    ├── .claude/settings.example.json   suggested permission settings and the guard hook, written for this project's
+    │                                    path by install.sh (inactive until you copy it; see section 2, step 4)
     ├── verification/rules/      full rules: POLICY, VERDICTS, PIPELINE, VERIFICATION_METHODS, LESSONS
     ├── verification/            templates for persistent records (RESULTS.json, checklist, issue records, resume pointer, etc.)
-    ├── verification/report/templates/   templates for the final report, the external-input worksheet and the list of files to check
+    ├── verification/report/templates/   templates for the final report, the external-input worksheet, the list of files to check,
+    │                                    and the revision brief (REVISION_BRIEF.md, section 4)
     ├── pv_work/PVTools.lean     Lean commands for auditing: axiom check, constant walk, statement hash
     ├── scripts/                 pv_lean.sh (compile), pv_status.py (progress table, validation, record keeping), pv_snapshot.py (snapshots),
-    │                            pv_audit_mech.py (mechanical audit checks), pv_drive.sh (unattended driver), pv_usage.py (token use)
+    │                            pv_audit_mech.py (mechanical audit checks), pv_drive.sh and pv_drive_status.py (unattended driver),
+    │                            pv_usage.py (token use), pv_guard.py (who may write what), pv_settings.py (the suggested permissions)
     └── source/                  where the paper's LaTeX goes
 ```
 
@@ -139,17 +145,19 @@ Keep the original relative paths. If you have the **`.aux`** and **PDF** produce
 
 During automatic progress, Claude may ask for confirmation every time it runs a command or writes a file. When you are away from the computer, it stops there and waits for you.
 
-The kit comes with suggested permission settings, `.claude/settings.example.json`, **inactive by default**. Its contents:
+The kit comes with suggested permission settings, `.claude/settings.example.json`, **inactive by default**. `install.sh` writes it for this project's own folder. Its contents:
 - **Allow**:
-  - this kit's scripts: compile, private rebuild and comparison, packages check, progress table and record keeping, snapshot, moving stale files away, the mechanical audit checks (`pv_audit_mech.py`) and the token report (`pv_usage.py`);
-  - `lake env lean`, `date`, `tail`, `diff`;
+  - this kit's scripts: compile, private rebuild and comparison, packages check, progress table and record keeping, snapshot, moving stale files away, the mechanical audit checks (`pv_audit_mech.py`), the token report (`pv_usage.py`) and the driver's status (`pv_drive_status.py`);
+  - each of them in every spelling agents use (v1.3.1): `scripts/pv_lean.sh …`, `./scripts/pv_lean.sh …`, `bash scripts/pv_lean.sh …` and the absolute path of this project. Claude Code matches a rule against the command exactly as written, so a rule for one spelling does not allow the others;
+  - `date`, `tail`, `diff`;
   - writing files under `pv_work/` and `verification/`.
 - **Deny**:
-  - network: WebFetch, WebSearch, curl, wget;
-  - `lake update`, `lake exe cache`, `lake build`;
-  - modifying `source/`, the rule files `verification/rules/`, the audit tool `pv_work/PVTools.lean`, the source manuscript baseline, and `.claude/`.
+  - network and package managers: WebFetch, WebSearch, `curl`, `wget`, `git clone`, `pip install`, `ssh`, `scp`, `rsync`, `elan`;
+  - `lake update`, `lake exe …`, `lake build`;
+  - modifying `source/`, the rule files `verification/rules/`, the audit tool `pv_work/PVTools.lean`, the source manuscript baseline, `.claude/` and `scripts/`.
+- **Hook** (v1.3.1): before every write and every shell command, `scripts/pv_guard.py` checks who is acting. Nobody writes outside the project; the coordinator writes no Lean file and no review report; the reviewing roles change no file they review. Every write and every kit command is logged with its role in `pv_work/logs/writes.jsonl`, which the mechanical audit report uses to name who ran it and who last wrote the audited file.
 
-The copying, moving and directory creation that the subagents need have all been changed to go through these scripts or Read/Write, so there is no need to allow `cp`, `mv` or `mkdir`.
+The copying, moving and directory creation that the subagents need have all been changed to go through these scripts or Read/Write, so there is no need to allow `cp`, `mv` or `mkdir`. Every other command is refused in unattended runs; the role cards tell each agent the exact spelling to use.
 
 After you have read the contents and agree with them, run the command below **yourself** in the new project directory to enable it:
 
@@ -159,9 +167,13 @@ cp .claude/settings.example.json .claude/settings.json
 
 Notes:
 - If it does not take effect after you enable it, close and reopen the session for this project.
+- **Trust.** Claude Code ignores a folder's own `.claude/settings.json` until the folder has been opened interactively once and trusted. The driver therefore passes the file explicitly with `--settings`. In a test with Claude Code 2.1.296 (2026-10-12), rules passed this way applied to the coordinator and to subagents in a folder that had never been trusted, although Claude Code still printed "Ignoring … permissions.allow entries … this workspace has not been trusted". If kit commands are refused anyway, the driver stops with exit status 7 and says so; then open the folder once in Claude Code and accept the trust dialog.
+- **After moving the project folder**, run `python3 scripts/pv_settings.py expand` and copy the file again: the absolute-path rules name the old folder.
+- **After `install.sh --upgrade`**, `python3 scripts/pv_settings.py check` lists the suggested rules and hooks your `settings.json` lacks. Your file is never changed for you.
+- **Working by hand in the project** (outside the kit's roles): the guard treats the main session as the coordinator. `PV_GUARD=warn` logs instead of refusing; `PV_GUARD=off` turns it off for that session.
 - **With a copy install, if you allow compiling missing mathlib modules**, remove `"Bash(lake build *)"` from `deny`. A `deny` rule cannot be approved even from a confirmation prompt.
-- **With a link install**, reading mathlib source goes through a symbolic link, which may trigger a "read a file outside the project" confirmation.
-- You can also leave this setting disabled. In that case, approve each confirmation as it appears, or choose a more permissive permission mode in the Claude app. **The "no network" rule is enforced by the system only after this setting is enabled**; without it, only the written constraints in each role definition apply.
+- **With a link install**, the Mathlib sources lie outside the project. The suggested file lists their folder under `additionalDirectories` (v1.3.1), so that agents can read and search them for "is X in Mathlib?" evidence, and denies editing them; the guard hook refuses writes outside the project as well. Every install denies edits under `.lake/`.
+- You can also leave this setting disabled. In that case, approve each confirmation as it appears, or choose a more permissive permission mode in the Claude app. **The "no network" rule and the guard are enforced by the system only after this setting is enabled**; without it, only the written constraints in each role definition apply.
 
 ### Step 5: Open the project and initialize
 
@@ -214,18 +226,47 @@ To do only part of the work, you can specify a scope:
 | See where the tokens went (by role, model and result) | `python3 scripts/pv_usage.py` |
 | Run unattended from a terminal, in short fresh sessions (v1.3) | `scripts/pv_drive.sh` (see below) |
 
-- **What happens when the usage limit runs out?** Running subagents stop. All reports are saved as they are written, and `RESUME.md` is updated at every milestone, so no work is lost. When you come back, run `/pv-resume`. It first checks half-finished work, continues it where possible, and restarts it otherwise.
-- **Can the window stay open and wait for the usage limit to reset?** After the limit resets, it will **not** continue on its own; you need to send a message, for example `/pv-resume`.
+- **What happens when the usage limit runs out?** Running subagents stop. All reports are saved as they are written, and `RESUME.md` is updated at every milestone, so no work is lost. In the desktop app, run `/pv-resume` when you come back: it checks half-finished work, continues it where possible, and restarts it otherwise. The interactive session does **not** continue by itself after the reset; the driver below does.
 - **Saving tokens (v1.3).**
   - Choose **Sonnet** for the main session in the model picker: the coordinator only dispatches, checks and records. The reviewing roles still run on Opus by their own definitions.
   - Every step of a long session re-reads its whole history. In the desktop app, after every few verdicts, type `/clear` and then `/pv-resume`: nothing is lost, because all state is in files.
   - Or run it from a terminal with the driver, which does this for you: each batch of up to 3 results gets a fresh session.
 
-    ```bash
-    cd ~/proofcheck/papers/mypaper-check && scripts/pv_drive.sh --setup source/main.tex
-    ```
+### Running unattended with the driver (v1.3.1)
 
-    It needs `.claude/settings.json` (step 4) and passes it to each session explicitly, because Claude Code ignores a folder's own permission file in unattended sessions until the folder has been opened and trusted interactively once. Environment variables: `PV_COORD_MODEL` (default `sonnet`), `PV_BATCH` (3), `PV_BUDGET_USD` (a per-session safety cap, default 30). Leave out `--setup` if `/pv-setup` has already been run.
+```bash
+cd ~/proofcheck/papers/mypaper-check && scripts/pv_drive.sh --setup source/main.tex --auto-resume --report
+```
+
+- `--auto-resume`: when the account's usage limit is reached, the driver reads the reset time from Claude Code's message ("resets 3:45pm", with a time zone or a date when given), sleeps until then plus 5 minutes (30 minutes when no time can be read), and continues. Waits do not count toward `--max-sessions`; after `PV_MAX_RESTARTS` waits (default 20) it gives up.
+- `--report`: when every result has a verdict, the driver archives any earlier report under `verification/report_archive/<date>/` and runs `/pv-report` in a fresh session.
+- Leave out `--setup` if `/pv-setup` has already been run; `--report-only` remakes only the report.
+- `autosetup/start_unattended.sh <project>` starts the same command in the background (tmux, or `nohup`), with `--auto-resume --report` by default.
+- Environment variables: `PV_COORD_MODEL` (default `sonnet`), `PV_BATCH` (3), `PV_BUDGET_USD` (a per-session safety cap, default 30; a hard result can raise the cap for its own sessions with `"session_budget_usd": 60` in `RESULTS.json`), `PV_MAX_RESTARTS` (20).
+- **Why it stopped.** The last line of its output names the reason, and `pv_work/logs/drive_status.json` records it (`python3 scripts/pv_drive_status.py show`):
+
+  | Exit status | Reason | What to do |
+  |---:|---|---|
+  | 0 | `done` / `done_report`: every result has a verdict or a recorded reason | read the table or the report |
+  | 3 | `usage_limit` (without `--auto-resume`) | run the driver again after the reset time it names |
+  | 4 | `no_progress`: a session changed no record | read the last session's JSON and `RESUME.md` |
+  | 5 | `validate_failed` | read `pv_work/logs/drive/validate.txt` |
+  | 6 | `max_sessions` | run the driver again |
+  | 7 | `permissions`: kit commands in their standard form were refused | trust the folder once (step 4) and run again |
+  | 8 | `report_incomplete` | look at the report session's JSON; `--report-only` retries |
+  | 9 | `max_restarts` | many usage-limit waits; run again later |
+  | 1 | `setup_failed` | read the setup session's JSON |
+
+- After each session the driver also counts the permission denials in that session's transcripts (coordinator and subagents) and prints them; `python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_<k>.json` lists the commands.
+
+### Operations notes for long runs (v1.3.1)
+
+1. **Keep the computer awake.** With `--auto-resume` on macOS the driver runs `caffeinate -i` for as long as it runs, which prevents idle sleep. **Closing the lid still puts a laptop to sleep**; keep it open (or use an external display setup that keeps it awake). On Linux, use your desktop's inhibit setting or a server.
+2. **Closing the chat window is fine.** The driver runs as its own process (`nohup` or tmux via `start_unattended.sh`); only a chat that is *monitoring* it needs to stay open.
+3. **Trust the folder once** before the first unattended run if possible (step 4); the driver stops with exit status 7 if kit commands are refused.
+4. **Editing the driver while it runs** no longer affects the running driver (v1.3.1 reads the whole script before running it). Still, do not edit the other scripts during a run: a session may be using them.
+5. **The report session** waits up to 3 hours for its background subagents (`CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS`, set by the driver); start reports with the driver (`--report`, `--report-only`) so that this is never forgotten.
+6. **Before a new revision round**, the driver's `--report` archives the earlier report; with `/pv-report` by hand, copy `verification/report/` away first.
 
 ---
 
@@ -259,14 +300,23 @@ If you check a condition, for example a cited theorem against the book it comes 
 - The progress table and the report mark it "conditions checked by a person", with who, when and how.
 - Only a Lean proof of the condition itself can turn it into "verified unconditionally".
 
-### After you correct the paper (v1.3)
+### After you correct the paper (v1.3.1)
 
-Put the corrected LaTeX (and the new PDF and `.aux`) into `source/`, replacing the old files, then run `/pv-revise`, and afterwards `/pv-run` for the results it resets.
-- Only the results whose statement, proof or definitions changed are re-checked, together with the results that depend on them. The others keep their verdicts.
+Put the corrected LaTeX (and the new PDF and `.aux`) into `source/`, replacing the old files, then run `/pv-revise`, and afterwards `/pv-run` (or the driver) for the results it resets.
+- **What is reset.** Only the results whose statement, proof or used definitions changed. A definition counts as changed only if its own lines changed: each shared definition has an ID and an exact line range (`source_defs`), each result lists the definitions it uses (`uses_defs`), and `python3 scripts/pv_status.py defs-changed` compares them between the baseline and `source/`.
+- **What happens to the results that depend on them** (`PIPELINE.md`, "Cascade reset on statement change"). They are marked "re-check pending" and keep their verdicts for the moment. When a reset result passes its gate again, the kit compares the fingerprints of its new statement with the old ones. If they are identical, its dependents are only rebuilt and get a mechanical re-check (`RECHECK` rows of `pv_status.py next`; report `<ID>_recheck.md`); if they differ, the dependents are reset in turn, one level at a time. Before v1.3.1 every result that imported a changed one was reset, and so, transitively, were results whose inputs had not changed at all.
+- **Old files.** `reset` moves the old proof files and review reports of a reset result to `pv_work/superseded/rev<k>/` and `verification/audits/rev<k>/`, so that the current files are the only ones in place; its history points to the archived copies.
+- **"Is this passage unchanged?"** `/pv-revise` makes `source/` the new baseline at its last step. Reviewers who need to confirm that some text did not change compare against the previous manuscript, which `reset` records in each result's history (`baseline_before`, e.g. `verification/source_baseline_v1/`).
 - An earlier issue is marked resolved only when the re-check gives the result a verified verdict with a new final audit.
 - `python3 scripts/pv_status.py followup` and the next `/pv-report` show each re-checked result before and after.
 
----
+### Importing an earlier check that was not made with the kit (v1.3.1)
+
+If a paper was checked before with other tools (an earlier workflow, a hand formalization) and you want the kit to re-check a revised version while reusing that Lean material:
+1. Make a new project and run `/pv-setup` as usual.
+2. Run, yourself, outside Claude Code: `python3 autosetup/import_legacy.py <project> <folder of the old Lean modules> --label prev-<date> [--verdicts old_verdicts.tsv] [--write-settings]`. It copies the modules into `pv_work/` under their own module paths (refusing any name clash), rebuilds them in import order with the project's Lean, makes them read-only, adds deny rules for them (with `--write-settings`; otherwise it prints them), records the earlier verdicts in each result's history (for the report's before/after table), and creates `verification/REVISION_BRIEF.md`.
+3. Fill in sections 1, 2 and 4 of the brief: the mapping from old numbers to kit IDs, and what changed. Every session reads the brief first.
+4. Start the check. Reused modules are infrastructure: a reused constant that a proof reaches needs its own audit record in this round, and an earlier verdict is never evidence.
 
 ## 5. How to read verdicts and issues
 
@@ -303,6 +353,8 @@ Full definitions: `template/verification/rules/VERDICTS.md`.
 | The prover's attempt limits (default: stop after 4 consecutive attempts without progress on a single step in a session; a second session on Opus for stuck steps; at most 2 proof sessions per result per pass; at most 2 passes over all results) | `verification/rules/PIPELINE.md` (the beginning and stage 4), `.claude/agents/pv-prover.md`, `.claude/skills/pv-run/SKILL.md`; change all three together |
 | Number of subagents running at the same time (default 3) | `.claude/skills/pv-run/SKILL.md` §1, and `POLICY.md` §5 |
 | Which model a role uses | `model:` in the header of the corresponding `.claude/agents/<role>.md` (`inherit`, `opus`, `sonnet`, `haiku`, `fable`) |
+| The session cap for one hard result (v1.3.1) | `"session_budget_usd"` in that result's entry in `RESULTS.json`; the driver uses the largest cap of a batch |
+| The guard hook (v1.3.1) | `PV_GUARD=warn` (log only) or `PV_GUARD=off`; the rules are in `scripts/pv_guard.py` |
 | The rules themselves | `verification/rules/*.md`. Think carefully before changing them; they are binding on all roles. Since v1.3 each agent in `.claude/agents/` carries a **rule card** of excerpts, each tagged with its source section (for example `POLICY §1`): when you change a rule, update the cards that cite it |
 
 ---
@@ -333,6 +385,10 @@ Put the new LaTeX into `source/`, then run `/pv-revise`. It does the following:
 
 Then re-check those results with `/pv-run <reset ID…>`.
 
+**Why does `pv_usage.py` show a different cost from Claude Code's own figure?**
+
+There are two estimates, both at list prices. Claude Code reports `total_cost_usd` for each headless session; `pv_usage.py` reads every transcript, so it also covers interactive sessions and sessions outside the driver, and it splits the cost by role, model and result. For the same sessions the token counts are identical. Since v1.3.1, `pv_usage.py` ends with a per-model comparison against Claude Code's figures for the driver's sessions. A model whose two costs differ has an out-of-date price in `PRICES` (in v1.3, Sonnet 5.5 cache reads were priced like Sonnet 5's, which overstated the cost of runs on Sonnet 5.5; the published benchmark ran on Sonnet 5 and Opus 5 and is not affected). Neither figure is a bill on a subscription plan; both indicate how fast the usage limit is used.
+
 **What if a comment in an audited file is wrong?**
 
 Record it in `verification/DOC_ERRATA.md`; do not edit the file directly. Changing a comment changes the `.olean` and invalidates the "byte-for-byte identical" audit record. If you authorize the change, follow the three-step procedure at the top of that file.
@@ -350,6 +406,9 @@ Yes. You can simply say it in natural language, for example "start automatic pro
 ## 8. Known limitations
 
 - `PVTools.lean` has only been tested on Lean 4.19.0 + mathlib `c44e0c8e…`.
+- **"Not in Mathlib" is only as good as the local Mathlib.** If fewer than all Mathlib modules are compiled (`scripts/pv_lean.sh packages`, `autosetup/lean_env.sh <base> --check`), a step can stop as `TRANSLATION_BLOCKED` for a module that exists but is not built. Use a complete environment (`lean_env.sh --download`); the report states the count. On macOS 26 and later, `lake exe cache get` fails with Lean 4.19.0's bundled linker; `lean_env.sh --download` relinks the cache tool with the system compiler (v1.3.1).
+- The guard hook and the Lean IO check are safeguards against mistakes, not a sandbox: they rely on Claude Code naming the calling subagent, and the IO check is a text scan of the file being compiled.
+- Conditions traced by `pv_audit_mech.py` (item 11) read hypothesis types as printed (cut at 100 characters) and bundled hypotheses; ambiguous cases are listed for the auditor rather than decided.
 - The statement fingerprint has three parts: the type hash, the `def` content hash, and the binder annotations (explicit or implicit). Names of bound variables are not included. When hashes differ, read the `#print` output of both sides before drawing a conclusion.
 - `#pv_hyp_usage` only checks whether a hypothesis appears in the proof term. When a hypothesis is passed to a helper lemma, check that lemma as well to confirm whether the hypothesis is actually used.
 - The kit cannot judge for you whether theorems from external literature are true; that is exactly the human-check part.

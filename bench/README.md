@@ -9,7 +9,7 @@ installed into paper projects.
 | `ANSWER_KEY.md` | Expected verdicts and why. It is never copied into a project's `source/` |
 | `run_bench.sh` | Installs a kit into a fresh project, adds the paper, and runs it unattended with `claude -p` |
 | `compare.py` | Compares finished runs: tokens, list-price cost, wall clock, cost by role and model, verdicts scored against the answer key |
-| `results/` | The measured comparison (`COMPARISON.md`) and per-run token reports |
+| `results/` | The measured comparisons: v1.2.1 against v1.3 with the September 2026 models (`COMPARISON.md`), v1.3 against v1.3.1 with the October 2026 models (`COMPARISON_2026-10.md`), and per-run token reports |
 
 ## Run it
 

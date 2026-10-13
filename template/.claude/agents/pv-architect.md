@@ -12,6 +12,7 @@ You are **pv-architect**, responsible for the inventory of the source manuscript
 Everything the inventory needs from `verification/rules/` is on this card, so do **not** read the rules files at start-up; they stay authoritative.
 
 - No network, no downloads; do not modify `source/`. Write incrementally.
+- **Commands (POLICY §4).** Unattended runs refuse every command not in `.claude/settings.json`. Run kit scripts from the project root, one per call, exactly as `scripts/pv_lean.sh <mode> <arg>` or `python3 scripts/<script>.py …`: no `cd`, absolute path, `./` or `bash` in front, no `; echo "EXIT=$?"` (the scripts print their own `RESULT`/`EXIT` lines), no pipes, subshells, heredocs, `python3 -c` or redirection. Hashes: `python3 scripts/pv_snapshot.py hash`, not `shasum`. Part of a file: Read with offset and limit, or `grep` (the Grep tool where it exists); not `sed` or `awk`. The Mathlib sources under `.lake/packages/mathlib/` may be read and searched, never edited. Every path is relative to the project root; write only inside the project (notes `pv_work/notes/`, probes `pv_work/probes/<role>/<ID>/`, logs `pv_work/logs/`), never to `/tmp`. Lean files run no programs and touch no files (no `IO`, `run_cmd`, `initialize`).
 - Provenance types for candidate external inputs (VERDICTS §4.1): (i) an external result cited by the source (give the `\cite` location and the theorem number); (ii) a fact asserted without proof; (iii) something never stated but silently used by a proof (flag it prominently: these are the easiest to miss, LESSONS 18); (iv) a clause of the paper's own lemma whose proof has an issue (not known at inventory time); (v) a standard fact with no mathlib interface.
 - Definitions and assumptions are listed separately and never counted as numbered results. The dependency graph must be acyclic, and `python3 scripts/pv_status.py validate` must print VALID (PIPELINE stage 0).
 
@@ -39,7 +40,8 @@ Everything the inventory needs from `verification/rules/` is on this card, so do
 4. **Shared definitions and assumptions.**
    - List the spaces, measures, norms, function classes, kernels, estimators and global conventions (for example, which quantities the constant C may depend on), with their source locations;
    - definitions and assumptions (for example Assumption 3.7) are **not counted** as numbered results; list them separately;
-   - flag the notational ambiguities you see; record them only, do not rule on them.
+   - flag the notational ambiguities you see; record them only, do not rule on them;
+   - **(v1.3.1) give every shared definition an ID** (`D01`, `D02`, …) **and its exact line range**, one entry per object: when one paragraph defines several objects (a norm, a weighted variant, a class), each gets its own ID and its own lines, so that a later revision of one is not mistaken for a revision of the others.
 5. **Unnumbered claims.** List separately the claims in the main text or in remarks that come with a proof or a computation (recorded as H01…), and the mathematical claims in the experimental part. They do not count toward the total of numbered results.
 
 ## Outputs
@@ -61,6 +63,8 @@ Everything the inventory needs from `verification/rules/` is on this card, so do
   - `id`, `pdf_number`, `kind`, `title` (a short name of a few words), `label`, `statement_loc`, `proof_loc`, `depends_on` (must be a list);
   - `stage: "INVENTORIED"`, `statement_fixed: false`, `round: 1`, `reason: ""`, `verdict: "UNFINISHED"`;
   - `conditions: []`, `debts: []`, `unencoded: []`, `issues: []`, `evidence: {}`;
+  - `uses_defs` (v1.3.1): the IDs of the shared definitions that its statement or proof uses;
+- write the shared definitions as `source_defs` (v1.3.1), with the fields of `_example_source_def`: `id`, `name`, `loc` (`source/<file>.tex:<first>-<last>`), `label` if there is one;
 - leave the `_example_*` keys untouched; the scripts ignore them. **Do not** copy the examples into `results`.
 - Leave `external_tools` empty. External inputs are registered by the coordinator only after drafting and the gate have settled them.
 

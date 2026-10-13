@@ -62,6 +62,19 @@ Each entry states:
 
 ### 4.1 …
 
+### 4.x Boundary cases ruled by the reviewers, and observations of the coordinator (v1.3.1)
+
+Keep these apart: a reader must be able to tell a review finding from a remark of the report's author.
+
+| Source location | Question | Ruling | Ruled by (report path) |
+|---|---|---|---|
+
+**Observations of the coordinator (no review behind them).** Each one names what it rests on (a file and line, a
+command output); none of them is a finding about the paper.
+
+| Observation | Based on |
+|---|---|
+
 ## 5. Editorial typos and wording suggestions
 
 | # | Location | Content |
@@ -77,6 +90,7 @@ Each entry states:
 ## 7. Limits on the formalization side (not paper issues)
 
 - External parameters are still unverified, so full verification of the whole paper is not claimed.
+- Lean environment: Lean <version>, Mathlib `<commit>`; Mathlib modules compiled on this machine: <built> of <total> (`scripts/pv_lean.sh packages`). With fewer than all of them, "not available in Mathlib" (a `TRANSLATION_BLOCKED` reason, or provenance (v)) was checked only against the compiled part.
 - Technical formalization assumptions (TFA) approved by the gate: …
 - Scope restrictions: …
 - Corrections on the formalization side (e.g. revisions pre-approved after something the gate missed): …
@@ -87,6 +101,7 @@ Each entry states:
 - Violations (if any): …
 - Coordinator errors found and corrected by subagents: …
 - The independent fact check of this report's first draft found N problems (x Major, y Moderate, z Minor), which have been corrected.
+- Permission denials and guard refusals during the run (`python3 scripts/pv_drive_status.py denials …`, `pv_work/logs/writes.jsonl`): counts, and whether any check had to be run by another role than the one the rules name.
 
 ## 9. Evidence entry points
 

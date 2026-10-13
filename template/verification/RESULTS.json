@@ -1,5 +1,5 @@
 {
-  "_comment": "Machine-readable state (kit v1.3; optional fields models_used and tier may be added). pv-architect fills 'results' at /pv-setup; the coordinator keeps it current. The _example_* entries show every field and are ignored by the scripts. Field meanings: verification/rules/PIPELINE.md (stage/reason table, naming) and VERDICTS.md. Check with: python3 scripts/pv_status.py validate",
+  "_comment": "Machine-readable state (kit v1.3.1; optional fields models_used, tier, session_budget_usd, uses_defs, recheck, history may appear). pv-architect fills 'results' at /pv-setup; the coordinator keeps it current. The _example_* entries show every field and are ignored by the scripts. Field meanings: verification/rules/PIPELINE.md (stage/reason table, naming) and VERDICTS.md. Check with: python3 scripts/pv_status.py validate",
   "paper": {
     "title": "",
     "main_tex": "source/main.tex",
@@ -16,6 +16,7 @@
   "defs": [],
   "results": [],
   "external_tools": [],
+  "source_defs": [],
   "_example_defs": {
     "id": "DEFS",
     "file": "pv_work/Defs.lean",
@@ -52,7 +53,10 @@
       "reconnect": ""
     },
     "summary_en": "",
-    "updated": "YYYY-MM-DD HH:MM"
+    "updated": "YYYY-MM-DD HH:MM",
+    "uses_defs": [
+      "D01"
+    ]
   },
   "_example_tool": {
     "id": "L02_L01Consumed",
@@ -66,5 +70,12 @@
     ],
     "mathlib_search": "#check … / searched names …",
     "human_check": "what exactly to check"
+  },
+  "_example_source_def": {
+    "id": "D01",
+    "name": "weighted negative Sobolev norm",
+    "loc": "source/sec_setting.tex:12-16",
+    "label": "def:hminus",
+    "_note": "one entry per defined object, with its own exact lines (v1.3.1)"
   }
 }

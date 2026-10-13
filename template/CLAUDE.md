@@ -16,6 +16,7 @@ The rules in `verification/rules/` are binding for everyone. To save tokens (v1.
 1. `verification/rules/PIPELINE.md`: the stages each result goes through, their outputs and acceptance criteria.
 2. `verification/rules/VERDICTS.md` §1 and §5: the four verdicts and the reporting rules.
 3. `verification/RESUME.md`: **the current position**. Do not rely on chat memory.
+4. `verification/REVISION_BRIEF.md`, **if it exists** (v1.3.1): what a revision or an imported earlier check changes about this project (ID mapping, reused modules, what may be reused and what must be redone). It takes precedence over habits, not over the rules.
 
 and, when needed, `POLICY.md` (working constraints), the rest of `VERDICTS.md` (issue classification, external parameters), `VERIFICATION_METHODS.md` (commands) and `LESSONS.md` (known pitfalls).
 
@@ -35,8 +36,8 @@ and, when needed, `POLICY.md` (working constraints), the rest of `VERDICTS.md` (
 6. **Each issue must state which side is at fault:**
    - paper side: `ERROR`, `PAPER_ARGUMENT_GAP` (the proof is written wrong), `PAPER_ASSUMPTION_GAP` (a condition is missing), `EXPOSITION_GAP`, `DOMAIN_CLARIFICATION`;
    - formalization side: `ENCODING_ERROR`, `TRANSLATION_BLOCKED`. Formalization-side problems never count as paper problems.
-7. **No network, no downloads**, unless the user explicitly permits it in chat. Do not modify `source/`, and do not modify files outside the project.
-8. **Automatic progress.** The user has authorized continuous progress through all numbered results. When a problem is found, record it and continue; the user checks and fixes it by hand. At every milestone, update `RESUME.md`, take a snapshot, and report to the user with an English progress table.
+7. **No network, no downloads**, unless the user explicitly permits it in chat; this covers Python, shell and Lean code too. Do not modify `source/`, and do not modify files outside the project. Run the kit's scripts exactly as `scripts/pv_lean.sh …` or `python3 scripts/<script>.py …` from the project root, one command per call (`POLICY.md` §4); unattended runs refuse other spellings.
+8. **Automatic progress.** The user has authorized continuous progress through all numbered results. When a problem is found, record it and continue; the user checks and fixes it by hand. At every milestone, update `RESUME.md`, take a snapshot, and report to the user with an English progress table. Wait for subagents through their completion notifications, never with timers or `sleep` (v1.3.1).
 9. **Do not use grep to judge** "whether sorry or some theorem is used"; use `#pv_axioms` / `#pv_walk`. Get timestamps with `date`.
 10. **Summaries written by the coordinator must pass an independent fact check before delivery.** While external parameters remain, do not claim full verification of the whole paper.
 

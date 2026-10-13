@@ -1,4 +1,4 @@
-# Pipeline: the stages, outputs and acceptance criteria for each numbered result (v1.3)
+# Pipeline: the stages, outputs and acceptance criteria for each numbered result (v1.3.1)
 
 ## Stages and reasons (`stage` and `reason` in `RESULTS.json`)
 
@@ -56,6 +56,9 @@ Result `T01` is used as the example. The second and later reports get `_r2`, `_r
 | Issue ruling, counterexample | `verification/audits/T01_issue_<n>.md` (the second one is `T01_issue_<n>_r2.md`), `pv_work/T01_Counterexample<n>.lean` | pv-issue-checker |
 | Counterexample review or reasoning review | `verification/audits/T01_issue_<n>_audit.md` (for the second ruling, `T01_issue_<n>_r2_audit.md`) | pv-auditor |
 | Predecessor reconnection | `pv_work/T01Closed_r<k>.lean`; the audit is written to `verification/audits/T01_reconnect_r<k>.md` | pv-prover; pv-auditor |
+| Mechanical audit checks | `verification/audits/T01_mech.md` (`_mech_r2.md` …), written by `scripts/pv_audit_mech.py` | pv-auditor runs it |
+| Re-check after a revised upstream result whose statement did not change (v1.3.1) | `verification/audits/T01_recheck.md` (`_recheck_r2.md` …) | pv-auditor |
+| Files of a result that was reset after revision `<k>` (v1.3.1) | `pv_work/superseded/rev<k>/`, `verification/audits/rev<k>/` (moved there by `pv_status.py reset`; `T01Stmt.lean` stays in place and a copy is kept) | `pv_status.py` |
 | Probes | `pv_work/probes/<role>/<ID>/<role>_<ID>_<purpose>.lean` | each role writes only its own directory |
 | Compilation logs | `pv_work/logs/<name>_<k>.log` | `pv_lean.sh` |
 | Stale files | `pv_work/superseded/` (`python3 scripts/pv_status.py supersede …`) | **coordinator** |
@@ -78,11 +81,12 @@ Every report must contain its verdict line within its **last 5 lines**; the scri
 | Report | Verdict line |
 |---|---|
 | gate | `STATEMENT GATE: PASS`, `STATEMENT GATE: PASS_WITH_AMENDMENTS` or `STATEMENT GATE: FAIL` |
-| final audit | `FINAL AUDIT: PASS` or `FINAL AUDIT: FAIL`, followed on the next line by `SUGGESTED VERDICT: UNCONDITIONAL / CONDITIONAL / ISSUE / UNFINISHED` |
+| final audit | `FINAL AUDIT: PASS` or `FINAL AUDIT: FAIL`, then `SUGGESTED VERDICT: UNCONDITIONAL / CONDITIONAL / ISSUE / UNFINISHED`, then (v1.3.1) `CONDITIONS: <ids of external_tools, comma-separated>` or `CONDITIONS: none`: the parameters the verified theorems really use (item 11 of the mechanical report, confirmed by the auditor). `pv_status.py record` takes the result's conditions from this line |
 | issue ruling | `ISSUE VERDICT: <classification code>`, followed on the next line by `THREATENS CONCLUSION: yes / no` |
 | counterexample review | `COUNTEREXAMPLE VALID` or `COUNTEREXAMPLE INVALID` |
 | reasoning review | `REVIEW: CONFIRMED` or `REVIEW: NOT CONFIRMED` |
-| predecessor reconnection | `RECONNECT AUDIT: PASS` or `RECONNECT AUDIT: FAIL` |
+| predecessor reconnection | `RECONNECT AUDIT: PASS` or `RECONNECT AUDIT: FAIL`, then (v1.3.1) `CONDITIONS: …` with the complete set after reconnection |
+| re-check (v1.3.1) | `RECHECK: PASS` or `RECHECK: FAIL` |
 
 ---
 
@@ -182,6 +186,8 @@ Update the following files, then run validate (must be VALID), take a snapshot, 
 
 ## Stage 6b: predecessor reconnection
 
+(v1.3.1) The same applies to a (iv) clause with a `predecessor`, once a revision has resolved that predecessor's issue and it is verified: `python3 scripts/pv_status.py reconnect` lists both kinds.
+
 After a predecessor result P becomes `FINAL_PASSED` (UNCONDITIONAL or CONDITIONAL), for each result X that is still conditional on `<X>_<P>Consumed` and is itself `FINAL_PASSED` + CONDITIONAL (listed by `pv_status.py reconnect`):
 
 1. pv-prover writes `pv_work/<X>Closed_r<k>.lean`:
@@ -211,21 +217,24 @@ When pv-issue-checker is dispatched, set the result to `stage: ISSUE_CHECK`. The
 | Review gives `COUNTEREXAMPLE VALID` or `REVIEW: CONFIRMED` | Register the paper-side issue in `BLOCKERS.md`, set the result to `STOPPED` + `ISSUE_RECORDED`, verdict ISSUE. If the gap file has already passed the final audit, point `evidence.final` to that final audit report, and state in `partial` which clauses, apart from the gaps, are verified |
 | Review gives `COUNTEREXAMPLE INVALID` or `REVIEW: NOT CONFIRMED` | Return it, with the review report, to pv-issue-checker, **once**. If still unconfirmed: set `STOPPED` + `ISSUE_UNCONFIRMED`, verdict UNFINISHED; put the suspected issue on the human-check list, labeled "reasoning, unconfirmed"; **do not** register it as a paper-side issue |
 | `FAIR_IMPLICIT_STEP` | Return to pv-prover to prove the step using the stated fill-in; the gap then disappears; then run the final audit as usual |
-| `ENCODING_ERROR` | Return to **pv-drafter** to fix the statement, then have **pv-gate** review it again. Then apply the "cascade reset on statement change" below |
+| `ENCODING_ERROR` | Run `python3 scripts/pv_status.py reset <ID> --revision enc<n> --reason ''` (v1.3.1: it keeps the old gate snapshot for the comparison and marks the dependents), return to **pv-drafter** to fix the statement, have **pv-gate** review it again, and record the pass with `record <ID> --stage GATE_PASSED --statement-fixed true`: the "cascade reset on statement change" below then decides for the dependents |
 | `TRANSLATION_BLOCKED` | Set `STOPPED` + `TRANSLATION_BLOCKED`, and leave it for the second pass |
 
 ## Cascade reset on statement change
 
-`ENCODING_ERROR` fixes, revisions of the source manuscript (`/pv-revise`) and similar cases all use the same rule. When the gated statement of a result P changes:
+`ENCODING_ERROR` fixes, revisions of the source manuscript (`/pv-revise`) and similar cases all use the same rule (v1.3.1).
 
-1. P: set `statement_fixed: false` and `stage: INVENTORIED` (with `reason: SOURCE_CHANGED` for a revision), clear `conditions`, `gaps`, `issues`, `upstream_issues`, `evidence`, `lean_main`, `partial`, and set the verdict to UNFINISHED. Move the old files away with `supersede`.
-2. Reset every affected result in the same way:
-   - results that `import` P's module or `<P>Stmt`;
-   - results conditional on `<X>_<P>Consumed`;
-   - results with a `Closed` file that imports P.
+**Why one level at a time.** A result consumes only the *statements* of the results it imports: their definitions and main theorems. If a result D is re-proved but its gated statement stays the same, every result Q that imports D still consumes exactly what it consumed before. Q's proof stays valid; only its compiled module must be rebuilt against the new D. So a reset spreads to the next level only through a statement that really changed, and the decision is made by comparing gate snapshots, not by guessing from the text.
 
-   List the reset results in `RESUME.md`.
-3. Redraft, re-gate, re-prove and re-audit in dependency order. When a module is rebuilt, its downstream modules must be rebuilt too.
+1. **Reset the changed results.** For each result P whose statement, proof or used definition changed: `python3 scripts/pv_status.py reset P [P …] --revision <k>`. This keeps P's previous verdict, issues and evidence in its `history`, sets `stage: INVENTORIED` (with `reason: SOURCE_CHANGED` for a revision), clears `conditions`, `gaps`, `issues`, `upstream_issues`, `evidence`, `lean_main` and `partial`, sets the verdict to UNFINISHED, and moves P's old proof files and review reports to `pv_work/superseded/rev<k>/` and `verification/audits/rev<k>/` (`PStmt.lean` stays in place for the drafter, and a copy is kept).
+2. **Mark, do not yet reset, the direct dependents.** The same command marks every result that consumes P directly (it imports P's module or `<P>Stmt`, uses a `<X>_<P>Consumed` clause, or has a `Closed` file referring to P) with `recheck: pending`. Their verdicts stand until the decision in step 3; the table and the report show them as awaiting a re-check.
+3. **Decide when P passes its gate again.** Record the gate pass with `python3 scripts/pv_status.py record P --stage GATE_PASSED --statement-fixed true`. The script compares the fingerprints of P's definitions and main theorem in the new gate snapshot with the snapshot from before the reset:
+   - **unchanged:** each waiting dependent keeps its verdict and gets `recheck: rebuild`. Once P is proved again (`FINAL_PASSED`), `pv_status.py next` lists it as `RECHECK`: rebuild its modules in dependency order, then pv-auditor runs the mechanical checks in re-check mode and writes `<ID>_recheck.md` ending `RECHECK: PASS` or `RECHECK: FAIL`. Record a pass with `record <ID> --recheck-passed`; after a fail, reset the result.
+   - **changed:** the waiting dependents are reset as in step 1, and their own direct dependents are marked in turn.
+   If the gate pass was recorded another way, run `python3 scripts/pv_status.py cascade P` to make the same decision. `reset --cascade-now` resets the dependents at once, without waiting for the comparison.
+4. **Order.** Redraft, re-gate, re-prove and re-audit in dependency order. When a module is rebuilt, its downstream modules must be rebuilt too (a rebuild changes no verdict by itself).
+
+A shared definition that changed is a changed statement for every result that uses it (`uses_defs`, see `/pv-revise`).
 
 ## Final stage (`/pv-report`)
 

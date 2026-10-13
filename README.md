@@ -56,7 +56,9 @@ Each result goes through separate agents, and none of them reviews its own work:
 - **Cited results stay visible.** What the paper cites or assumes without proof becomes an explicit `def … : Prop` hypothesis, listed for a person to check, never a hidden axiom.
 - **The report is fact-checked.** An independent agent checks the final report against the records before you see it.
 
-Records are plain files (`RESULTS.json`, Markdown reports, Lean files), so work survives usage limits and closed windows (`/pv-resume`).
+- **Who may write what is enforced.** A hook checks every write (v1.3.1): nobody writes outside the project, the coordinator never edits a proof, and reviewers never edit what they review. The mechanical audit report names who ran it.
+
+Records are plain files (`RESULTS.json`, Markdown reports, Lean files), so work survives usage limits and closed windows (`/pv-resume`). The unattended driver waits out usage limits by itself (`--auto-resume`). After a revision, only the results whose statement, proof or definitions changed are redone; results that use them are rebuilt and re-checked mechanically when the statements they use did not change.
 
 ## What you need
 
@@ -131,7 +133,7 @@ Runs use your Claude Code plan; the numbers below are list-price estimates.
 | Three-result benchmark, three verdicts (v1.3, two runs) | 30–51 min | $14–18 |
 | The same benchmark with the previous version, v1.2.1 | 83–84 min | $65–71 |
 
-A research paper costs far more, and usage limits will pause long runs; `/pv-resume` continues them. Every result needs several independent agents even when it is easy, so a fixed cost per result is part of the design. See [bench/results/COMPARISON.md](bench/results/COMPARISON.md) for how v1.3 cut the cost by about 77% without changing a verdict.
+A research paper costs far more, and usage limits will pause long runs; `/pv-resume` continues them, and the unattended driver continues by itself after the reset. Every result needs several independent agents even when it is easy, so a fixed cost per result is part of the design. See [bench/results/COMPARISON.md](bench/results/COMPARISON.md) for how v1.3 cut the cost by about 77% without changing a verdict.
 
 ## Limitations
 
@@ -140,7 +142,9 @@ A research paper costs far more, and usage limits will pause long runs; `/pv-res
 - **Pinned versions.** Lean 4.19.0 and Mathlib `c44e0c8e`. Newer versions should work but are untested.
 - **Platforms.** Developed and tested on macOS; also used on a Linux cluster through VS Code Remote-SSH.
 - **No network during checks.** Agents may not browse or download, so cited works are never fetched. They are listed for a person to check.
-- **AI agents run commands.** The kit runs Claude Code agents that compile and edit files in the project folder. The optional permission file (`.claude/settings.example.json`) allows only the kit's own commands and forbids network access and edits to the paper. Review it before enabling it.
+- **AI agents run commands.** The kit runs Claude Code agents that compile and edit files in the project folder. The optional permission file (`.claude/settings.example.json`) allows only the kit's own commands, forbids network access and edits to the paper, and installs the guard hook. Review it before enabling it. The hook and the kit's Lean IO check guard against mistakes; they are not a sandbox.
+- **Re-check without a model.** `examples/tools/replay.py` rebuilds a finished run's Lean files and reruns the mechanical audit at the pinned versions, so anyone can confirm the verdicts' evidence without Claude Code.
+- **Tests.** `tests/` checks the scripts offline (no model, no network): `python3 -m unittest discover -s tests`. With a Lean environment, `PV_TEST_LEAN_ENV=<lean-env>` adds integration tests of the mechanical audit.
 
 ## Repository layout
 
@@ -157,7 +161,8 @@ tex-proof-check-kit/
 ├── examples/
 │   ├── full-workflow/        every verdict, a revision and a human check: the real output of one run
 │   └── two-lemmas-demo/      a 20-minute example to try first
-└── bench/                    benchmark paper, answer key, runner and measured results
+├── bench/                    benchmark paper, answer key, runner and measured results
+└── tests/                    offline tests of the scripts; Lean integration tests with PV_TEST_LEAN_ENV
 ```
 
 ## Documentation
@@ -172,7 +177,7 @@ tex-proof-check-kit/
 
 ## Roadmap
 
-This version (v1.3) **only verifies** the proofs a paper already contains. Planned extensions, **not yet available**:
+This version (v1.3.1) **only verifies** the proofs a paper already contains. Planned extensions, **not yet available**:
 
 - **Repair mode.** After an issue is confirmed, agents would propose a correction: a missing hypothesis, a narrower statement, or a different argument for the failing step. They would verify it in Lean within fixed attempt and time limits, then pass it through the same independent gate and final audit. A repair would be reported separately and labeled as such. It would never change the verdict on the paper as written, and never be presented as the authors' proof.
 - **Completing unfinished steps.** An optional, longer proof search for steps stopped by formalization difficulty (`TRANSLATION_BLOCKED`, `BUDGET_EXHAUSTED`), also with limits.

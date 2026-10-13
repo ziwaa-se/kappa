@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""pv_status.py — read verification/RESULTS.json and report progress honestly (kit v1.3).
+"""pv_status.py — read verification/RESULTS.json and report progress honestly (kit v1.3.1).
 
 Usage (from the project root):
   python3 scripts/pv_status.py table               progress table (for screenshots)
@@ -33,6 +33,22 @@ Usage (from the project root):
                                                    for? SAME / CHANGED (new version: /pv-revise) / DIFFERENT_PAPER
   python3 scripts/pv_status.py init-checklist [--force]
                                                    (v1.3) one "Unfinished" row per result and the header counts
+  python3 scripts/pv_status.py set-deps ID [DEP ...]
+                                                   (v1.3.1) set depends_on of ID (no argument: none); checks
+                                                   unknown ids and cycles
+  python3 scripts/pv_status.py refresh-records     (v1.3.1) regenerate the current-evidence index in AUDIT.md and
+                                                   the registry table in EXTERNAL_TOOLS.md from RESULTS.json
+                                                   (record, reset and add-tool do this themselves)
+  python3 scripts/pv_status.py defs-changed        (v1.3.1) for each shared definition in source_defs: is its text
+                                                   in source/ still the text of the baseline? Lists the results
+                                                   that use each changed definition (/pv-revise, case (c))
+
+v1.3.1 revision rules (PIPELINE.md "Cascade reset on statement change"): `reset` after a revision resets only the
+listed results and marks their direct dependents "re-check pending". When the reset result passes its gate again,
+`record ... --statement-fixed true` compares the new gate snapshot with the old one: if the gated statement is
+unchanged, the dependents only need a rebuild and a mechanical re-check (`next` lists them as RECHECK); if it
+changed, they are reset in turn. A final audit ends with a `CONDITIONS:` line, and `record` takes the conditions
+from it.
 
 Verdicts (verification/rules/VERDICTS.md):
   UNCONDITIONAL  the paper's proof of the whole statement is verified with no parameter and no debt
@@ -67,6 +83,12 @@ STAGE_REASONS = {
                 "ISSUE_RECORDED", "ISSUE_UNCONFIRMED"},
 }
 PROVENANCE = ["i", "ii", "iii", "iv", "v", "p"]
+
+
+def is_predecessor_clause(t):
+    """(p), or (iv) with a predecessor: a clause of another result of the paper, which is reconnected to that
+    result's theorem once the result is verified (v1.3.1: also when an issue of the predecessor was resolved)."""
+    return t.get("provenance") == "p" or (t.get("provenance") == "iv" and bool(t.get("predecessor")))
 PAPER_CODES = {"ERROR", "PAPER_ARGUMENT_GAP", "PAPER_ASSUMPTION_GAP", "EXPOSITION_GAP", "DOMAIN_CLARIFICATION"}
 EN = {"UNCONDITIONAL": "Verified (unconditional)", "CONDITIONAL": "Verified (conditional)",
       "ISSUE": "Issue recorded", "UNFINISHED": "Unfinished"}
@@ -176,6 +198,11 @@ def table(data):
     if checked:
         print(f"Of the results verified conditionally, {checked} {'has' if checked == 1 else 'have'} every condition checked by a person "
               f"(still conditional: the conditions are not checked in Lean).\n")
+    pending = [r["id"] for r in res if isinstance(r.get("recheck"), dict)]
+    if pending:
+        print(f"{len(pending)} {'result awaits' if len(pending) == 1 else 'results await'} a re-check because a result "
+              f"{'it uses' if len(pending) == 1 else 'they use'} was revised: {', '.join(pending)}. Their verdicts stand "
+              f"until then.\n")
     print("| No. | ID | Result | Verdict | Stage | Conditions / issues / where stopped |")
     print("|---|---|---|---|---|---|")
     for r in res:
@@ -190,6 +217,8 @@ def table(data):
             extra = f"(before revision {h.get('revision')}: {names.get(h.get('verdict'), h.get('verdict'))}) " + (extra or "")
         what = " ".join(x for x in [r.get("kind", ""), r.get("title", "")] if x)
         stage = r.get("stage")
+        if isinstance(r.get("recheck"), dict):
+            stage = f"{stage} (re-check {r['recheck'].get('kind')})"
         print(f"| {cell(r.get('pdf_number'))} | {cell(r.get('id'))} | {cell(what)} | {vname} | "
               f"{cell(stage)} | {cell(extra)} |")
 
@@ -348,10 +377,38 @@ def validate(data):
         if v == "CONDITIONAL":
             for c in conds:
                 t = tools.get(c, {})
-                if t.get("provenance") == "p":
+                if is_predecessor_clause(t):
                     pred = byid.get(t.get("predecessor"), {})
                     if pred.get("stage") == "FINAL_PASSED" and pred.get("verdict") in ("UNCONDITIONAL", "CONDITIONAL"):
                         warns.append(f"{rid}: predecessor clause {c} can now be reconnected to {pred.get('id')} (stage 6b)")
+        # v1.3.1 checks
+        if v in ("UNCONDITIONAL", "CONDITIONAL") and st == "FINAL_PASSED":
+            stated = audit_conditions(r)
+            if stated is None:
+                warns.append(f"{rid}: its last audit report has no 'CONDITIONS:' line (written before kit v1.3.1)")
+            elif sorted(conds) != sorted(stated):
+                errs.append(f"{rid}: conditions {conds} differ from the CONDITIONS line of its audit {stated} "
+                            f"(record takes them from the audit; PENDING #24)")
+        for c in conds:
+            if str(tools.get(c, {}).get("status", "")).startswith("reconnected"):
+                errs.append(f"{rid}: condition {c} was reconnected and is no longer a condition")
+        if ev.get("recheck") and not is_pass(verdict_line(ev.get("recheck"), "RECHECK:")):
+            errs.append(f"{rid}: evidence.recheck does not end with 'RECHECK: PASS'")
+        rc = r.get("recheck")
+        if rc is not None:
+            if not isinstance(rc, dict) or rc.get("kind") not in ("pending", "rebuild"):
+                errs.append(f"{rid}: recheck must be {{kind: pending|rebuild, upstream: [...]}}")
+            else:
+                warns.append(f"{rid}: verdict {v} awaits a re-check ({rc['kind']}; upstream "
+                             f"{', '.join(rc.get('upstream') or rc.get('unchanged') or [])} was revised)")
+                for u in rc.get("upstream", []):
+                    if byid.get(u, {}).get("statement_fixed") and byid.get(u, {}).get("history"):
+                        warns.append(f"{rid}: upstream {u} has passed its gate again; run "
+                                     f"'python3 scripts/pv_status.py cascade {u}' to decide this re-check")
+        sdefs = {d.get("id") for d in data.get("source_defs", []) if isinstance(d, dict)}
+        for u in as_list(r.get("uses_defs")):
+            if u not in sdefs:
+                errs.append(f"{rid}: uses_defs {u} is not in source_defs")
     seen, stack = set(), set()
 
     def visit(n):
@@ -432,7 +489,29 @@ def next_ready(data, second_pass=False, use_all=False):
             tag += ", outside run_scope)" if scope and d not in scope else ")"
             notes.append(tag)
         print(f"BLOCKED\t{r['id']}\t{r.get('pdf_number')}\tblocked by {', '.join(notes)}")
-    if not ready and not blocked:
+    # v1.3.1: verified results whose upstream was revised (PIPELINE "Cascade reset on statement change")
+    rechecks = 0
+    for r in res if not second_pass else []:
+        rc = r.get("recheck")
+        if not isinstance(rc, dict) or (scope and r["id"] not in scope):
+            continue
+        if rc.get("kind") == "pending":
+            ups = ", ".join("%s(%s)" % (u, byid.get(u, {}).get("stage")) for u in rc.get("upstream", []))
+            print(f"BLOCKED\t{r['id']}\t{r.get('pdf_number')}\tre-check pending: upstream {ups} not re-gated yet")
+            continue
+        ups = rc.get("unchanged", [])
+        bad = [u for u in ups if byid.get(u, {}).get("verdict") in ("ISSUE",) or byid.get(u, {}).get("stage") == "STOPPED"]
+        if bad:
+            print(f"BLOCKED\t{r['id']}\t{r.get('pdf_number')}\tupstream {', '.join(bad)} ended "
+                  f"{'/'.join(str(byid[u].get('verdict')) for u in bad)}: reset this result "
+                  f"(python3 scripts/pv_status.py reset {r['id']} --revision {rc.get('revision', '?')})")
+        elif all(byid.get(u, {}).get("stage") == "FINAL_PASSED" for u in ups):
+            print(f"RECHECK\t{r['id']}\t{r.get('pdf_number')}\trebuild and mechanical re-check (unchanged upstream "
+                  f"{', '.join(ups)})")
+            rechecks += 1
+        else:
+            print(f"BLOCKED\t{r['id']}\t{r.get('pdf_number')}\tre-check waits until {', '.join(ups)} is proved again")
+    if not ready and not blocked and not rechecks:
         print("nothing to start (all decided or in progress)")
 
 
@@ -445,7 +524,7 @@ def reconnect(data):
             continue
         for c in as_list(r.get("conditions")):
             t = tools.get(c, {})
-            if t.get("provenance") == "p":
+            if is_predecessor_clause(t):
                 pred = byid.get(t.get("predecessor"), {})
                 if pred.get("stage") == "FINAL_PASSED" and pred.get("verdict") in ("UNCONDITIONAL", "CONDITIONAL"):
                     print(f"{r['id']}\tuses {c}\tpredecessor {pred['id']} is {pred['verdict']}: reconnect (stage 6b)")
@@ -454,14 +533,34 @@ def reconnect(data):
         print("no pending reconnections")
 
 
-def tools_table(data):
-    print("| ID | Lean | Meaning | Type | Source location | Used by | Human check | Checked by a person |")
-    print("|---|---|---|---|---|---|---|---|")
+def tool_status(data, t):
+    """Whether an external input is still a condition of some result (v1.3.1, PENDING #10 and #11)."""
+    users = [r.get("id") for r in data.get("results", []) if isinstance(r, dict) and t.get("id") in as_list(r.get("conditions"))]
+    notes = []
+    if t.get("status"):
+        notes.append(str(t["status"]))
+    elif not users:
+        notes.append("not a condition of any result")
+    if t.get("possible_duplicate_of"):
+        notes.append(f"possibly the same fact as {t['possible_duplicate_of']}: check once for both")
+    return "; ".join(notes) or "condition of " + ", ".join(users)
+
+
+def tools_rows(data):
+    rows = ["| ID | Lean | Meaning | Type | Source location | Used by | Status | Human check | Checked by a person |",
+            "|---|---|---|---|---|---|---|---|---|"]
     for t in data.get("external_tools", []):
+        if not isinstance(t, dict):
+            continue
         prov = str(t.get("provenance", "")) + (f" (predecessor {t['predecessor']})" if t.get("predecessor") else "")
-        print(f"| {cell(t.get('id'))} | {cell(t.get('lean'))} | {cell(t.get('meaning'))} | {cell(prov)} | "
-              f"{cell(t.get('source_loc'))} | {cell(', '.join(map(str, as_list(t.get('consumers')))))} | "
-              f"{cell(t.get('human_check'))} | {cell(checked_text(t))} |")
+        rows.append(f"| {cell(t.get('id'))} | {cell(t.get('lean'))} | {cell(t.get('meaning'))} | {cell(prov)} | "
+                    f"{cell(t.get('source_loc'))} | {cell(', '.join(map(str, as_list(t.get('consumers')))))} | "
+                    f"{cell(tool_status(data, t))} | {cell(t.get('human_check'))} | {cell(checked_text(t))} |")
+    return rows
+
+
+def tools_table(data):
+    print("\n".join(tools_rows(data)))
 
 
 def paths(md):
@@ -640,6 +739,167 @@ def sha(p):
     return hashlib.sha256(f.read_bytes()).hexdigest() if f.is_file() else "missing"
 
 
+# ---------------------------------------------------------------------------------------------------------------
+# v1.3.1: conditions from the audit's CONDITIONS line, the cascade decision after a re-gate, archived files after a
+# reset, and the generated evidence indexes. Judgements stay with the roles; these only compare and write.
+
+FP = re.compile(r"([^\s|`]+)\|(thm|def|opaque|induct|ctor|rec|axiom|quot)\|th=(\d+)\|vh=(-|\d+)\|bi=([eisc]*)")
+
+
+def parse_conditions(v):
+    v = (v or "").strip()
+    return [] if v.lower() in ("none", "-", "—", "") else [x.strip() for x in v.split(",") if x.strip()]
+
+
+def audit_conditions(r):
+    """Conditions stated by the last audit of r (`CONDITIONS: a, b` or `none`): the reconnection audit when r stands
+    on a Closed file, else the final audit. None when that report has no CONDITIONS line (reports before v1.3.1)."""
+    ev = r.get("evidence") or {}
+    lm = (r.get("lean_main") or "").split(" ")[0]
+    rep = ev.get("reconnect") if ("Closed" in lm and ev.get("reconnect")) else ev.get("final")
+    v = verdict_line(rep, "CONDITIONS:")
+    return None if v is None else parse_conditions(v)
+
+
+def gate_fingerprints(rid, path):
+    """{name: (kind, th, vh, bi)} of rid's own declarations in a gate report's snapshot, or None."""
+    if not isinstance(path, str) or not exists(path):
+        return None
+    text = (ROOT / path.split(":")[0]).read_text(errors="replace")
+    fps = {m.group(1): m.groups()[1:] for m in FP.finditer(text) if m.group(1).startswith(f"Paper.{rid}.")}
+    return fps or None
+
+
+def statement_unchanged(rid, old_gate, new_gate, old_main):
+    """True when the definitions and the main theorem of rid's new gate snapshot equal the old ones. Step
+    obligations (S<k>) may differ: other results consume only the statement."""
+    old, new = gate_fingerprints(rid, old_gate), gate_fingerprints(rid, new_gate)
+    if not old or not new:
+        return False, "a gate snapshot is missing, so the statement counts as changed"
+    keys = {n for n, v in old.items() if v[0] == "def"}
+    main = old_main.split(" ")[-1] if old_main else ""
+    if main in old:
+        keys.add(main)
+    if not keys:
+        return False, "the old snapshot has no definitions or main theorem to compare"
+    diff = sorted(k for k in keys if new.get(k) != old[k])
+    if diff:
+        return False, "changed: " + ", ".join(diff[:6]) + (" …" if len(diff) > 6 else "")
+    return True, f"{len(keys)} declarations identical (definitions{' and ' + main.split('.')[-1] if main in old else ''})"
+
+
+def direct_dependents(data, ids):
+    """Results that consume one of ids directly: depends_on, or a (p) clause of it among their conditions."""
+    ids = set(ids)
+    tools = {t.get("id"): t for t in data.get("external_tools", []) if isinstance(t, dict)}
+    out = []
+    for r in data.get("results", []):
+        if not isinstance(r, dict) or r.get("id") in ids:
+            continue
+        p_preds = {tools.get(c, {}).get("predecessor") for c in as_list(r.get("conditions"))
+                   if is_predecessor_clause(tools.get(c, {}))}
+        if set(as_list(r.get("depends_on"))) & ids or p_preds & ids:
+            out.append(r)
+    return out
+
+
+def next_baseline_archive():
+    k = 1
+    while (ROOT / "verification" / f"source_baseline_v{k}").exists():
+        k += 1
+    return f"verification/source_baseline_v{k}"
+
+
+def log_move(dest_dir, name, reason):
+    readme = dest_dir / "README.md"
+    if not readme.exists():
+        readme.write_text(f"# {dest_dir.relative_to(ROOT)}\n\n| File | Date | Reason |\n|---|---|---|\n")
+    with open(readme, "a") as fh:
+        fh.write(f"| {name} | {now()} | {cell(reason)} |\n")
+
+
+def archive_files(rid, revision, evidence):
+    """Move rid's proof files and review reports out of the way after a reset (PENDING #8), so that only current
+    files stay in pv_work/ and verification/audits/. <rid>Stmt.lean stays (the drafter revises it in place; other
+    results import it) and a copy is kept. Returns the evidence with the archived report paths."""
+    tag = f"rev{revision}"
+    work_dest, aud_dest = ROOT / "pv_work" / "superseded" / tag, AUDITS / tag
+    pats = [f"{rid}.lean", f"{rid}.olean", f"{rid}ModGaps.lean", f"{rid}ModGaps.olean", f"{rid}Draft.lean",
+            f"{rid}Closed_r*.lean", f"{rid}Closed_r*.olean", f"{rid}_Counterexample*.lean", f"{rid}_Counterexample*.olean"]
+    moved = []
+    for pat in pats:
+        for f in sorted((ROOT / "pv_work").glob(pat)):
+            work_dest.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(f), str(work_dest / f.name))
+            log_move(work_dest, f.name, f"reset of {rid}, revision {revision}")
+            moved.append(f"pv_work/{f.name}")
+    stmt = ROOT / "pv_work" / f"{rid}Stmt.lean"
+    if stmt.exists():
+        work_dest.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(str(stmt), str(work_dest / stmt.name))
+        log_move(work_dest, stmt.name, f"copy at the reset of {rid}, revision {revision} (the file stays in place)")
+    renamed = {}
+    for f in sorted(AUDITS.glob(f"{rid}_*.md")):
+        aud_dest.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(f), str(aud_dest / f.name))
+        renamed[f"verification/audits/{f.name}"] = f"verification/audits/{tag}/{f.name}"
+        moved.append(f"verification/audits/{f.name}")
+
+    def fix(v):
+        if isinstance(v, str):
+            head, sep, tail = v.partition(":")
+            return renamed.get(head, head) + sep + tail
+        if isinstance(v, list):
+            return [fix(x) for x in v]
+        if isinstance(v, dict):
+            return {k: fix(x) for k, x in v.items()}
+        return v
+    return fix(evidence), moved
+
+
+IDX_START, IDX_END = "<!-- generated:start -->", "<!-- generated:end -->"
+
+
+def replace_block(path, body):
+    """Put a generated block into a Markdown file, between markers, right after its title; the rest is untouched."""
+    text = path.read_text() if path.exists() else ""
+    block = f"{IDX_START}\n{body.rstrip()}\n{IDX_END}"
+    if IDX_START in text and IDX_END in text:
+        new = text[:text.index(IDX_START)] + block + text[text.index(IDX_END) + len(IDX_END):]
+    else:
+        lines = text.splitlines()
+        i = 1 if lines and lines[0].startswith("#") else 0
+        new = "\n".join(lines[:i] + ["", block] + lines[i:])
+    path.write_text(new.rstrip() + "\n")
+
+
+def refresh_records(data):
+    """PENDING #21: the current evidence in AUDIT.md and the registry table in EXTERNAL_TOOLS.md, from RESULTS.json."""
+    rows = ["## Current evidence (generated by `pv_status.py refresh-records`, " + now() + ")", "",
+            "This index always points to the current reports; the sections after it are the history of recordings.", "",
+            "| No. | ID | Verdict | Gate | Final audit | Reconnection / re-check | Lean main theorem | Conditions |",
+            "|---|---|---|---|---|---|---|---|"]
+    for r in data.get("results", []):
+        if not isinstance(r, dict) or not r.get("id"):
+            continue
+        ev = r.get("evidence") or {}
+        later = "; ".join(f"`{ev[k]}`" for k in ("reconnect", "recheck") if ev.get(k))
+        pending = f" (re-check pending: upstream {', '.join(r['recheck'].get('upstream', []))})" \
+            if isinstance(r.get("recheck"), dict) else ""
+        rows.append(f"| {cell(r.get('pdf_number'))} | {r['id']} | {CHECK_EN.get(r.get('verdict'), r.get('verdict'))}"
+                    f"{pending} | {'`' + ev['gate'] + '`' if ev.get('gate') else '—'} | "
+                    f"{'`' + ev['final'] + '`' if ev.get('final') else '—'} | {later or '—'} | "
+                    f"{'`' + cell(r['lean_main']) + '`' if r.get('lean_main') else '—'} | "
+                    f"{cell(', '.join(as_list(r.get('conditions')))) or '—'} |")
+    audit = ROOT / "verification" / "AUDIT.md"
+    replace_block(audit, "\n".join(rows))
+    tools = ROOT / "verification" / "EXTERNAL_TOOLS.md"
+    lines = ["## Registry (generated by `pv_status.py refresh-records`, " + now() + ")", "",
+             "Explanations, search evidence and audit judgements go in the tables further below.", ""]
+    lines += tools_rows(data)
+    replace_block(tools, "\n".join(lines))
+
+
 def record(rid, argv):
     import argparse
     ap = argparse.ArgumentParser(prog=f"pv_status.py record {rid}")
@@ -660,12 +920,20 @@ def record(rid, argv):
     ap.add_argument("--audit-note", help="key points for the AUDIT.md section (reviewer, FAIL items, assessment)")
     ap.add_argument("--resolve", help="comma-separated B numbers that this new verdict resolves (after a revision); "
                                       "their headings get '— RESOLVED (date, …; re-verified in <final report>)'")
+    ap.add_argument("--conditions-override", metavar="REASON",
+                    help="(v1.3.1) record --conditions although they differ from the audit's CONDITIONS line; the "
+                         "reason goes into AUDIT.md")
+    ap.add_argument("--recheck-passed", action="store_true",
+                    help="(v1.3.1) the re-check after an unchanged upstream statement passed (report ending 'RECHECK: PASS')")
+    ap.add_argument("--evidence-recheck", help="(v1.3.1) the re-check report (default: the latest <ID>_recheck*.md)")
     a = ap.parse_args(argv)
     data = load()
     byid = {r.get("id"): r for r in data.get("results", []) if isinstance(r, dict)}
     if rid not in byid:
         sys.exit(f"unknown result id {rid}")
     r = byid[rid]
+    was_fixed = r.get("statement_fixed") is True
+    old_conds = list(as_list(r.get("conditions")))
     for field, val in [("verdict", a.verdict), ("stage", a.stage), ("reason", a.reason), ("round", a.round),
                        ("partial", a.partial), ("lean_main", a.lean_main), ("summary_en", a.summary_en),
                        ("tier", a.tier)]:
@@ -688,6 +956,44 @@ def record(rid, argv):
         ev["issues"] = [x.strip() for x in a.evidence_issues.split(",") if x.strip()]
     r["evidence"] = {k: v for k, v in ev.items() if v not in ("", None, [])}
     r["updated"] = now()
+    notes = []
+    if r.get("verdict") in ("UNCONDITIONAL", "CONDITIONAL") and r.get("stage") == "FINAL_PASSED":
+        # PENDING #24: the conditions are the audit's, not a copy made by hand
+        stated = audit_conditions(r)
+        if stated is not None:
+            if a.conditions is None:
+                r["conditions"] = stated
+                print(f"conditions taken from the audit's CONDITIONS line: {', '.join(stated) or 'none'}")
+            elif sorted(r["conditions"]) != sorted(stated):
+                if not a.conditions_override:
+                    sys.exit(f"refused: --conditions {','.join(r['conditions']) or '(none)'} differ from the audit's "
+                             f"CONDITIONS line ({', '.join(stated) or 'none'}). Leave out --conditions to take the "
+                             f"audit's, or give --conditions-override '<reason>' (it goes into AUDIT.md).")
+                notes.append(f"conditions differ from the audit's CONDITIONS line ({', '.join(stated) or 'none'}): "
+                             f"{a.conditions_override}")
+        if a.partial is None and r.get("partial"):
+            print(f"cleared the stale 'partial' of {rid} (a verified verdict covers the whole statement): {r['partial']!r}")
+            r["partial"] = ""
+    # PENDING #10: a (p) clause that a reconnection removed is no longer a condition anywhere
+    tools = {t.get("id"): t for t in data.get("external_tools", []) if isinstance(t, dict)}
+    for c in set(old_conds) - set(as_list(r.get("conditions"))):
+        t = tools.get(c)
+        still = [x.get("id") for x in data.get("results", []) if isinstance(x, dict) and c in as_list(x.get("conditions"))]
+        if t and is_predecessor_clause(t) and r["evidence"].get("reconnect") and not still:
+            t["status"] = f"reconnected in {r['evidence']['reconnect']} ({now()}); no longer a condition"
+            print(f"(p) clause {c}: marked as reconnected")
+    if a.recheck_passed:
+        rep = a.evidence_recheck or latest_report(rid, "recheck", "RECHECK:")
+        if not rep or not is_pass(verdict_line(rep, "RECHECK:")):
+            sys.exit("--recheck-passed needs a re-check report ending 'RECHECK: PASS' (verification/audits/<ID>_recheck*.md)")
+        r["evidence"]["recheck"] = rep
+        r.pop("recheck", None)
+        notes.append(f"re-check after an unchanged upstream statement passed: {rep}")
+    # PENDING #7: the first gate pass after a reset decides whether the direct dependents must be reset too
+    if a.statement_fixed == "true" and not was_fixed and r.get("history"):
+        for line in cascade_after_gate(data, rid, r["evidence"].get("gate") or latest_report(rid, "gate", "STATEMENT GATE:")):
+            print(line)
+            notes.append(line)
     if a.resolve:
         if r.get("verdict") not in ("UNCONDITIONAL", "CONDITIONAL") or not r["evidence"].get("final"):
             sys.exit("--resolve needs a verified verdict (UNCONDITIONAL or CONDITIONAL) with a final audit report")
@@ -723,11 +1029,43 @@ def record(rid, argv):
             sec.append(f"- {k}: {', '.join(map(str, as_list(r[k])))}")
     if a.audit_note:
         sec.append(f"- Key points: {a.audit_note}")
+    for n in notes:
+        sec.append(f"- {n}")
     with audit.open("a") as fh:
         fh.write("\n".join(sec) + "\n")
     print(f"recorded {rid}: verdict={r.get('verdict')} stage={r.get('stage')} reason={r.get('reason', '')} "
           f"evidence={r['evidence']}")
+    refresh_records(load())
     return validate(load())
+
+
+def cascade_after_gate(data, rid, new_gate):
+    """rid has passed its gate again after a reset. Compare its new gate snapshot with the one before the reset:
+    unchanged, its direct dependents keep their verdicts and only need a rebuild and a mechanical re-check;
+    changed, they are reset (one level; their own dependents are then marked pending in turn)."""
+    r = next(x for x in data["results"] if x.get("id") == rid)
+    h = (r.get("history") or [{}])[-1]
+    same, why = statement_unchanged(rid, (h.get("evidence") or {}).get("gate"), new_gate, h.get("lean_main") or "")
+    waiting = [x for x in data["results"] if isinstance(x.get("recheck"), dict) and x["recheck"].get("kind") == "pending"
+               and rid in x["recheck"].get("upstream", [])]
+    names = ", ".join(x["id"] for x in waiting) or "none"
+    if same:
+        for x in waiting:
+            rc = x["recheck"]
+            rc["upstream"] = [u for u in rc.get("upstream", []) if u != rid]
+            rc.setdefault("unchanged", []).append(rid)
+            if not rc["upstream"]:
+                rc["kind"] = "rebuild"
+        return [f"CASCADE {rid}: gated statement unchanged ({why}); waiting dependents ({names}) keep their verdicts "
+                f"and need only a rebuild and a mechanical re-check once {rid} is proved again (next lists them as RECHECK)"]
+    reset_ids = [x["id"] for x in waiting]
+    for x in waiting:
+        x.pop("recheck", None)
+    out = [f"CASCADE {rid}: gated statement changed ({why}); resetting its waiting dependents: {names}"]
+    if reset_ids:
+        rev = str(h.get("revision", "?"))
+        out += do_reset(data, reset_ids, rev, "SOURCE_CHANGED", note=f"the gated statement of {rid} changed")
+    return out
 
 
 def edit_heading(text, b, fn):
@@ -782,43 +1120,183 @@ def reset(ids, argv):
     ap.add_argument("--revision", required=True, help="revision label, e.g. 2 or 2026-10-01")
     ap.add_argument("--reason", default="SOURCE_CHANGED", choices=["SOURCE_CHANGED", ""],
                     help="SOURCE_CHANGED after /pv-revise; '' after an ENCODING_ERROR fix")
+    ap.add_argument("--keep-files", action="store_true",
+                    help="leave the old proof files and review reports where they are (default: archive them)")
+    ap.add_argument("--cascade-now", action="store_true",
+                    help="reset the direct dependents at once, without waiting for the re-gate to show whether the "
+                         "statement changed")
     a = ap.parse_args(argv)
     data = load()
     byid = {r.get("id"): r for r in data.get("results", []) if isinstance(r, dict)}
     unknown = [i for i in ids if i not in byid]
     if unknown:
         sys.exit(f"unknown result ids {unknown}")
+    for line in do_reset(data, ids, a.revision, a.reason, move_files=not a.keep_files, cascade_now=a.cascade_now):
+        print(line)
+    STATE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    set_header(data)
+    refresh_records(data)
+    return validate(load())
+
+
+def do_reset(data, ids, revision, reason, note="", move_files=True, cascade_now=False):
+    """Reset ids in `data` (not yet written to disk) and mark or reset their direct dependents. Returns messages.
+    PIPELINE "Cascade reset on statement change", v1.3.1: one level at a time; whether a dependent is reset waits for
+    the reset result's new gate (record --statement-fixed true), unless cascade_now."""
+    byid = {r.get("id"): r for r in data.get("results", []) if isinstance(r, dict)}
     bl = blockers()
     text = BLOCKERS.read_text() if BLOCKERS.exists() else ""
+    baseline = next_baseline_archive() if reason == "SOURCE_CHANGED" else ""
+    out = []
     for rid in ids:
         r = byid[rid]
         keep = {k: r.get(k) for k in ("verdict", "stage", "reason", "conditions", "gaps", "issues", "upstream_issues",
                                       "debts", "unencoded", "partial", "lean_main", "evidence", "summary_en")}
-        keep.update(revision=str(a.revision), date=now())
+        keep.update(revision=str(revision), date=now())
+        if note:
+            keep["note"] = note
+        if baseline:
+            # PENDING #22: the audits compare "is this text unchanged?" against the previous manuscript, which is
+            # archived under this name by /pv-revise step 7 (verification/source_baseline/ is then the new one)
+            keep["baseline_before"] = baseline
+        if move_files:
+            keep["evidence"], moved = archive_files(rid, revision, keep.get("evidence") or {})
+            if moved:
+                out.append(f"archived {len(moved)} old files of {rid} under pv_work/superseded/rev{revision}/ and "
+                           f"verification/audits/rev{revision}/ ({rid}Stmt.lean stays in place)")
         r.setdefault("history", []).append(keep)
-        r.update(statement_fixed=False, stage="INVENTORIED", reason=a.reason, verdict="UNFINISHED", conditions=[],
+        r.pop("recheck", None)
+        r.update(statement_fixed=False, stage="INVENTORIED", reason=reason, verdict="UNFINISHED", conditions=[],
                  gaps=[], issues=[], upstream_issues=[], evidence={}, lean_main="", partial="", summary_en="")
         for b in as_list(keep.get("issues")):
             if b in bl and bl[b]["open"]:
-                text, _ = edit_heading(text, b, lambda h: h.rstrip() + f" — RECHECK (revision {a.revision})")
-        upsert_row(rid, "UNFINISHED", f"Reset after revision {a.revision} (was {CHECK_EN.get(keep['verdict'], keep['verdict'])}"
-                   + (f"; issues {', '.join(keep['issues'])} to be re-checked" if keep.get("issues") else "") + ").")
+                text, _ = edit_heading(text, b, lambda h: h.rstrip() + f" — RECHECK (revision {revision})")
+        upsert_row(rid, "UNFINISHED", f"Reset after revision {revision} (was {CHECK_EN.get(keep['verdict'], keep['verdict'])}"
+                   + (f"; issues {', '.join(keep['issues'])} to be re-checked" if keep.get("issues") else "")
+                   + (f"; {note}" if note else "") + ").")
     if BLOCKERS.exists():
         BLOCKERS.write_text(text)
+    out.insert(0, f"reset {', '.join(ids)} (revision {revision}); their previous verdicts are kept in 'history'"
+               + (f"; the previous manuscript will be {baseline}/ after /pv-revise step 7" if baseline else ""))
+    deps = [d for d in direct_dependents(data, ids)
+            if not (d.get("verdict") == "UNFINISHED" and d.get("stage") in ("NOT_STARTED", "INVENTORIED"))]
+    if deps and cascade_now:
+        out += do_reset(data, [d["id"] for d in deps], revision, reason, note=f"cascade from {', '.join(ids)}",
+                        move_files=move_files)
+    elif deps:
+        for d in deps:
+            rc = d.get("recheck") if isinstance(d.get("recheck"), dict) else {"kind": "pending", "upstream": []}
+            rc["kind"] = "pending"
+            rc["upstream"] = sorted(set(rc.get("upstream", [])) | (set(as_list(d.get("depends_on"))) & set(ids)) |
+                                    {u for u in ids if any(c.endswith(f"_{u}Consumed") for c in as_list(d.get("conditions")))})
+            rc.update(revision=str(revision), since=now())
+            d["recheck"] = rc
+        out.append(f"RE-CHECK PENDING: {', '.join(d['id'] for d in deps)} consume {', '.join(ids)} directly. They keep "
+                   f"their verdicts for now; when a reset result passes its gate again, record --statement-fixed true "
+                   f"compares the statement with the old one and either resets them or asks only for a rebuild and a "
+                   f"mechanical re-check")
+    return out
+
+
+def set_deps(rid, deps):
+    """PENDING #8: change depends_on without editing RESULTS.json by hand."""
+    data = load()
+    byid = {r.get("id"): r for r in data.get("results", []) if isinstance(r, dict)}
+    if rid not in byid:
+        sys.exit(f"unknown result id {rid}")
+    deps = [d for d in deps if d]
+    unknown = [d for d in deps if d not in byid or d == rid]
+    if unknown:
+        sys.exit(f"refused: unknown or self dependencies {unknown}")
+    before = byid[rid].get("depends_on", [])
+    byid[rid]["depends_on"] = deps
+    seen = set()
+
+    def reaches(n, target):
+        if n == target:
+            return True
+        if n in seen:
+            return False
+        seen.add(n)
+        return any(reaches(d, target) for d in as_list(byid.get(n, {}).get("depends_on")))
+    if any(reaches(d, rid) for d in deps):
+        sys.exit(f"refused: {rid} -> {deps} would make a dependency cycle")
+    STATE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    with (ROOT / "verification" / "AUDIT.md").open("a") as fh:
+        fh.write(f"\n## {rid} — depends_on changed — {now()} (pv_status.py set-deps)\n- before: {before}\n- now: {deps}\n")
+    print(f"{rid}: depends_on {before} -> {deps}")
+    return validate(load())
+
+
+def cascade(rid):
+    """Make the cascade decision for rid by hand (when its gate pass was recorded without record --statement-fixed)."""
+    data = load()
+    r = next((x for x in data.get("results", []) if isinstance(x, dict) and x.get("id") == rid), None)
+    if r is None:
+        sys.exit(f"unknown result id {rid}")
+    if not (r.get("statement_fixed") and r.get("history")):
+        sys.exit(f"{rid} has not passed its gate again since a reset")
+    gate = (r.get("evidence") or {}).get("gate") or latest_report(rid, "gate", "STATEMENT GATE:")
+    for line in cascade_after_gate(data, rid, gate):
+        print(line)
     STATE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
     set_header(data)
-    # Cascade hint: results that depend on a reset result, directly or not (PIPELINE "Cascade reset").
-    dependents, frontier = set(), set(ids)
-    while frontier:
-        nxt = {r["id"] for r in data.get("results", []) if isinstance(r, dict) and r.get("id") not in ids
-               and set(as_list(r.get("depends_on"))) & frontier and r.get("id") not in dependents}
-        dependents |= nxt
-        frontier = nxt
-    print(f"reset {', '.join(ids)} (revision {a.revision}); their previous verdicts are kept in 'history'")
-    if dependents:
-        print(f"CASCADE CHECK: {', '.join(sorted(dependents))} depend on them. Reset those that import a changed module, "
-              f"use a (p) clause of it, or have a Closed file referring to it (PIPELINE 'Cascade reset').")
+    refresh_records(data)
     return validate(load())
+
+
+def norm_tex(s):
+    s = re.sub(r"(?<!\\)%.*", "", s)
+    return " ".join(s.split())
+
+
+def defs_changed(data):
+    """PENDING #23: compare each shared definition (source_defs: id, loc 'source/f.tex:a-b', name) in the baseline
+    with source/. A definition counts as unchanged when its text, ignoring comments and spacing, still occurs in the
+    same file. Results are affected only through the definitions they list in uses_defs."""
+    sdefs = [d for d in data.get("source_defs", []) if isinstance(d, dict) and d.get("id")]
+    if not sdefs:
+        print("no source_defs registered (projects set up before kit v1.3.1): decide case (c) of /pv-revise from the diff")
+        return 0
+    base = ROOT / "verification" / "source_baseline"
+    users = {}
+    for r in data.get("results", []):
+        for u in as_list(r.get("uses_defs")):
+            users.setdefault(u, []).append(r.get("id"))
+    changed = 0
+    print("| Definition | Location (baseline) | Status | New location | Used by |")
+    print("|---|---|---|---|---|")
+    for d in sdefs:
+        m = re.fullmatch(r"(?:source/)?([^:]+):(\d+)(?:-(\d+))?", str(d.get("loc", "")))
+        if not m:
+            print(f"| {d['id']} | {cell(d.get('loc'))} | BAD LOCATION (use source/<file>.tex:a-b) | | |")
+            changed += 1
+            continue
+        rel, a, b = m.group(1), int(m.group(2)), int(m.group(3) or m.group(2))
+        old_f, new_f = base / rel, ROOT / "source" / rel
+        if not old_f.exists():
+            status, where = "NO BASELINE FILE", ""
+        else:
+            old_lines = old_f.read_text(errors="replace").splitlines()[a - 1:b]
+            old = norm_tex("\n".join(old_lines))
+            new_lines = new_f.read_text(errors="replace").splitlines() if new_f.exists() else []
+            where = ""
+            if not new_lines:
+                status = "FILE REMOVED"
+            elif old and old in norm_tex("\n".join(new_lines)):
+                status = "UNCHANGED"
+                first = old_lines[0].strip() if old_lines else ""
+                hit = next((i for i, l in enumerate(new_lines, 1) if first and l.strip() == first), None)
+                where = f"source/{rel}:{hit}-{hit + (b - a)}" if hit else ""
+            else:
+                status = "CHANGED"
+        if status != "UNCHANGED":
+            changed += 1
+        print(f"| {d['id']} {cell(d.get('name', ''))} | source/{rel}:{a}-{b} | {status} | {where} | "
+              f"{', '.join(users.get(d['id'], [])) or '—'} |")
+    print(f"\n{changed} of {len(sdefs)} definitions changed or not found. Results that use a changed definition are "
+          f"case (c) of /pv-revise; results that use only unchanged ones are not affected through definitions.")
+    return 1 if changed else 0
 
 
 def followup(data):
@@ -912,12 +1390,40 @@ def add_tool(raw):
         sys.exit(f"provenance must be one of {PROVENANCE}; gap hypotheses are not registered here")
     t["provenance"] = str(t["provenance"]).strip("()")
     data = load()
+    # v1.3.1 (PENDING #11): the same fact registered twice means two human checks of one fact
+    const = (str(t.get("lean", "")).split() + [""])[1]
+    for x in data.get("external_tools", []):
+        if not isinstance(x, dict) or x.get("id") == t["id"]:
+            continue
+        if const and const == (str(x.get("lean", "")).split() + [""])[1]:
+            sys.exit(f"refused: {const} is already registered as {x['id']}; reuse that id (add this result to its "
+                     f"'consumers') instead of registering the same Lean constant twice")
+        if t["provenance"] != "p" and same_fact(t, x):
+            t["possible_duplicate_of"] = x["id"]
+            print(f"WARNING: {t['id']} looks like the same fact as {x['id']} ({x.get('meaning', '')!r}). If it is, the "
+                  f"drafter should import and reuse {x['id']}; otherwise keep both. Recorded as possible_duplicate_of.")
     tools = [x for x in data.get("external_tools", []) if not (isinstance(x, dict) and x.get("id") == t["id"])]
     tools.append(t)
     data["external_tools"] = tools
     STATE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
     print(f"registered external input {t['id']} ({t['provenance']})")
+    refresh_records(load())
     return validate(load())
+
+
+def words(s):
+    return {w for w in re.findall(r"[a-z0-9]+", str(s).lower()) if len(w) > 2} - {
+        "the", "and", "for", "with", "that", "this", "from", "are", "any", "all", "each", "has", "have", "its", "there"}
+
+
+def same_fact(a, b):
+    """Two registry entries that cite the same source key, or whose meanings share most of their words."""
+    keys = lambda t: set(re.findall(r"\\cite[pt]?\*?(?:\[[^\]]*\])?\{([^}]*)\}", f"{t.get('source_loc', '')} {t.get('meaning', '')}"))
+    ka, kb = keys(a), keys(b)
+    if ka and ka == kb:
+        return True
+    wa, wb = words(a.get("meaning")), words(b.get("meaning"))
+    return len(wa) >= 4 and len(wb) >= 4 and len(wa & wb) / len(wa | wb) >= 0.7
 
 
 def main():
@@ -951,6 +1457,14 @@ def main():
         if len(a) < 2:
             sys.exit("usage: pv_status.py add-tool '<JSON object with the fields of _example_tool>'")
         sys.exit(add_tool(a[1]))
+    if cmd == "set-deps":
+        if len(a) < 2:
+            sys.exit("usage: pv_status.py set-deps ID [DEP ...]")
+        sys.exit(set_deps(a[1], a[2:]))
+    if cmd == "cascade":
+        if len(a) < 2:
+            sys.exit("usage: pv_status.py cascade ID")
+        sys.exit(cascade(a[1]))
     if cmd == "record":
         if len(a) < 2:
             sys.exit("usage: pv_status.py record ID --verdict ... (see --help)")
@@ -961,6 +1475,12 @@ def main():
     if cmd == "followup":
         followup(data)
         return
+    if cmd == "refresh-records":
+        refresh_records(data)
+        print("refreshed the current-evidence index in verification/AUDIT.md and the registry in verification/EXTERNAL_TOOLS.md")
+        return
+    if cmd == "defs-changed":
+        sys.exit(defs_changed(data))
     if cmd == "init-checklist":
         init_checklist(data, force="--force" in a)
         return

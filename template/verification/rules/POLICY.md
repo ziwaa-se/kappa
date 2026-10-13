@@ -63,8 +63,14 @@ This kit does one thing only: **faithfully translate the proofs already written 
 - **Without the user's explicit permission in chat, do not download any file and do not search online** (including literature PDFs and web pages).
   - When literature needs to be checked, put it on the human-check list.
   - A download without the user's permission is a **violation** and must be disclosed to the user.
+  - This covers every program, not only the web tools: no network access from Python, shell commands or Lean code. Lean files run no programs and touch no files: no `IO` actions, `run_cmd` or `initialize` (v1.3.1: `scripts/pv_lean.sh` refuses such files).
 - **Do not modify `source/`** (the source manuscript).
-- **Do not modify files outside this project.**
+- **Do not modify files outside this project.** Every path is relative to the project root. Write notes to `pv_work/notes/`, probes to `pv_work/probes/<your-role>/<ID>/` and logs to `pv_work/logs/`; never write to `/tmp` or to a parent folder.
+- **Commands (v1.3.1).** In unattended runs only the commands listed in `.claude/settings.json` run; every other command is refused. Run the kit's scripts from the project root, one command per call, exactly as `scripts/pv_lean.sh <mode> <arg>` or `python3 scripts/<script>.py <args>`:
+  - no `cd`, absolute path, `./` or `bash` in front; no `; echo "EXIT=$?"` (each script prints its own `RESULT` and `EXIT` lines); no pipes, subshells, heredocs, `python3 -c` or output redirection;
+  - hashes: `python3 scripts/pv_snapshot.py hash <files>`, not `shasum`;
+  - part of a file: the Read tool (with offset and limit) or `grep` (the Grep tool where it exists), not `sed` or `awk`;
+  - the Mathlib sources under `.lake/packages/mathlib/` may be read and searched (evidence for "is X in Mathlib?"), never edited.
 - **Do not modify** `verification/rules/`, `pv_work/PVTools.lean`, `.claude/`, `verification/source_baseline/`. They are the rules, the review tools and the baseline, and only the user may change them. There are only two exceptions, both carried out by the coordinator with `python3 scripts/pv_snapshot.py baseline`, which only creates, never overwrites (v1.3):
   - `/pv-setup` creates the baseline (`baseline`);
   - `/pv-revise`, once every change is registered, keeps the old baseline as `source_baseline_v<k>/` and creates a new one (`baseline --new-version`).
