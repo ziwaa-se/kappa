@@ -240,7 +240,7 @@ def lean_main_check(lm):
         return f"lean_main file missing: {lm}", ""
     short = name.split(".")[-1]
     decl = re.compile(r"^\s*(?:@\[[^\]]*\]\s*)*(?:(?:private|protected|nonrec|noncomputable)\s+)*(?:theorem|lemma)\s+"
-                      r"(?:[\w.']*\.)?" + re.escape(short) + r"(?=[\s:({\[]|$)")
+                      r"(?:[\w.']*\.)?" + re.escape(short) + r"(?=[\s:({\[]|\.\{|$)")    # `.{u}`: universe parameters
     hits = [k for k, l in enumerate(p.read_text(errors="replace").splitlines(), 1) if decl.match(l)]
     if not hits:
         return f"lean_main names {name}, but {path} declares no theorem or lemma '{short}'", ""

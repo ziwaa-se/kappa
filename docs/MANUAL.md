@@ -1,4 +1,4 @@
-# TeX Proof-Check Kit v1.3.3: reference manual
+# TeX Proof-Check Kit v1.3.4: reference manual
 
 > **Start with** [`GUIDE_EN.md`](GUIDE_EN.md), the complete workflow on one page. It covers setup, including the guided setup with [`CLAUDE_START_HERE.md`](../CLAUDE_START_HERE.md), the prompts to send, what you get, re-checking after corrections, recording conditions you checked, and upgrading. This manual is the detailed reference.
 

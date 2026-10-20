@@ -271,6 +271,13 @@ class LeanMain(KitTestCase):
         self.assertIn("declares no theorem or lemma 'L01_main'", p.out)
         self.assertIn("INVALID", p.out)
 
+    def test_theorem_with_universe_parameters_is_found(self):
+        # v1.3.4: `theorem name.{u} ...` was not recognized by v1.3.3
+        self.pr.write("pv_work/L01.lean", "namespace Paper.L01\ntheorem main.{u} (a : Sort u) : True := trivial\nend Paper.L01\n")
+        p = self.pr.status("validate")
+        self.assertNotIn("declares no theorem", p.out)
+        self.assertIn("VALID", p.out)
+
     def test_moved_declaration_is_only_a_warning(self):
         d = self.pr.state()
         d["results"][0]["lean_main"] = "pv_work/L01.lean:7 Paper.L01.main"

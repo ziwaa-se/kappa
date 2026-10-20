@@ -8,6 +8,12 @@ Not yet available; see the README's [Roadmap](README.md#roadmap). This version o
 - **Completing unfinished steps:** an optional, longer proof search for steps stopped by formalization difficulty.
 - **Closing conditions automatically** when a cited result is available in Mathlib.
 
+## v1.3.4 (2026-10-20)
+
+- **Fix:** the check of `lean_main` added in v1.3.3 did not recognize a theorem declared with explicit universe
+  parameters (`theorem P01_main.{u} …`), so `validate` reported such a record as invalid and `record` refused it. The
+  check now accepts `name.{…}`. Found when the replication materials were run with v1.3.3; a test covers it.
+
 ## v1.3.3 (2026-10-17)
 
 - **A recorded main theorem must exist.** `validate` checks that the theorem named in `lean_main` (`file:line name`) is

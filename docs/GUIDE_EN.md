@@ -1,4 +1,4 @@
-# TeX Proof-Check Kit v1.3.3: the complete workflow
+# TeX Proof-Check Kit v1.3.4: the complete workflow
 
 This guide takes you from a new computer to a finished report. It also covers what to do when the paper changes or when you check a condition yourself. The prompts in 8.1, 8.3, 8.4 and 8.5 were sent verbatim, in this order, in an end-to-end test on the test paper `bench/paper`; the record is `bench/results/WORKFLOW_TEST.md`. Slash commands such as `/pv-status` are Claude Code's standard way to start the same steps.
 
