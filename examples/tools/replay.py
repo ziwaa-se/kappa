@@ -7,8 +7,10 @@ Takes the records of a run (a project folder, or a folder written by sanitize.py
   2. rebuilds every proof, statement and counterexample module in import order (drafts with `sorry` are skipped);
   3. reruns the mechanical audit (pv_audit_mech.py) for every verified result, on the module its record names, and
      compares the outcome with the archived mechanical report;
-  4. runs validate on the copied records.
-Prints a Markdown table; exit status 1 if any verified result does not rebuild or its checks differ.
+  4. runs validate (of the current kit) on the copied records and prints its last line.
+Prints a Markdown table; exit status 1 if any verified result does not rebuild or its checks differ. The validator's
+result is reported but does not set the exit status: a newer kit may check more than the version that made the run
+(v1.3.3, for example, checks that every recorded theorem name exists).
 
 Usage: python3 examples/tools/replay.py <run folder> --lean-env <lean-env> [--work <empty folder>] [--keep]
 """
@@ -140,7 +142,7 @@ def main():
           f"(drafts with `sorry` are not built). validate: {val.strip().splitlines()[-1] if val.strip() else '?'}")
     if not a.keep and not a.work:
         shutil.rmtree(str(tmp), ignore_errors=True)
-    return 1 if bad or ec else 0
+    return 1 if bad else 0
 
 
 if __name__ == "__main__":

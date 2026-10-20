@@ -226,6 +226,29 @@ def table(data):
               f"{cell(stage)} | {cell(extra)} |")
 
 
+def lean_main_check(lm):
+    """(v1.3.3) Does the theorem that lean_main names ('path:line Name') exist in its file? Returns (error or '',
+    warning or ''). The name is matched by its last component, with or without the namespace written out; a
+    declaration found at another line than the recorded one is only a warning (lines move when files are edited)."""
+    parts = lm.split()
+    if len(parts) < 2:
+        return f"lean_main must be 'file:line theorem-name' (is {lm!r})", ""
+    loc, name = parts[0], parts[-1]
+    path, _, line = loc.partition(":")
+    p = ROOT / path
+    if not p.is_file():
+        return f"lean_main file missing: {lm}", ""
+    short = name.split(".")[-1]
+    decl = re.compile(r"^\s*(?:@\[[^\]]*\]\s*)*(?:(?:private|protected|nonrec|noncomputable)\s+)*(?:theorem|lemma)\s+"
+                      r"(?:[\w.']*\.)?" + re.escape(short) + r"(?=[\s:({\[]|$)")
+    hits = [k for k, l in enumerate(p.read_text(errors="replace").splitlines(), 1) if decl.match(l)]
+    if not hits:
+        return f"lean_main names {name}, but {path} declares no theorem or lemma '{short}'", ""
+    if line.isdigit() and int(line) not in hits:
+        return "", f"lean_main says line {line}, but '{short}' is declared at line {hits[0]} of {path}"
+    return "", ""
+
+
 def validate(data):
     errs, warns = [], []
     raw = data.get("results", [])
@@ -338,6 +361,12 @@ def validate(data):
                 errs.append(f"{rid}: verdict {v} requires lean_main (file:line theorem-name)")
             elif not exists(lm_file):
                 errs.append(f"{rid}: lean_main file missing: {lm}")
+            else:
+                e, w = lean_main_check(lm)     # v1.3.3: the named theorem must exist in the file
+                if e:
+                    errs.append(f"{rid}: {e}")
+                if w:
+                    warns.append(f"{rid}: {w}")
             if "ModGaps" in lm or "_mod_gaps" in lm:
                 errs.append(f"{rid}: lean_main is a gap-file theorem; the verdict must be ISSUE or UNFINISHED")
             if "Closed" in lm_file and not is_pass(verdict_line(ev.get("reconnect"), "RECONNECT AUDIT:")):
@@ -954,6 +983,12 @@ def record(rid, argv):
     r = byid[rid]
     was_fixed = r.get("statement_fixed") is True
     old_conds = list(as_list(r.get("conditions")))
+    if a.lean_main and (a.verdict or r.get("verdict")) in ("UNCONDITIONAL", "CONDITIONAL"):
+        e, w = lean_main_check(a.lean_main)    # v1.3.3: refuse a pointer to a theorem that does not exist
+        if e:
+            sys.exit(f"refused: {e}. Give the name of the theorem the final audit checked.")
+        if w:
+            print(f"WARN {rid}: {w}")
     for field, val in [("verdict", a.verdict), ("stage", a.stage), ("reason", a.reason), ("round", a.round),
                        ("partial", a.partial), ("lean_main", a.lean_main), ("summary_en", a.summary_en),
                        ("tier", a.tier)]:

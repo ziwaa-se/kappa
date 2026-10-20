@@ -8,6 +8,17 @@ Not yet available; see the README's [Roadmap](README.md#roadmap). This version o
 - **Completing unfinished steps:** an optional, longer proof search for steps stopped by formalization difficulty.
 - **Closing conditions automatically** when a cited result is available in Mathlib.
 
+## v1.3.3 (2026-10-17)
+
+- **A recorded main theorem must exist.** `validate` checks that the theorem named in `lean_main` (`file:line name`) is
+  declared in that file, and `record` refuses a verified verdict whose `--lean-main` names a theorem that does not
+  exist; a declaration found at another line is a warning. In an example run on v1.3.1, three records named a
+  placeholder theorem (`Paper.L01.main`) while the audits had checked the real ones, and the report's file index
+  pointed readers to it.
+- `examples/tools/replay.py`: the exit status depends only on the rebuilds and the mechanical checks; the result of
+  the current validator is still printed (a newer kit may check more than the version that made the run).
+- Tests for both.
+
 ## v1.3.2 (2026-10-13)
 
 Fixes for five problems found while running the examples and the published case studies on v1.3.1.

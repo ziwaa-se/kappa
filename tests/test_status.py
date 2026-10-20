@@ -71,9 +71,9 @@ class Reconnection(KitTestCase):
         pr.make_passed("L01")
         pr.make_passed("L02", verdict="CONDITIONAL", conditions=["T1", "L02_L01Consumed"])
         pr.write("verification/audits/L02_reconnect_r1.md", "RECONNECT AUDIT: PASS\nCONDITIONS: T1\n")
-        pr.write("pv_work/L02Closed_r1.lean", "x\n")
+        pr.write("pv_work/L02Closed_r1.lean", "namespace Paper.L02\ntheorem main : True := trivial\nend Paper.L02\n")
         p = pr.status("record", "L02", "--verdict", "CONDITIONAL", "--stage", "FINAL_PASSED", "--evidence-reconnect",
-                      "verification/audits/L02_reconnect_r1.md", "--lean-main", "pv_work/L02Closed_r1.lean:1 Paper.L02.main")
+                      "verification/audits/L02_reconnect_r1.md", "--lean-main", "pv_work/L02Closed_r1.lean:2 Paper.L02.main")
         self.assertEqual(p.returncode, 0, p.out)
         self.assertEqual(pr.result("L02")["conditions"], ["T1"])
         t = next(x for x in pr.state()["external_tools"] if x["id"] == "L02_L01Consumed")
@@ -244,3 +244,37 @@ class RenamedMain(KitTestCase):
     def test_other_title_is_a_different_paper(self):
         self.pr.write("source/paper_v3.tex", self.old.replace("Valid inference", "Another paper"))
         self.assertIn("DIFFERENT PAPER", self.pr.status("source-check").out)
+
+
+class LeanMain(KitTestCase):
+    """v1.3.3: lean_main must name a theorem that exists in its file."""
+
+    def setUp(self):
+        super().setUp()
+        self.pr = Project(self.tmp, results=[result("L01")])
+        self.pr.make_passed("L01")
+
+    def test_existing_theorem_is_accepted(self):
+        self.assertIn("VALID", self.pr.status("validate").out)
+
+    def test_record_refuses_a_missing_theorem(self):
+        p = self.pr.status("record", "L01", "--verdict", "UNCONDITIONAL", "--stage", "FINAL_PASSED",
+                           "--lean-main", "pv_work/L01.lean:1 Paper.L01.L01_main")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("declares no theorem or lemma 'L01_main'", p.out)
+
+    def test_validate_finds_a_missing_theorem(self):
+        d = self.pr.state()
+        d["results"][0]["lean_main"] = "pv_work/L01.lean:1 Paper.L01.L01_main"
+        self.pr.write_state(d)
+        p = self.pr.status("validate")
+        self.assertIn("declares no theorem or lemma 'L01_main'", p.out)
+        self.assertIn("INVALID", p.out)
+
+    def test_moved_declaration_is_only_a_warning(self):
+        d = self.pr.state()
+        d["results"][0]["lean_main"] = "pv_work/L01.lean:7 Paper.L01.main"
+        self.pr.write_state(d)
+        p = self.pr.status("validate")
+        self.assertIn("is declared at line 2", p.out)
+        self.assertNotIn("INVALID", p.out)
