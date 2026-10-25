@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# doctor.sh — report what this machine has for the proof-check kit. Reads only; downloads and installs nothing.
+# doctor.sh — report what this machine has for KAPPA. Reads only; downloads and installs nothing.
 # Usage: autosetup/doctor.sh <base folder>
 base="${1:-.}"
 row() { printf '%-16s %s\n' "$1" "$2"; }
-echo "== Environment for the TeX proof-check kit ($(date '+%Y-%m-%d %H:%M'))"
+echo "== Environment for KAPPA ($(date '+%Y-%m-%d %H:%M'))"
 row "machine" "$(uname -sm) $(uname -r)"
 row "bash" "${BASH_VERSION}"
 for c in git curl unzip python3 elan lake claude pdflatex latexmk tmux screen; do

@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg1: #0d1424; --bg2: #13203a; --text: #e8edf5; --muted: #a9b6c9; --faint: #6f7d92;
+    --accent: #38bdf8; --green: #22c55e; --amber: #f59e0b; --grey: #9aa4b2;
+    --card: #0a0f1c; --chip: #1a2436; --chipline: #2a3650;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1280px; height: 640px; overflow: hidden; }
+  body {
+    background: radial-gradient(circle at 85% 10%, #1b2b4a 0%, rgba(27,43,74,0) 45%),
+                linear-gradient(160deg, var(--bg2) 0%, var(--bg1) 60%, #0b1220 100%);
+    color: var(--text);
+    font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    position: relative;
+  }
+  .left { position: absolute; left: 72px; top: 64px; width: 610px; }
+  .kicker { font-size: 18px; font-weight: 700; letter-spacing: 2.4px; color: var(--accent); }
+  h1 { font-size: 104px; font-weight: 800; letter-spacing: -2px; line-height: 1; margin-top: 20px; }
+  .expand { margin-top: 14px; font-size: 20.5px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+  .expand b { color: var(--accent); font-weight: 800; }
+  .desc { margin-top: 26px; font-size: 25px; line-height: 1.38; color: #c9d3e1; }
+  .desc strong { color: #fff; }
+  .chips { margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+  .chip { background: var(--chip); border: 1px solid var(--chipline); border-radius: 10px; height: 50px;
+          display: flex; align-items: center; padding-left: 18px; font-size: 18px; font-weight: 700; color: #e3e9f2; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 12px; }
+  .card { position: absolute; right: 72px; top: 124px; width: 470px; height: 400px; background: var(--card);
+          border: 1px solid #263149; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.45); padding: 22px 24px; }
+  .bar { display: flex; align-items: center; justify-content: space-between; color: var(--faint);
+         font-family: "SF Mono", Menlo, monospace; font-size: 14px; }
+  .lights span { display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: #4a5568; margin-right: 7px; }
+  pre { margin-top: 22px; font-family: "SF Mono", Menlo, monospace; font-size: 16.5px; line-height: 1.6; color: #e5e9f0; }
+  .c { color: #7f8ba0; } .k { color: #c084fc; } .n { color: #60a5fa; } .t { color: #38bdf8; } .num { color: #fbbf24; }
+  .status { position: absolute; left: 24px; right: 24px; bottom: 22px; border-top: 1px solid #263149; padding-top: 18px;
+            font-size: 16px; font-weight: 700; color: var(--amber); display: flex; align-items: center; }
+  .footer { position: absolute; left: 72px; right: 72px; bottom: 34px; display: flex; justify-content: space-between;
+            font-size: 16px; color: var(--faint); }
+  .footer b { color: #b8c3d4; }
+</style>
+</head>
+<body>
+  <div class="left">
+    <div class="kicker">LEAN 4 · MATHLIB · CLAUDE CODE</div>
+    <h1>KAPPA</h1>
+    <div class="expand"><b>K</b>it of <b>A</b>gents for <b>P</b>roof-checking <b>P</b>apers with a proof <b>A</b>ssistant</div>
+    <div class="desc">Checks the proofs <strong>already written</strong> in a LaTeX paper: each proof is translated faithfully into Lean&nbsp;4, compiled, and audited by independent agents.</div>
+    <div class="chips">
+      <div class="chip"><span class="dot" style="background:var(--green)"></span>Verified unconditionally</div>
+      <div class="chip"><span class="dot" style="background:var(--accent)"></span>Verified conditionally</div>
+      <div class="chip"><span class="dot" style="background:var(--amber)"></span>Issue recorded</div>
+      <div class="chip"><span class="dot" style="background:var(--grey)"></span>Unfinished</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="bar"><div class="lights"><span></span><span></span><span></span></div><div>L02_Counterexample1.lean</div></div>
+<pre><span class="c">-- Lemma 2 exactly as printed</span>
+<span class="k">def</span> <span class="n">PrintedLemma2</span> : <span class="t">Prop</span> :=
+  ∀ x : ℝ, x ^ <span class="num">2</span> ≥ x
+
+<span class="c">-- machine-checked refutation</span>
+<span class="k">theorem</span> <span class="n">not_printedLemma2</span> :
+    ¬ PrintedLemma2 := <span class="k">by</span>
+  intro h
+  <span class="k">have</span> h2 := h (<span class="num">1</span> / <span class="num">2</span> : ℝ)
+  norm_num at h2</pre>
+    <div class="status"><span class="dot" style="background:var(--amber)"></span>Issue recorded (ERROR): false for 0 &lt; x &lt; 1</div>
+  </div>
+
+  <div class="footer">
+    <div><b>Verifies</b> existing proofs · never repairs them or edits the paper</div>
+    <div>Formerly TeX Proof-Check Kit · MIT License</div>
+  </div>
+</body>
+</html>

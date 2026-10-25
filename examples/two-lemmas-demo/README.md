@@ -69,7 +69,7 @@ Two lemmas take this long because every result passes through separate, independ
 **Guided.** In the folder that contains the kit (see the main [README](../../README.md)), start a new Claude chat and send:
 
 ```
-Read tex-proof-check-kit/CLAUDE_START_HERE.md and follow it. I want to run the demo paper: call it demo. The files are in tex-proof-check-kit/examples/two-lemmas-demo/paper.
+Read kappa/CLAUDE_START_HERE.md and follow it. I want to run the demo paper: call it demo. The files are in kappa/examples/two-lemmas-demo/paper.
 ```
 
 Then follow Claude's instructions: open `papers/demo-check`, start a new chat, choose Sonnet, and paste `START_PROMPT.txt`. For a shorter run without the report, paste [`DEMO_PROMPT_no_report.txt`](DEMO_PROMPT_no_report.txt) instead.

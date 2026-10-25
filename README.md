@@ -1,4 +1,6 @@
-# TeX Proof-Check Kit
+# KAPPA
+
+*Kit of Agents for Proof-checking Papers with a proof Assistant*, released as the TeX Proof-Check Kit up to v1.3.4.
 
 **Check the proofs already written in a LaTeX paper by translating them faithfully into Lean 4**, with a team of [Claude Code](https://code.claude.com/docs) agents that review each other's work. Every numbered result (theorem, proposition, lemma, corollary) gets one of four verdicts:
 
@@ -86,19 +88,19 @@ Records are plain files (`RESULTS.json`, Markdown reports, Lean files), so work 
 
    ```bash
    mkdir -p ~/proofcheck && cd ~/proofcheck
-   git clone https://github.com/ziwaa-se/tex-proof-check-kit.git
+   git clone https://github.com/ziwaa-se/kappa.git
    ```
 
-   (Or download a ZIP: **Code → Download ZIP** on this page, or **Source code (zip)** under the latest [release](https://github.com/ziwaa-se/tex-proof-check-kit/releases/latest). Unzip it in `~/proofcheck` and rename the unzipped folder (`tex-proof-check-kit-main` or `tex-proof-check-kit-1.3`) to `tex-proof-check-kit`, so that the sentence in step 2 works as written.)
+   (Or download a ZIP: **Code → Download ZIP** on this page, or **Source code (zip)** under the latest [release](https://github.com/ziwaa-se/kappa/releases/latest). Unzip it in `~/proofcheck` and rename the unzipped folder (`kappa-main` or `kappa-1.4.0`) to `kappa`, so that the sentence in step 2 works as written.)
 2. Open `~/proofcheck` in the Claude desktop app or in VS Code, start a **new** Claude chat, and send:
 
    ```
-   Read tex-proof-check-kit/CLAUDE_START_HERE.md and follow it.
+   Read kappa/CLAUDE_START_HERE.md and follow it.
    ```
 
 3. Answer its questions. Claude checks your machine, installs Lean and Mathlib once (it asks before downloading anything), and makes a new folder for your paper (`papers/<name>-check/`). It then helps you put the paper's files in (`.tex`, inputs, the PDF and the `.aux`) and tells you how to start the check. That last step happens in a new chat opened **in the paper's folder**, where the kit's agents live.
 
-To try it on the example first, add: *"I want to run the demo paper: call it demo. The files are in tex-proof-check-kit/examples/two-lemmas-demo/paper."*
+To try it on the example first, add: *"I want to run the demo paper: call it demo. The files are in kappa/examples/two-lemmas-demo/paper."*
 
 Prefer to do it by hand? See [docs/QUICKSTART.md](docs/QUICKSTART.md).
 
@@ -162,7 +164,7 @@ A research paper costs far more, and usage limits will pause long runs; `/pv-res
 ## Repository layout
 
 ```
-tex-proof-check-kit/
+kappa/
 ├── CLAUDE_START_HERE.md      guided setup: what a new Claude chat follows
 ├── autosetup/                scripts for the guided setup (environment check, shared Lean, new project, ...)
 ├── install.sh                manual install of a paper project (--pinned / --lean-from / --upgrade)
@@ -192,7 +194,7 @@ tex-proof-check-kit/
 
 ## Roadmap
 
-This version (v1.3.1) **only verifies** the proofs a paper already contains. Planned extensions, **not yet available**:
+This version (v1.4.0) **only verifies** the proofs a paper already contains. Planned extensions, **not yet available**:
 
 - **Repair mode.** After an issue is confirmed, agents would propose a correction: a missing hypothesis, a narrower statement, or a different argument for the failing step. They would verify it in Lean within fixed attempt and time limits, then pass it through the same independent gate and final audit. A repair would be reported separately and labeled as such. It would never change the verdict on the paper as written, and never be presented as the authors' proof.
 - **Completing unfinished steps.** An optional, longer proof search for steps stopped by formalization difficulty (`TRANSLATION_BLOCKED`, `BUDGET_EXHAUSTED`), also with limits.

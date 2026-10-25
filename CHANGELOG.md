@@ -8,6 +8,15 @@ Not yet available; see the README's [Roadmap](README.md#roadmap). This version o
 - **Completing unfinished steps:** an optional, longer proof search for steps stopped by formalization difficulty.
 - **Closing conditions automatically** when a cited result is available in Mathlib.
 
+## v1.4.0 (2026-10-25)
+
+- **New name: KAPPA** (Kit of Agents for Proof-checking Papers with a proof Assistant). Versions up to 1.3.4 were
+  released as the TeX Proof-Check Kit. The repository is now https://github.com/ziwaa-se/kappa; GitHub redirects the
+  old address.
+- Only the name changed: the README, the guides and the heading of the project's `CLAUDE.md`. Scripts, rules, agent
+  definitions, commands (`/pv-*`, `scripts/pv_*`) and `PVTools.lean` are unchanged, so existing projects need no
+  upgrade. The example papers, prompts and benchmark records keep the old name where it was part of a run's input.
+
 ## v1.3.4 (2026-10-20)
 
 - **Fix:** the check of `lean_main` added in v1.3.3 did not recognize a theorem declared with explicit universe

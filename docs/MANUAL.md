@@ -1,4 +1,4 @@
-# TeX Proof-Check Kit v1.3.4: reference manual
+# KAPPA v1.4.0: reference manual
 
 > **Start with** [`GUIDE_EN.md`](GUIDE_EN.md), the complete workflow on one page. It covers setup, including the guided setup with [`CLAUDE_START_HERE.md`](../CLAUDE_START_HERE.md), the prompts to send, what you get, re-checking after corrections, recording conditions you checked, and upgrading. This manual is the detailed reference.
 
@@ -28,7 +28,7 @@ It is driven by Claude Code. You can use it in the **Code** tab of the Claude de
 ## 1. What is in the kit
 
 ```
-tex-proof-check-kit/
+kappa/
 ├── README.md                    overview
 ├── CLAUDE_START_HERE.md         guided setup: instructions that a new Claude chat follows
 ├── CHANGELOG.md                 version history
@@ -83,7 +83,7 @@ curl https://elan.lean-lang.org/elan-init.sh -sSf | sh
 **On a fresh machine (recommended):** install the kit with the tested Lean/Mathlib pins, then download Mathlib once.
 
 ```bash
-~/proofcheck/tex-proof-check-kit/install.sh ~/proofcheck/papers/mypaper-check --pinned
+~/proofcheck/kappa/install.sh ~/proofcheck/papers/mypaper-check --pinned
 ```
 
 ```bash
@@ -101,7 +101,7 @@ scripts/pv_lean.sh build PVTools
 **If you already have a Lean project on Mathlib `c44e0c8e`** (for example an earlier paper), reuse its Mathlib instead of downloading:
 
 ```bash
-~/proofcheck/tex-proof-check-kit/install.sh ~/proofcheck/papers/mypaper-check --lean-from "/path/to/existing/project"
+~/proofcheck/kappa/install.sh ~/proofcheck/papers/mypaper-check --lean-from "/path/to/existing/project"
 ```
 
 This copies that project's `.lake/packages` (about 2.7 GB, no network) and runs the environment check itself. Add `--link-packages` to link instead of copy (instant, but the two projects then share Mathlib, so the kit never compiles missing Mathlib modules; steps that need one are recorded as `TRANSLATION_BLOCKED`).
@@ -109,7 +109,7 @@ This copies that project's `.lake/packages` (about 2.7 GB, no network) and runs 
 **Updating an existing project to a new version of the kit** (after `git pull`, or a new download). Installing a new version over an existing project normally changes nothing, because existing files are never overwritten. Use `--upgrade` instead:
 
 ```bash
-~/proofcheck/tex-proof-check-kit/install.sh ~/proofcheck/papers/mypaper-check --upgrade
+~/proofcheck/kappa/install.sh ~/proofcheck/papers/mypaper-check --upgrade
 ```
 
 - Close Claude Code in that project first, and continue afterwards with `/pv-resume`.
@@ -127,7 +127,7 @@ cd ~/proofcheck/papers && lake new mypaper-check math && cd mypaper-check && lak
 ```
 
 ```bash
-~/proofcheck/tex-proof-check-kit/install.sh ~/proofcheck/papers/mypaper-check && scripts/pv_lean.sh build PVTools
+~/proofcheck/kappa/install.sh ~/proofcheck/papers/mypaper-check && scripts/pv_lean.sh build PVTools
 ```
 
 If `PVTools` fails to compile on a newer Lean, give the error message to Claude; only `pv_work/PVTools.lean` is affected. A newer Mathlib may ship new dependency packages; add their names to `libRoots` in that file.

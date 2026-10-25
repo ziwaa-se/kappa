@@ -115,7 +115,7 @@ Probes, logs, drafts and working notes are left out.
 
 ## Run it yourself
 
-With the guided setup (README, *Quick start*), add: *"I want to run a paper: call it fullworkflow. The files are in tex-proof-check-kit/examples/full-workflow/paper."*
+With the guided setup (README, *Quick start*), add: *"I want to run a paper: call it fullworkflow. The files are in kappa/examples/full-workflow/paper."*
 - Before step 2, replace the files in the project's `source/` with those in `paper-revised/`.
 - Then send the prompts of guide §8.3, §8.4 and §8.5.
 

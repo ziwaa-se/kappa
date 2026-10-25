@@ -1,4 +1,4 @@
-# Faithful checking of TeX source proofs (tex-proof-check-kit)
+# Faithful checking of TeX source proofs (KAPPA)
 
 This project translates the **already-written proofs** in `source/` faithfully into Lean 4, actually compiles them, and gives each numbered result one of four verdicts:
 

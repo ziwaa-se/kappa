@@ -1,9 +1,9 @@
-# Proof-check kit: one-page cheat sheet
+# KAPPA: one-page cheat sheet
 
-Everything starts in the same place, the folder that contains the kit (here `~/proofcheck/tex-proof-check-kit`). In VS Code (connected to the cluster, if you use one) or the Claude app, **File → Open Folder → `~/proofcheck`**, open the Claude panel, start a **new** chat, and send:
+Everything starts in the same place, the folder that contains the kit (here `~/proofcheck/kappa`). In VS Code (connected to the cluster, if you use one) or the Claude app, **File → Open Folder → `~/proofcheck`**, open the Claude panel, start a **new** chat, and send:
 
 ```
-Read tex-proof-check-kit/CLAUDE_START_HERE.md and follow it.
+Read kappa/CLAUDE_START_HERE.md and follow it.
 ```
 
 Then add, in your own words, what you want. Claude does the rest and tells you each step.
@@ -44,4 +44,4 @@ The check runs in this chat and needs no attention. Only a question about the pa
 - put a second paper into an existing paper's folder;
 - allow downloads other than the Lean setup Claude asked about.
 
-Full guide: `~/proofcheck/tex-proof-check-kit/docs/GUIDE_EN.md`.
+Full guide: `~/proofcheck/kappa/docs/GUIDE_EN.md`.

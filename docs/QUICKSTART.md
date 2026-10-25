@@ -1,4 +1,4 @@
-# TeX Proof-Check Kit v1.3.4: quick start
+# KAPPA v1.4.0: quick start
 
 The kit checks the proofs **already written** in a LaTeX paper. It translates them into Lean 4, compiles them, and gives each numbered result one of four verdicts. It never repairs a proof, never searches for a new one, and never edits the paper. (A repair mode is planned; see the README's Roadmap.)
 
@@ -16,17 +16,17 @@ Setup takes about 30 minutes. After that the run is unattended.
 3. Get the kit:
 
    ```bash
-   mkdir -p ~/proofcheck && cd ~/proofcheck && git clone https://github.com/ziwaa-se/tex-proof-check-kit.git
+   mkdir -p ~/proofcheck && cd ~/proofcheck && git clone https://github.com/ziwaa-se/kappa.git
    ```
 
-   Or download the ZIP from GitHub, unzip it into `~/proofcheck`, and rename the folder to `tex-proof-check-kit`.
+   Or download the ZIP from GitHub, unzip it into `~/proofcheck`, and rename the folder to `kappa`.
 
-> **Easier:** in `~/proofcheck`, start a new Claude chat and send "Read tex-proof-check-kit/CLAUDE_START_HERE.md and follow it." Claude then does steps 2–4 with you (see `GUIDE_EN.md`, section 1).
+> **Easier:** in `~/proofcheck`, start a new Claude chat and send "Read kappa/CLAUDE_START_HERE.md and follow it." Claude then does steps 2–4 with you (see `GUIDE_EN.md`, section 1).
 
 ## 2. Create a project for your paper
 
 ```bash
-~/proofcheck/tex-proof-check-kit/install.sh ~/proofcheck/papers/mypaper-check --pinned
+~/proofcheck/kappa/install.sh ~/proofcheck/papers/mypaper-check --pinned
 ```
 
 ```bash
@@ -57,7 +57,7 @@ cp .claude/settings.example.json .claude/settings.json
 Open the folder `mypaper-check` in Claude Code, **choose Sonnet in the model picker** (the main session only dispatches, checks and records; the reviewing roles run on Opus by their own definitions), and send the prompt below. Replace the two file names first.
 
 ```
-Please check the proofs already written in this paper with this project's tex-proof-check-kit.
+Please check the proofs already written in this paper with this project's KAPPA kit.
 First read CLAUDE.md; each skill below says which rules to read.
 The main file is source/MAIN.tex; the compiled PDF is source/PAPER.pdf (use it for theorem numbers).
 
@@ -119,11 +119,11 @@ The Lean proofs themselves need no reading. The Lean kernel checked them, and an
 
 ## When a new version of the kit arrives
 
-- **New paper:** after `git pull` in `~/proofcheck/tex-proof-check-kit` (or a new download), repeat step 2.
+- **New paper:** after `git pull` in `~/proofcheck/kappa` (or a new download), repeat step 2.
 - **Paper already in progress:** close Claude Code in that project, run the line below, then continue with `/pv-resume`. It replaces only the kit's own files (the old ones go to `kit_backup/`), never the paper, the records or the Lean files.
 
 ```bash
-~/proofcheck/tex-proof-check-kit/install.sh ~/proofcheck/papers/mypaper-check --upgrade
+~/proofcheck/kappa/install.sh ~/proofcheck/papers/mypaper-check --upgrade
 ```
 
 ## Try Lean in two minutes
@@ -131,7 +131,7 @@ The Lean proofs themselves need no reading. The Lean kernel checked them, and an
 After step 2, run this inside `mypaper-check`:
 
 ```bash
-lake env lean ~/proofcheck/tex-proof-check-kit/docs/lean-demo/LeanDemo.lean
+lake env lean ~/proofcheck/kappa/docs/lean-demo/LeanDemo.lean
 ```
 
 It prints the axioms each small theorem depends on. `LeanDemoError.lean` shows what Lean prints for a false claim and for an unfinished `sorry`.

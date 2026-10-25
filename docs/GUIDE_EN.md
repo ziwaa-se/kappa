@@ -1,4 +1,4 @@
-# TeX Proof-Check Kit v1.3.4: the complete workflow
+# KAPPA v1.4.0: the complete workflow
 
 This guide takes you from a new computer to a finished report. It also covers what to do when the paper changes or when you check a condition yourself. The prompts in 8.1, 8.3, 8.4 and 8.5 were sent verbatim, in this order, in an end-to-end test on the test paper `bench/paper`; the record is `bench/results/WORKFLOW_TEST.md`. Slash commands such as `/pv-status` are Claude Code's standard way to start the same steps.
 
@@ -19,13 +19,13 @@ It never repairs a proof, never searches for a different proof, and never edits 
 
 ### Two ways to set up
 
-- **Guided (easiest; recommended on a cluster).** Make a folder for your paper checks, for example `~/proofcheck`, and put the kit inside it, either with `git clone https://github.com/ziwaa-se/tex-proof-check-kit.git` or by downloading the ZIP from GitHub and unzipping it there. Open `~/proofcheck` in VS Code or the Claude app, start a new Claude chat, and send:
+- **Guided (easiest; recommended on a cluster).** Make a folder for your paper checks, for example `~/proofcheck`, and put the kit inside it, either with `git clone https://github.com/ziwaa-se/kappa.git` or by downloading the ZIP from GitHub and unzipping it there. Open `~/proofcheck` in VS Code or the Claude app, start a new Claude chat, and send:
 
   ```
-  Read tex-proof-check-kit/CLAUDE_START_HERE.md and follow it.
+  Read kappa/CLAUDE_START_HERE.md and follow it.
   ```
 
-  (If you downloaded a ZIP from GitHub, the unzipped folder is called `tex-proof-check-kit-main`, or `tex-proof-check-kit-1.3` for a release. Rename it to `tex-proof-check-kit`, or use its actual name in the sentence.)
+  (If you downloaded a ZIP from GitHub, the unzipped folder is called `kappa-main`, or `kappa-1.4.0` for a release. Rename it to `kappa`, or use its actual name in the sentence.)
 
   Claude checks the machine and sets up Lean once (it asks before downloading anything). It then makes a **new folder for each paper** (`papers/<name>-check`), helps you put the paper's files in, checks that nothing is missing, and tells you how to start. Send the same sentence again whenever you want to check another paper, continue, re-check a corrected version, or make a report. It finds your existing projects and never mixes two papers in one folder.
 - **By hand:** sections 2–4 below.
@@ -48,17 +48,17 @@ Needed: macOS or Linux; internet access for the first download; a Claude plan th
 3. **Get the kit** into a folder for your checks:
 
    ```bash
-   mkdir -p ~/proofcheck && cd ~/proofcheck && git clone https://github.com/ziwaa-se/tex-proof-check-kit.git
+   mkdir -p ~/proofcheck && cd ~/proofcheck && git clone https://github.com/ziwaa-se/kappa.git
    ```
 
-   (Or download the ZIP from GitHub and unzip it into `~/proofcheck`, then rename the folder to `tex-proof-check-kit`.)
+   (Or download the ZIP from GitHub and unzip it into `~/proofcheck`, then rename the folder to `kappa`.)
 
 ---
 
 ## 3. Create a project for a paper (one paper, one project)
 
 ```bash
-~/proofcheck/tex-proof-check-kit/install.sh ~/proofcheck/papers/mypaper-check --pinned
+~/proofcheck/kappa/install.sh ~/proofcheck/papers/mypaper-check --pinned
 ```
 
 ```bash
@@ -196,7 +196,7 @@ It should **not** ask Claude to fix the paper's proofs, try another proof, allow
 ### 8.1 Start: set up and check every result
 
 ```
-Please check the proofs already written in this paper with this project's tex-proof-check-kit.
+Please check the proofs already written in this paper with this project's KAPPA kit.
 First read CLAUDE.md.
 The main file is source/main.tex; the compiled PDF is source/main.pdf and source/main.aux (use them for theorem numbers).
 
@@ -261,13 +261,13 @@ fact-check. No internet, no downloads.
 
 ## 9. Updating the kit to a new version
 
-Get the new version: `cd ~/proofcheck/tex-proof-check-kit && git pull` (or download the new ZIP).
+Get the new version: `cd ~/proofcheck/kappa && git pull` (or download the new ZIP).
 
 - **New paper:** nothing else to do; new projects get the new version.
 - **A paper already in progress:** close Claude Code in that project, run the command below, then continue with `/pv-resume`.
 
   ```bash
-  ~/proofcheck/tex-proof-check-kit/install.sh ~/proofcheck/papers/mypaper-check --upgrade
+  ~/proofcheck/kappa/install.sh ~/proofcheck/papers/mypaper-check --upgrade
   ```
 
   It replaces only the kit's own files and keeps backups in `kit_backup/<date>/`. It never touches the paper, the records, the Lean files, the audit tool or your permission settings, and it never changes Lean or Mathlib. It lists any new permission entries for you to add, notes the upgrade in `verification/AUDIT.md` and runs `validate`. `cat KIT_VERSION` shows a project's version.
@@ -299,7 +299,7 @@ A research paper costs far more than the test paper. To keep it down:
 | Symptom | Fix |
 |---|---|
 | Every step asks for approval | `.claude/settings.json` is missing, or the folder was not trusted when opened |
-| `install.sh: permission denied` | Run it as `bash ~/proofcheck/tex-proof-check-kit/install.sh …` |
+| `install.sh: permission denied` | Run it as `bash ~/proofcheck/kappa/install.sh …` |
 | `lake: command not found` | Open a new terminal, or run `source ~/.elan/env` |
 | `lake exe cache get` fails | Retry (usually the network). On macOS 26 or later with a `dyld … SG_READ_ONLY` message: `autosetup/lean_env.sh <base> --download`. As a last resort, `lake build` (slow, hours) |
 | A step is `TRANSLATION_BLOCKED` with a missing Mathlib module | The project links another project's Mathlib; install with `--pinned`, or with `--lean-from` without `--link-packages` |
