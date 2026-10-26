@@ -1,0 +1,61 @@
+[
+ {
+  "file": "lean_blocks/block_01.lean",
+  "compiles": false,
+  "errors": 2,
+  "sorry": false,
+  "theorems": {
+   "sum_eq_mul_mean": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "sum_sub_mean": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "sum_sq_sub_mean": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext",
+    "sorryAx"
+   ],
+   "popoviciu_sum": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext",
+    "sorryAx"
+   ],
+   "svar_le_popoviciu": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext",
+    "sorryAx"
+   ],
+   "samuelson": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lem_raw_false": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "svar_le_raw": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext",
+    "sorryAx"
+   ],
+   "svar_le_two": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext",
+    "sorryAx"
+   ]
+  },
+  "first_error": "Check.lean:26:63: error: unsolved goals"
+ }
+]

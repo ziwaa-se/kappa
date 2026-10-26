@@ -1,0 +1,7 @@
+{"_paper": "E1 Elementary bounds on the sample variance; see ANSWER_KEY.md",
+ "2.1": {"expect": ["UNCONDITIONAL"]},
+ "2.2": {"expect": ["UNCONDITIONAL"]},
+ "2.3": {"expect": ["CONDITIONAL:i"]},
+ "2.4": {"expect": ["ISSUE:EXPOSITION_GAP"], "accept": ["UNCONDITIONAL"]},
+ "2.5": {"expect": ["ISSUE:ERROR"]},
+ "2.6": {"expect": ["CONDITIONAL:iv"]}}

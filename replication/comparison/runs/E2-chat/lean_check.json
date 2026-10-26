@@ -1,0 +1,56 @@
+[
+ {
+  "file": "lean_blocks/block_01.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "quarter_identity": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "quarter": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "positive": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "V_nonneg": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "concave_mid": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "linear_fixed": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "uniform": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "mean_add": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "sum_bound": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ }
+]

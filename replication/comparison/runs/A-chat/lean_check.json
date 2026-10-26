@@ -1,0 +1,71 @@
+[
+ {
+  "file": "lean_blocks/block_01.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "EProb.nullH_of_lt": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "EProb.reduction": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "EProb.thm31": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "EProb.grow": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "EProb.grow_in_family": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "EProb.dC0": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "EProb.dC1": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "EProb.EC0": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "EProb.EC1": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "EProb.null_ok": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "EProb.fixed_ok": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "EProb.prop35_false": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ }
+]

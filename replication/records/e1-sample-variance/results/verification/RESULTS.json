@@ -1,0 +1,367 @@
+{
+  "_comment": "Machine-readable state (kit v1.3.1; optional fields models_used, tier, session_budget_usd, uses_defs, recheck, history may appear). pv-architect fills 'results' at /pv-setup; the coordinator keeps it current. The _example_* entries show every field and are ignored by the scripts. Field meanings: verification/rules/PIPELINE.md (stage/reason table, naming) and VERDICTS.md. Check with: python3 scripts/pv_status.py validate",
+  "paper": {
+    "title": "Elementary bounds on the sample variance",
+    "main_tex": "source/main.tex",
+    "pdf": "",
+    "numbering_basis": "main.aux \\newlabel entries"
+  },
+  "lean": {
+    "toolchain": "leanprover/lean4:v4.19.0",
+    "mathlib_rev": "",
+    "packages": "linked; mathlib modules compiled: 6305 of 6305",
+    "pvtools_sha256": "445fe54fd278873b57a4b2e1af82a7e7d49447d8bb4fa5c13b23cbece65197ad"
+  },
+  "run_scope": [
+    "L03",
+    "P02",
+    "C01"
+  ],
+  "defs": [
+    {
+      "id": "DEFS",
+      "file": "pv_work/Defs.lean",
+      "gate": "verification/audits/DEFS_gate.md",
+      "built": true
+    }
+  ],
+  "results": [
+    {
+      "id": "L01",
+      "pdf_number": "2.1",
+      "kind": "Lemma",
+      "title": "centred sum is zero",
+      "label": "lem:centred",
+      "statement_loc": "source/main.tex:42-44",
+      "proof_loc": "source/main.tex:46-48",
+      "depends_on": [],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "UNCONDITIONAL",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/L01_gate.md",
+        "final": "verification/audits/L01_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D03"
+      ],
+      "updated": "2026-10-12 22:11",
+      "lean_main": "pv_work/L01.lean:1 Paper.L01.main",
+      "summary_en": "Centred sum is zero; verified in Lean with no external inputs.",
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "L02",
+      "pdf_number": "2.2",
+      "kind": "Lemma",
+      "title": "variance shortcut identity",
+      "label": "lem:shortcut",
+      "statement_loc": "source/main.tex:50-52",
+      "proof_loc": "source/main.tex:54-56",
+      "depends_on": [],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "UNCONDITIONAL",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/L02_gate.md",
+        "final": "verification/audits/L02_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D03"
+      ],
+      "updated": "2026-10-12 22:11",
+      "lean_main": "pv_work/L02.lean:1 Paper.L02.main",
+      "summary_en": "Variance shortcut identity; verified in Lean with no external inputs.",
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "P01",
+      "pdf_number": "2.3",
+      "kind": "Proposition",
+      "title": "Popoviciu bound for s^2",
+      "label": "prop:popoviciu",
+      "statement_loc": "source/main.tex:58-63",
+      "proof_loc": "source/main.tex:65-69",
+      "depends_on": [],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "CONDITIONAL",
+      "conditions": [
+        "Popoviciu"
+      ],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/P01_gate_r2.md",
+        "final": "verification/audits/P01_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D02",
+        "D03"
+      ],
+      "updated": "2026-10-12 22:14",
+      "lean_main": "pv_work/P01.lean:1 Paper.P01.main",
+      "summary_en": "Popoviciu-based variance bound verified in Lean, conditional on the cited Popoviciu inequality.",
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "P02",
+      "pdf_number": "2.4",
+      "kind": "Proposition",
+      "title": "Samuelson's inequality",
+      "label": "prop:samuelson",
+      "statement_loc": "source/main.tex:71-73",
+      "proof_loc": "source/main.tex:75-83",
+      "depends_on": [
+        "L01"
+      ],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "UNCONDITIONAL",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/P02_gate.md",
+        "final": "verification/audits/P02_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D02",
+        "D03"
+      ],
+      "updated": "2026-10-12 22:33",
+      "lean_main": "pv_work/P02.lean:1 Paper.P02.P02_main",
+      "models_used": [
+        "sonnet",
+        "opus"
+      ],
+      "summary_en": "Samuelson's inequality verified in Lean with no external inputs; the s=0 case (main.tex:76) is a ruled FAIR_IMPLICIT_STEP fill-in."
+    },
+    {
+      "id": "L03",
+      "pdf_number": "2.5",
+      "kind": "Lemma",
+      "title": "variance bounded by raw moment",
+      "label": "lem:raw",
+      "statement_loc": "source/main.tex:85-87",
+      "proof_loc": "source/main.tex:89-92",
+      "depends_on": [
+        "L02"
+      ],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B01"
+      ],
+      "evidence": {
+        "gate": "verification/audits/L03_gate.md",
+        "final": "verification/audits/L03_final.md",
+        "issues": [
+          "verification/audits/L03_issue_1.md"
+        ]
+      },
+      "uses_defs": [
+        "D01",
+        "D02",
+        "D03"
+      ],
+      "updated": "2026-10-12 22:26",
+      "partial": "S1 and S2 (main.tex:90, via L02) verified; the step at :91 is false as stated",
+      "lean_main": "pv_work/L03ModGaps.lean:1 Paper.L03.L03_main_mod_gaps",
+      "summary_en": "Lemma is false: s^2 <= (1/n) sum x_i^2 fails for n=2, x=(1,-1); verified counterexample in Lean.",
+      "gaps": [
+        "L03_S3_Gap"
+      ],
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "C01",
+      "pdf_number": "2.6",
+      "kind": "Corollary",
+      "title": "variance bound for unit interval",
+      "label": "cor:unit",
+      "statement_loc": "source/main.tex:94-96",
+      "proof_loc": "source/main.tex:98-100",
+      "depends_on": [
+        "L03"
+      ],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [
+        "C01_L03Consumed"
+      ],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B02"
+      ],
+      "evidence": {
+        "gate": "verification/audits/C01_gate.md",
+        "final": "verification/audits/C01_final.md",
+        "issues": [
+          "verification/audits/C01_issue_1.md"
+        ]
+      },
+      "uses_defs": [
+        "D01",
+        "D02",
+        "D03"
+      ],
+      "updated": "2026-10-13 01:08",
+      "lean_main": "pv_work/C01.lean:1 Paper.C01.C01_main",
+      "models_used": [
+        "sonnet"
+      ],
+      "summary_en": "Printed proof at main.tex:99 passes through s^2 <= 1, false at n=2, x=(1,-1) (own PAPER_ARGUMENT_GAP, B02; upstream B01). The conclusion s^2 <= 2 is not shown false.",
+      "upstream_issues": [
+        "B01"
+      ]
+    }
+  ],
+  "external_tools": [
+    {
+      "id": "Popoviciu",
+      "lean": "pv_work/P01Stmt.lean:11",
+      "meaning": "Popoviciu inequality on variances: for every n>=1, a, b and sample x in [a,b]^n, (1/n) sum (x_i - xbar)^2 <= (b-a)^2/4.",
+      "provenance": "i",
+      "source_loc": "source/main.tex:66-67",
+      "consumers": [
+        "P01 (step S1)"
+      ],
+      "mathlib_search": "#check ProbabilityTheory.variance_le_sq_of_bounded (probabilistic form only); no finite-sample Fin n version found (see verification/audits/P01_gate.md)",
+      "human_check": "Check Popoviciu 1935 (cited paper title concerns algebraic equations; the variance inequality is the well-known one but the cited reference/theorem number is not given) states exactly this for finite samples."
+    },
+    {
+      "id": "C01_L03Consumed",
+      "lean": "pv_work/C01Stmt.lean:14",
+      "meaning": "Lemma 2.5 as printed: for n>=2 and every sample x, s^2 <= (1/n) sum x_i^2 (used at main.tex:99). This clause is FALSE (n=2, x=(1,-1)), see B01.",
+      "provenance": "p",
+      "predecessor": "L03",
+      "source_loc": "source/main.tex:99",
+      "consumers": [
+        "C01 (step S1)"
+      ],
+      "mathlib_search": "n/a (predecessor clause)",
+      "human_check": "L03 is ISSUE (B01): the clause is refuted by pv_work/L03_Counterexample1.lean; C01 keeps this condition until the source lemma is corrected and re-checked."
+    }
+  ],
+  "source_defs": [
+    {
+      "id": "D01",
+      "name": "sample mean",
+      "loc": "source/main.tex:28-30",
+      "label": "def:mean"
+    },
+    {
+      "id": "D02",
+      "name": "sample variance and standard deviation",
+      "loc": "source/main.tex:32-38",
+      "label": "def:var"
+    },
+    {
+      "id": "D03",
+      "name": "global setting n>=1, x in R^n",
+      "loc": "source/main.tex:26-26"
+    }
+  ],
+  "_example_defs": {
+    "id": "DEFS",
+    "file": "pv_work/Defs.lean",
+    "gate": "verification/audits/DEFS_gate.md",
+    "built": true,
+    "_note": "use {\"id\": \"NONE\"} when the paper needs no shared definitions"
+  },
+  "_example_result": {
+    "id": "L01",
+    "pdf_number": "A.1",
+    "kind": "Lemma",
+    "title": "near-identity diffeomorphism",
+    "label": "lem:diffeo",
+    "statement_loc": "source/app.tex:7-9",
+    "proof_loc": "source/app.tex:10-16",
+    "depends_on": [],
+    "stage": "INVENTORIED",
+    "statement_fixed": false,
+    "round": 1,
+    "reason": "",
+    "verdict": "UNFINISHED",
+    "conditions": [],
+    "gaps": [],
+    "debts": [],
+    "unencoded": [],
+    "issues": [],
+    "upstream_issues": [],
+    "partial": "",
+    "lean_main": "pv_work/L01.lean:120 Paper.L01.main",
+    "evidence": {
+      "gate": "verification/audits/L01_gate.md",
+      "final": "verification/audits/L01_final.md",
+      "issues": [],
+      "reconnect": ""
+    },
+    "summary_en": "",
+    "updated": "YYYY-MM-DD HH:MM",
+    "uses_defs": [
+      "D01"
+    ]
+  },
+  "_example_tool": {
+    "id": "L02_L01Consumed",
+    "lean": "pv_work/L02Stmt.lean:12",
+    "meaning": "one-sentence statement read from the Lean definition",
+    "provenance": "i | ii | iii | iv | v | p (predecessor clause <ID>_<PredID>Consumed; set 'predecessor'). Gap hypotheses are NOT registered here (use the result's 'gaps')",
+    "predecessor": "L01",
+    "source_loc": "source/app.tex:171",
+    "consumers": [
+      "L09 (step S3)"
+    ],
+    "mathlib_search": "#check … / searched names …",
+    "human_check": "what exactly to check"
+  },
+  "_example_source_def": {
+    "id": "D01",
+    "name": "weighted negative Sobolev norm",
+    "loc": "source/sec_setting.tex:12-16",
+    "label": "def:hminus",
+    "_note": "one entry per defined object, with its own exact lines (v1.3.1)"
+  }
+}

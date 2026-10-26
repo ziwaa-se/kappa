@@ -179,6 +179,7 @@ kappa/
 │   ├── e1-…, e2-…, e3-…, e4-…  four papers with answer keys fixed before their runs, and the runs' records
 │   └── tools/                replay a run offline, score it against a key, audit a blind run, sanitize a record
 ├── bench/                    benchmark paper, answer key, runner and measured results
+├── replication/              the paper's replication materials: all seven cases, the comparison runs, replicate.sh
 └── tests/                    offline tests of the scripts; Lean integration tests with PV_TEST_LEAN_ENV
 ```
 
@@ -191,6 +192,18 @@ kappa/
 - [docs/lean-demo/](docs/lean-demo/): a two-minute introduction to what Lean checks.
 - [template/verification/rules/](template/verification/rules/): the rules all agents follow: verdicts, issue classes, the pipeline and the audit methods.
 - [CHANGELOG.md](CHANGELOG.md): version history.
+
+## Paper
+
+Zihua She and Xiao Wang (2026). *KAPPA: Checking the Proofs in Statistics Papers with Lean 4 and Language Model
+Agents.* The paper describes the design, follows a complete run, applies the kit to four example papers with answer
+keys and to three published statistical papers checked blind before their corrections, and compares it with a direct
+use of the same language model.
+
+[`replication/`](replication/) holds the paper's replication materials: the records of every run, the answer keys,
+the comparison runs and `replicate.sh`, which reproduces every table of results in a few seconds and, with
+`--replay <lean-env>`, rebuilds every archived Lean file and reruns the mechanical audits in under an hour, all
+without a language model. See [replication/README.md](replication/README.md).
 
 ## Roadmap
 

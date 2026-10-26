@@ -1,0 +1,816 @@
+{
+  "_comment": "Machine-readable state (kit v1.3.1; optional fields models_used, tier, session_budget_usd, uses_defs, recheck, history may appear). pv-architect fills 'results' at /pv-setup; the coordinator keeps it current. The _example_* entries show every field and are ignored by the scripts. Field meanings: verification/rules/PIPELINE.md (stage/reason table, naming) and VERDICTS.md. Check with: python3 scripts/pv_status.py validate",
+  "paper": {
+    "title": "On the Geometric Ergodicity of Hamiltonian Monte Carlo",
+    "main_tex": "source/geo_erg_HMC_v3.1.tex",
+    "pdf": "source/geo_erg_HMC_v3.1.pdf",
+    "numbering_basis": "PDF headings read from page images (pp. 6, 20-23) plus counter inference; no .aux file available"
+  },
+  "lean": {
+    "toolchain": "leanprover/lean4:v4.19.0",
+    "mathlib_rev": "c44e0c8ee63ca166450922a373c7409c5d26b00b",
+    "packages": "linked (6305 of 6305 modules)",
+    "pvtools_sha256": "445fe54fd278873b57a4b2e1af82a7e7d49447d8bb4fa5c13b23cbece65197ad"
+  },
+  "run_scope": [
+    "L01",
+    "L02",
+    "L03",
+    "T02",
+    "T01",
+    "C01"
+  ],
+  "defs": [
+    {
+      "id": "DEFS",
+      "file": "pv_work/Defs.lean",
+      "gate": "verification/audits/DEFS_gate.md",
+      "built": true
+    }
+  ],
+  "results": [
+    {
+      "id": "L01",
+      "pdf_number": "5.15",
+      "kind": "Lemma",
+      "title": "first step doubles the norm",
+      "label": "lem:xelower",
+      "statement_loc": "source/geo_erg_HMC_v3.1.tex:945-947",
+      "proof_loc": "source/geo_erg_HMC_v3.1.tex:949-958",
+      "depends_on": [],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "UNCONDITIONAL",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/L01_gate.md",
+        "final": "verification/audits/L01_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D03",
+        "D05",
+        "D13"
+      ],
+      "updated": "2026-10-13 10:51",
+      "history": [
+        {
+          "verdict": "UNFINISHED",
+          "stage": "ISSUE_CHECK",
+          "reason": "",
+          "conditions": [],
+          "gaps": null,
+          "issues": [],
+          "upstream_issues": null,
+          "debts": [],
+          "unencoded": [],
+          "partial": null,
+          "lean_main": null,
+          "evidence": {
+            "gate": "verification/audits/revenc1/L01_gate_r2.md"
+          },
+          "summary_en": null,
+          "revision": "enc1",
+          "date": "2026-10-12 22:19"
+        },
+        {
+          "verdict": "UNCONDITIONAL",
+          "stage": "FINAL_PASSED",
+          "reason": "",
+          "conditions": [],
+          "gaps": [],
+          "issues": [],
+          "upstream_issues": [],
+          "debts": [],
+          "unencoded": [],
+          "partial": "",
+          "lean_main": "pv_work/L01.lean:76 Paper.L01.L01_main_fixedDelta",
+          "evidence": {
+            "gate": "verification/audits/rev1/L01_gate.md",
+            "final": "verification/audits/rev1/L01_final.md"
+          },
+          "summary_en": "Lemma 5.15 verified unconditionally in the fixed-delta reading (eta may depend on delta); the uniform-in-delta reading was our encoding choice and was retired (enc1).",
+          "revision": "1",
+          "date": "2026-10-13 02:38",
+          "baseline_before": "verification/source_baseline_v1"
+        }
+      ],
+      "gaps": [],
+      "upstream_issues": [],
+      "lean_main": "pv_work/L01.lean:88 Paper.L01.L01_main",
+      "partial": "",
+      "summary_en": "Lemma 5.15 (first leapfrog step at least triples/doubles the norm, fixed delta) verified unconditionally.",
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "L02",
+      "pdf_number": "5.16",
+      "kind": "Lemma",
+      "title": "L steps multiply norm by 2^L",
+      "label": "lem:xlower",
+      "statement_loc": "source/geo_erg_HMC_v3.1.tex:960-966",
+      "proof_loc": "source/geo_erg_HMC_v3.1.tex:968-1007",
+      "depends_on": [
+        "L01"
+      ],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "UNCONDITIONAL",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/L02_gate.md",
+        "final": "verification/audits/L02_final.md",
+        "reconnect": "verification/audits/L02_reconnect_r1.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D03",
+        "D05",
+        "D10",
+        "D13"
+      ],
+      "updated": "2026-10-13 10:58",
+      "partial": "",
+      "lean_main": "pv_work/L02Closed_r1.lean:13 Paper.L02.main_closed",
+      "summary_en": "Lemma 5.16 verified unconditionally after reconnection to L01.",
+      "gaps": [],
+      "models_used": [
+        "sonnet"
+      ],
+      "history": [
+        {
+          "verdict": "ISSUE",
+          "stage": "STOPPED",
+          "reason": "ISSUE_RECORDED",
+          "conditions": [
+            "L02_L01Consumed"
+          ],
+          "gaps": [
+            "L02_main_fixedDelta_Gap"
+          ],
+          "issues": [
+            "B01"
+          ],
+          "upstream_issues": null,
+          "debts": [],
+          "unencoded": [],
+          "partial": "Everything except the gap main theorem is verified: proved steps follow the printed route; auxiliary L02_main_fixedDelta_osc proves the statement with (18) as explicit premise.",
+          "lean_main": "pv_work/L02ModGaps.lean:626 Paper.L02.L02_main_fixedDelta_mod_gaps",
+          "evidence": {
+            "gate": "verification/audits/rev1/L02_gate_r2.md",
+            "final": "verification/audits/rev1/L02_final.md",
+            "issues": [
+              "verification/audits/rev1/L02_issue_1.md"
+            ]
+          },
+          "summary_en": "Lemma 5.16: proof cites (18) at TEX:930 which the lemma does not assume (PAPER_ARGUMENT_GAP); conclusion still true under (17), not threatened.",
+          "revision": "1",
+          "date": "2026-10-13 02:38",
+          "baseline_before": "verification/source_baseline_v1"
+        }
+      ],
+      "upstream_issues": []
+    },
+    {
+      "id": "L03",
+      "pdf_number": "5.17",
+      "kind": "Lemma",
+      "title": "acceptance rate tends to zero",
+      "label": "lem:arate_0",
+      "statement_loc": "source/geo_erg_HMC_v3.1.tex:1011-1016",
+      "proof_loc": "source/geo_erg_HMC_v3.1.tex:1018-1096",
+      "depends_on": [
+        "L02"
+      ],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "UNCONDITIONAL",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/L03_gate.md",
+        "final": "verification/audits/L03_final.md",
+        "reconnect": "verification/audits/L03_reconnect_r1.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D02",
+        "D03",
+        "D05",
+        "D07",
+        "D10",
+        "D13"
+      ],
+      "updated": "2026-10-13 11:07",
+      "lean_main": "pv_work/L03Closed_r1.lean:14 Paper.L03.main_closed",
+      "summary_en": "Lemma 5.17 verified unconditionally after reconnection to L02 and L01.",
+      "models_used": [
+        "sonnet"
+      ],
+      "history": [
+        {
+          "verdict": "CONDITIONAL",
+          "stage": "FINAL_PASSED",
+          "reason": "",
+          "conditions": [
+            "L03_L02Consumed"
+          ],
+          "gaps": null,
+          "issues": [],
+          "upstream_issues": null,
+          "debts": [],
+          "unencoded": [],
+          "partial": null,
+          "lean_main": "pv_work/L03.lean:330 Paper.L03.L03_main",
+          "evidence": {
+            "gate": "verification/audits/rev1/L03_gate.md",
+            "final": "verification/audits/rev1/L03_final.md"
+          },
+          "summary_en": "Lemma 5.17 verified conditionally on the consumed clause of Lemma 5.16 (L03_L02Consumed); editorial/exposition notes only.",
+          "revision": "1",
+          "date": "2026-10-13 02:38",
+          "baseline_before": "verification/source_baseline_v1"
+        }
+      ],
+      "gaps": [],
+      "upstream_issues": [],
+      "partial": ""
+    },
+    {
+      "id": "T02",
+      "pdf_number": "5.14",
+      "kind": "Theorem",
+      "title": "light tails not geometrically ergodic",
+      "label": "thm:light",
+      "statement_loc": "source/geo_erg_HMC_v3.1.tex:895-909",
+      "proof_loc": "source/geo_erg_HMC_v3.1.tex:911-941",
+      "depends_on": [
+        "L01",
+        "L02",
+        "L03"
+      ],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "CONDITIONAL",
+      "conditions": [
+        "T02_Prop35",
+        "T02_GaussFacts",
+        "T02_Prop35Rand"
+      ],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/T02_gate_r2.md",
+        "final": "verification/audits/T02_final.md",
+        "reconnect": "verification/audits/T02_reconnect_r1.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D03",
+        "D04",
+        "D06",
+        "D07",
+        "D08",
+        "D09",
+        "D10",
+        "D13"
+      ],
+      "updated": "2026-10-13 11:31",
+      "lean_main": "pv_work/T02Closed_r1.lean:18 Paper.T02.main_closed",
+      "summary_en": "Theorem 5.14 verified conditionally on cited Prop 3.5, Gaussian facts and random-L Prop 3.5 (L03 clause discharged).",
+      "upstream_issues": [],
+      "models_used": [
+        "sonnet"
+      ],
+      "history": [
+        {
+          "verdict": "CONDITIONAL",
+          "stage": "FINAL_PASSED",
+          "reason": "",
+          "conditions": [
+            "T02_L02Consumed",
+            "T02_Prop35",
+            "T02_GaussFacts"
+          ],
+          "gaps": null,
+          "issues": [],
+          "upstream_issues": [
+            "B01"
+          ],
+          "debts": [],
+          "unencoded": [],
+          "partial": null,
+          "lean_main": "pv_work/T02.lean:324 Paper.T02.T02_main",
+          "evidence": {
+            "gate": "verification/audits/rev1/T02_gate_r2.md",
+            "final": "verification/audits/rev1/T02_final.md"
+          },
+          "summary_en": "Theorem 5.14 verified conditionally on the L02 consumed clause, Prop 3.5 and Gaussian facts; X1 passage to esssup r=1 is a fair implicit step.",
+          "revision": "1",
+          "date": "2026-10-13 02:38",
+          "baseline_before": "verification/source_baseline_v1"
+        }
+      ],
+      "gaps": [],
+      "partial": ""
+    },
+    {
+      "id": "T01",
+      "pdf_number": "2.2",
+      "kind": "Theorem",
+      "title": "negative results for HMC",
+      "label": "thm:negative",
+      "statement_loc": "source/geo_erg_HMC_v3.1.tex:208-219",
+      "proof_loc": "source/geo_erg_HMC_v3.1.tex:911-941; 1111-1121",
+      "depends_on": [
+        "T02"
+      ],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 2,
+      "reason": "TRANSLATION_BLOCKED",
+      "verdict": "UNFINISHED",
+      "conditions": [
+        "T01_T02Consumed",
+        "T01_Thm518",
+        "T01_Thm518Rand"
+      ],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/T01_gate_r2.md",
+        "final": "verification/audits/T01_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D04",
+        "D09",
+        "D13"
+      ],
+      "updated": "2026-10-13 11:45",
+      "history": [
+        {
+          "verdict": "UNFINISHED",
+          "stage": "GATE_PASSED",
+          "reason": "",
+          "conditions": [],
+          "gaps": null,
+          "issues": [],
+          "upstream_issues": null,
+          "debts": [],
+          "unencoded": [],
+          "partial": null,
+          "lean_main": null,
+          "evidence": {
+            "gate": "verification/audits/revenc1/T01_gate_r2.md"
+          },
+          "summary_en": null,
+          "revision": "enc1",
+          "date": "2026-10-13 01:49"
+        },
+        {
+          "verdict": "CONDITIONAL",
+          "stage": "FINAL_PASSED",
+          "reason": "",
+          "conditions": [
+            "T02_L02Consumed",
+            "T02_Prop35",
+            "T02_GaussFacts",
+            "T01_Thm518"
+          ],
+          "gaps": [],
+          "issues": [],
+          "upstream_issues": [],
+          "debts": [],
+          "unencoded": [],
+          "partial": "",
+          "lean_main": "pv_work/T01.lean:53 Paper.T01.T01_main",
+          "evidence": {
+            "gate": "verification/audits/rev1/T01_gate.md",
+            "final": "verification/audits/rev1/T01_final_r2.md"
+          },
+          "summary_en": "Theorem 2.2 verified conditionally: part (i) via Thm 5.14 (T02) and part (ii) via the cited Thm 5.18 (external input), with X3/X2 exposition gaps noted.",
+          "revision": "1",
+          "date": "2026-10-13 10:49",
+          "note": "the gated statement of L02 changed",
+          "baseline_before": "verification/source_baseline_v2"
+        }
+      ],
+      "gaps": [
+        "T01_main_randL_partI_Gap"
+      ],
+      "upstream_issues": [],
+      "lean_main": "pv_work/T01ModGaps.lean:1 Paper.T01.T01_main_mod_gaps",
+      "partial": "Deterministic-L Theorem 2.2 (T01_main: part (i) via T02 clause, part (ii) via Thm 5.18) and random-L part (ii) verified; random-L part (i) stopped: formalization-side ENCODING_ERROR (A1Law antecedent in Prop35Rand/T02_main_randL not in the source; ruling verification/audits/T01_issue_1.md, positive probe exit 0). Fix needs T02 random-L redraft + re-gate; not paper error.",
+      "summary_en": "Thm 2.2 verified conditionally for deterministic L; random-L part (i) unfinished because of a formalization-side encoding error (not a paper issue).",
+      "models_used": [
+        "sonnet",
+        "opus"
+      ]
+    },
+    {
+      "id": "C01",
+      "pdf_number": "2.3",
+      "kind": "Corollary",
+      "title": "exponential family HMC",
+      "label": "crly:expfam",
+      "statement_loc": "source/geo_erg_HMC_v3.1.tex:229-239",
+      "proof_loc": "source/geo_erg_HMC_v3.1.tex:804-886",
+      "depends_on": [
+        "T01"
+      ],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "CONDITIONAL",
+      "conditions": [
+        "C01_T01Consumed"
+      ],
+      "debts": [],
+      "unencoded": [
+        "part (i) (1<=beta<=2); random-L under A1"
+      ],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/C01_gate.md",
+        "final": "verification/audits/C01_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D04",
+        "D09",
+        "D11",
+        "D12"
+      ],
+      "updated": "2026-10-13 11:43",
+      "partial": "Part (ii) only; part (i) not encoded (outside user scope); random-L under A1 (TEX:834-836) not covered",
+      "lean_main": "pv_work/C01.lean:394 Paper.C01.C01_main",
+      "summary_en": "Cor 2.3(ii) verified conditionally on the Theorem 2.2 clause, deterministic L; earlier B02 gone in revised source.",
+      "gaps": [],
+      "upstream_issues": [],
+      "models_used": [
+        "sonnet"
+      ],
+      "history": [
+        {
+          "verdict": "ISSUE",
+          "stage": "STOPPED",
+          "reason": "ISSUE_RECORDED",
+          "conditions": [
+            "T02_L02Consumed",
+            "T02_Prop35",
+            "T02_GaussFacts",
+            "T01_Thm518"
+          ],
+          "gaps": [
+            "C01_S2_Gap"
+          ],
+          "issues": [
+            "B02"
+          ],
+          "upstream_issues": [],
+          "debts": [],
+          "unencoded": [
+            "part (i) (1 <= beta <= 2: geometric ergodicity; proof at source/geo_erg_HMC_v3.1.tex:806-853): not encoded, outside the scope set by the user"
+          ],
+          "partial": "Part (ii): S1,S3,S4,S5 and the assembly via T01_main verified; only S2 ((18) for 2<beta<log2 6) fails. Part (i) not encoded (outside user scope).",
+          "lean_main": "pv_work/C01ModGaps.lean:1 Paper.C01.C01_main_mod_gaps",
+          "evidence": {
+            "gate": "verification/audits/rev1/C01_gate.md",
+            "final": "verification/audits/rev1/C01_final.md",
+            "issues": [
+              "verification/audits/rev1/C01_issue_1.md"
+            ]
+          },
+          "summary_en": "Cor 2.3(ii): the appeal to Thm 2.2 at TEX:806 fails for 2<beta<log2(6) because (18) is false there (PAPER_ARGUMENT_GAP); conclusion not refuted.",
+          "revision": "1",
+          "date": "2026-10-13 02:38",
+          "baseline_before": "verification/source_baseline_v1"
+        },
+        {
+          "verdict": "UNFINISHED",
+          "stage": "GATE_PASSED",
+          "reason": "",
+          "conditions": [],
+          "gaps": [],
+          "issues": [],
+          "upstream_issues": [],
+          "debts": [],
+          "unencoded": [
+            "part (i) (1 <= beta <= 2: geometric ergodicity; proof at source/geo_erg_HMC_v3.1.tex:806-853): not encoded, outside the scope set by the user"
+          ],
+          "partial": "",
+          "lean_main": "",
+          "evidence": {
+            "gate": "verification/audits/rev1/C01_gate.md"
+          },
+          "summary_en": "",
+          "revision": "1",
+          "date": "2026-10-13 11:26",
+          "note": "the gated statement of T01 changed",
+          "baseline_before": "verification/source_baseline_v2"
+        }
+      ]
+    }
+  ],
+  "external_tools": [
+    {
+      "id": "L02_L01Consumed",
+      "lean": "pv_work/L02Stmt.lean:34",
+      "meaning": "Conclusion of Lemma 5.15 (first step doubles the norm, fixed-delta reading) as consumed by Lemma 5.16.",
+      "provenance": "p",
+      "predecessor": "L01",
+      "source_loc": "source/geo_erg_HMC_v3.1.tex:968-1007 (revision 1: re-locate during re-check)",
+      "consumers": [
+        "L02 (steps S4, S8a, S8b, S10)"
+      ],
+      "mathlib_search": "not applicable (predecessor clause)",
+      "human_check": "L01 is UNCONDITIONAL; discharge by reconnection if L02 is later verified.",
+      "status": "reconnected in verification/audits/L02_reconnect_r1.md (2026-10-13 10:58); no longer a condition"
+    },
+    {
+      "id": "T02_Prop35",
+      "lean": "pv_work/T02Stmt.lean:78",
+      "meaning": "Proposition 3.5: for a Metropolis-Hastings type kernel P, geometric ergodicity fails if esssup r(x)=1 (r = rejection probability), restricted to the encoded HMC special case.",
+      "provenance": "ii",
+      "source_loc": "source/geo_erg_HMC_v3.1.tex:298-303",
+      "consumers": [
+        "T02 (step S8)"
+      ],
+      "mathlib_search": "geometric ergodicity of MH kernels not in mathlib (project instruction INVENTORY.md:28,179)",
+      "human_check": "Check Prop 3.5 (Roberts and Tweedie 1996) applies to the HMC kernel, whose acceptance depends on p_0 unlike eqn:accept; Prop 3.3 irreducibility conditions."
+    },
+    {
+      "id": "T02_GaussFacts",
+      "lean": "pv_work/T02Stmt.lean:88",
+      "meaning": "Gaussian tail fact: P(||p_0||<=||x_0||^delta)->1 as ||x_0||->infinity for p_0~N(0,I), delta>0, and companion Gaussian facts.",
+      "provenance": "v",
+      "source_loc": "source/geo_erg_HMC_v3.1.tex:911-941",
+      "consumers": [
+        "T02 (steps S4, S5, S6)"
+      ],
+      "mathlib_search": "see verification/audits/T02_gate.md and T02_draft_notes.md",
+      "human_check": "Standard Gaussian concentration; check statement in T02Stmt.lean:88."
+    },
+    {
+      "id": "T01_Thm518",
+      "lean": "pv_work/T01Stmt.lean:25",
+      "meaning": "Theorem 5.18: if ||grad U|| < M everywhere then geometric ergodicity of HMC (fixed L, eps) requires finite exponential moment of pi, specialised to the encoded HMC kernel.",
+      "provenance": "ii",
+      "source_loc": "source/geo_erg_HMC_v3.1.tex:1103-1109",
+      "consumers": [
+        "T01 (step S3, clause (ii))",
+        "C01 (via T01)"
+      ],
+      "mathlib_search": "not applicable (out-of-scope numbered result of the paper; its proof uses Prop 3.6, jarner2003necessary)",
+      "human_check": "Compare Thm518 in T01Stmt.lean:25 against TEX:978-984; check the proof (TEX:986-996) and Prop 3.6 (TEX:307-313); note Thm 2.2(ii) says <=M, Thm 5.18 says <M (handled by FAIR_IMPLICIT_STEP S2, M -> M+1); deterministic L only (X2)."
+    },
+    {
+      "id": "L03_L02Consumed",
+      "lean": "pv_work/L03Stmt.lean:39",
+      "meaning": "The conclusion of Lemma 5.16 (L02) as consumed by Lemma 5.17: stepwise tripling bound and the 3^L growth bound (revised source), under (17).",
+      "provenance": "p",
+      "predecessor": "L02",
+      "source_loc": "source/geo_erg_HMC_v3.1.tex:960-966",
+      "consumers": [
+        "L03 (steps S4a, S7, S10, S13)"
+      ],
+      "mathlib_search": "not applicable (predecessor clause)",
+      "human_check": "L02 is UNCONDITIONAL; reconnect via L02 main_closed.",
+      "status": "reconnected in verification/audits/L03_reconnect_r1.md (2026-10-13 11:07); no longer a condition"
+    },
+    {
+      "id": "T02_L03Consumed",
+      "lean": "pv_work/T02Stmt.lean:104",
+      "meaning": "Conclusion of Lemma 5.17 (acceptance rate tends to zero along oscillating (18) states) as consumed by Theorem 5.14.",
+      "provenance": "p",
+      "predecessor": "L03",
+      "source_loc": "source/geo_erg_HMC_v3.1.tex:911-941",
+      "consumers": [
+        "T02 (step S2)"
+      ],
+      "mathlib_search": "not applicable (predecessor clause)",
+      "human_check": "L03 is UNCONDITIONAL after reconnection; reconnect via L03 main_closed.",
+      "status": "reconnected in verification/audits/T02_reconnect_r1.md (2026-10-13 11:31); no longer a condition"
+    },
+    {
+      "id": "T02_Prop35Rand",
+      "lean": "pv_work/T02Stmt.lean:146",
+      "meaning": "Random-L extension of Proposition 3.5 used in the A1 paragraph TEX:934-940: for the HMC kernel with random number of leapfrog steps L, geometric ergodicity fails if the rejection probability has esssup 1.",
+      "provenance": "ii",
+      "source_loc": "source/geo_erg_HMC_v3.1.tex:934-940, Prop 3.5 at 298-303",
+      "consumers": [
+        "T02 (random-L claim T02_main_randL)"
+      ],
+      "mathlib_search": "geometric ergodicity of MH kernels not in mathlib (see T02_Prop35)",
+      "human_check": "Check Prop 3.5 applies to the random-L HMC kernel (acceptance depends on p_0, and L random)."
+    },
+    {
+      "id": "T01_T02Consumed",
+      "lean": "pv_work/T01Stmt.lean:54",
+      "meaning": "Conclusion of Theorem 5.14 (T02, fixed L) as consumed by Theorem 2.2 part (i).",
+      "provenance": "p",
+      "predecessor": "T02",
+      "source_loc": "source/geo_erg_HMC_v3.1.tex:895-941",
+      "consumers": [
+        "T01 (part (i))"
+      ],
+      "mathlib_search": "not applicable (predecessor clause)",
+      "human_check": "Reconnect via T02 once final; T02 depends on its own external inputs."
+    },
+    {
+      "id": "T01Rand_T02Consumed",
+      "lean": "pv_work/T01Stmt.lean:84",
+      "meaning": "Random-L conclusion of Theorem 5.14 (T02_main_randL) as consumed by Theorem 2.2 part (i) for random L.",
+      "provenance": "p",
+      "predecessor": "T02",
+      "source_loc": "source/geo_erg_HMC_v3.1.tex:934-940",
+      "consumers": [
+        "T01 (random-L part (i))"
+      ],
+      "mathlib_search": "not applicable (predecessor clause)",
+      "human_check": "Reconnect via T02 main_randL once final."
+    },
+    {
+      "id": "T01_Thm518Rand",
+      "lean": "pv_work/T01Stmt.lean:69",
+      "meaning": "Random-L version of Theorem 5.18 (TEX:1103-1121 proved only for fixed L), used for the random-L reading of Theorem 2.2(ii).",
+      "provenance": "ii",
+      "source_loc": "source/geo_erg_HMC_v3.1.tex:1103-1121; 209",
+      "consumers": [
+        "T01 (random-L part (ii))"
+      ],
+      "mathlib_search": "not applicable (out-of-scope numbered result)",
+      "human_check": "Source proves Thm 5.18 only for fixed L; random L (X2) is an unproved extension: human check."
+    },
+    {
+      "id": "C01_T01Consumed",
+      "lean": "pv_work/C01Stmt.lean",
+      "meaning": "Conclusion of Theorem 2.2 (parts (i) with revised (18) and (ii)) as consumed by Corollary 2.3(ii).",
+      "provenance": "p",
+      "predecessor": "T01",
+      "source_loc": "source/geo_erg_HMC_v3.1.tex:208-219, 900-903",
+      "consumers": [
+        "C01 (S1c, S6)"
+      ],
+      "mathlib_search": "not applicable (predecessor clause)",
+      "human_check": "T01 is UNFINISHED only for random-L part (i); the deterministic-L theorem T01_main matches this clause (gate probe)."
+    }
+  ],
+  "source_defs": [
+    {
+      "id": "D01",
+      "name": "potential U and target density pi proportional to exp(-U)",
+      "loc": "source/geo_erg_HMC_v3.1.tex:320-320"
+    },
+    {
+      "id": "D02",
+      "name": "Hamiltonian H(x,p)",
+      "loc": "source/geo_erg_HMC_v3.1.tex:321-323",
+      "label": "eqn:hamiltonian"
+    },
+    {
+      "id": "D03",
+      "name": "leapfrog recursion and flow phi_{L eps}",
+      "loc": "source/geo_erg_HMC_v3.1.tex:330-336"
+    },
+    {
+      "id": "D04",
+      "name": "HMC algorithm (single iteration)",
+      "loc": "source/geo_erg_HMC_v3.1.tex:338-352",
+      "label": "alg:hmc"
+    },
+    {
+      "id": "D05",
+      "name": "convention M = I",
+      "loc": "source/geo_erg_HMC_v3.1.tex:354-356"
+    },
+    {
+      "id": "D06",
+      "name": "HMC candidate kernel Q and candidate map g_xi",
+      "loc": "source/geo_erg_HMC_v3.1.tex:171-175",
+      "label": "eqn:hmap"
+    },
+    {
+      "id": "D07",
+      "name": "acceptance probability alpha(x,y)",
+      "loc": "source/geo_erg_HMC_v3.1.tex:163-167",
+      "label": "eqn:accept"
+    },
+    {
+      "id": "D08",
+      "name": "Metropolis-Hastings type kernel and rejection probability r(x)",
+      "loc": "source/geo_erg_HMC_v3.1.tex:274-279",
+      "label": "eqn:mhtype"
+    },
+    {
+      "id": "D09",
+      "name": "geometric ergodicity (total variation bound)",
+      "loc": "source/geo_erg_HMC_v3.1.tex:249-253",
+      "label": "eqn:geoerg"
+    },
+    {
+      "id": "D10",
+      "name": "law of the number of leapfrog steps and integration time T = L eps",
+      "loc": "source/geo_erg_HMC_v3.1.tex:192-192"
+    },
+    {
+      "id": "D11",
+      "name": "exponential family class E(beta,alpha)",
+      "loc": "source/geo_erg_HMC_v3.1.tex:223-227"
+    },
+    {
+      "id": "D12",
+      "name": "Assumption A1",
+      "loc": "source/geo_erg_HMC_v3.1.tex:393-393",
+      "label": "ass:A1"
+    },
+    {
+      "id": "D13",
+      "name": "notation: state space R^d, Euclidean norm, Gaussian measure, total variation",
+      "loc": "source/geo_erg_HMC_v3.1.tex:192-194"
+    }
+  ],
+  "_example_defs": {
+    "id": "DEFS",
+    "file": "pv_work/Defs.lean",
+    "gate": "verification/audits/DEFS_gate.md",
+    "built": true,
+    "_note": "use {\"id\": \"NONE\"} when the paper needs no shared definitions"
+  },
+  "_example_result": {
+    "id": "L01",
+    "pdf_number": "A.1",
+    "kind": "Lemma",
+    "title": "near-identity diffeomorphism",
+    "label": "lem:diffeo",
+    "statement_loc": "source/app.tex:7-9",
+    "proof_loc": "source/app.tex:10-16",
+    "depends_on": [],
+    "stage": "INVENTORIED",
+    "statement_fixed": false,
+    "round": 1,
+    "reason": "",
+    "verdict": "UNFINISHED",
+    "conditions": [],
+    "gaps": [],
+    "debts": [],
+    "unencoded": [],
+    "issues": [],
+    "upstream_issues": [],
+    "partial": "",
+    "lean_main": "pv_work/L01.lean:120 Paper.L01.main",
+    "evidence": {
+      "gate": "verification/audits/L01_gate.md",
+      "final": "verification/audits/L01_final.md",
+      "issues": [],
+      "reconnect": ""
+    },
+    "summary_en": "",
+    "updated": "YYYY-MM-DD HH:MM",
+    "uses_defs": [
+      "D01"
+    ]
+  },
+  "_example_tool": {
+    "id": "L02_L01Consumed",
+    "lean": "pv_work/L02Stmt.lean:12",
+    "meaning": "one-sentence statement read from the Lean definition",
+    "provenance": "i | ii | iii | iv | v | p (predecessor clause <ID>_<PredID>Consumed; set 'predecessor'). Gap hypotheses are NOT registered here (use the result's 'gaps')",
+    "predecessor": "L01",
+    "source_loc": "source/app.tex:171",
+    "consumers": [
+      "L09 (step S3)"
+    ],
+    "mathlib_search": "#check ... / searched names ...",
+    "human_check": "what exactly to check"
+  },
+  "_example_source_def": {
+    "id": "D01",
+    "name": "weighted negative Sobolev norm",
+    "loc": "source/sec_setting.tex:12-16",
+    "label": "def:hminus",
+    "_note": "one entry per defined object, with its own exact lines (v1.3.1)"
+  }
+}

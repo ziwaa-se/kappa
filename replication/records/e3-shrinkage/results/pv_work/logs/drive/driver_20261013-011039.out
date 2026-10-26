@@ -1,0 +1,25 @@
+[01:10] session 7 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $3.54, turns 8, completed
+  NOTE: Claude Code reports this folder as not trusted. The driver passes the permission file with --settings;
+        if kit commands are refused, open the folder once in Claude Code interactively and accept the trust dialog.
+  permission denials in session 7: 2 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_7.json)
+[01:20] session 8 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $1.25, turns 8, completed
+  permission denials in session 8: 2 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_8.json)
+Nothing left to start: every result has a verdict or a recorded reason.
+archived the previous report to verification/report_archive/20261013-012513/
+[01:25] session 9 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $2.26, turns 75, completed
+  permission denials in session 9: 8 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_9.json)
+## Verification progress — The oracle risk of linear shrinkage (2026-10-13 01:32)
+
+**4 numbered results: 4 verified (unconditional) · 0 verified (conditional) · 0 issue recorded · 0 unfinished.**
+
+| No. | ID | Result | Verdict | Stage | Conditions / issues / where stopped |
+|---|---|---|---|---|---|
+| 2.1 | L01 | Lemma completing the square | Verified (unconditional) | FINAL_PASSED | (before revision 2: Verified (unconditional)) Lemma 2.1 (completing the square) verified unconditionally; revised proof correct. |
+| 2.2 | L02 | Lemma oracle risk below min | Verified (unconditional) | FINAL_PASSED | (before revision 2: Issue recorded) Lemma 2.2 (rho <= min) verified unconditionally; revised proof is correct (fair implicit use of theta^2>0). |
+| 2.3 | T01 | Theorem oracle factor is optimal | Verified (unconditional) | FINAL_PASSED | (before revision 2: Verified (conditional)) Theorem 2.3 verified unconditionally using the now-verified Lemmas 2.1 and 2.2. |
+| 2.4 | C01 | Corollary oracle beats one half | Verified (unconditional) | FINAL_PASSED | (before revision 2: Verified (unconditional)) Corollary 2.4 verified unconditionally using Lemmas 2.1 and 2.2 directly; editorial slip at main.tex:80 (R(c*)=rho credited to Lemma 2.2, follows from Lemma 2.1). |
+
+DRIVER STOPPED: done_report — the report is in verification/report/ (AUTHOR_REPORT.md, EXTERNAL_TOOLS_WORKSHEET.md, FILES_TO_CHECK.md)

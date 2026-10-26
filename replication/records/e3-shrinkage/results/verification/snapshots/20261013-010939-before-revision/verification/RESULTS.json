@@ -1,0 +1,288 @@
+{
+  "_comment": "Machine-readable state (kit v1.3.1; optional fields models_used, tier, session_budget_usd, uses_defs, recheck, history may appear). pv-architect fills 'results' at /pv-setup; the coordinator keeps it current. The _example_* entries show every field and are ignored by the scripts. Field meanings: verification/rules/PIPELINE.md (stage/reason table, naming) and VERDICTS.md. Check with: python3 scripts/pv_status.py validate",
+  "paper": {
+    "title": "The oracle risk of linear shrinkage",
+    "main_tex": "source/main.tex",
+    "pdf": "source/main.pdf",
+    "numbering_basis": "source/main.aux \\newlabel entries (priority 1): def:risk=1.1, lem:square=2.1, lem:min=2.2, thm:oracle=2.3, cor:half=2.4"
+  },
+  "lean": {
+    "toolchain": "leanprover/lean4:v4.19.0",
+    "mathlib_rev": "c44e0c8ee63ca166450922a373c7409c5d26b00b",
+    "packages": "linked -> ~/Downloads/kit-example-runs/lean-env/.lake/packages; mathlib modules compiled: 6305 of 6305",
+    "pvtools_sha256": "445fe54fd278873b57a4b2e1af82a7e7d49447d8bb4fa5c13b23cbece65197ad"
+  },
+  "run_scope": [
+    "C01"
+  ],
+  "defs": [
+    {
+      "id": "DEFS",
+      "file": "pv_work/Defs.lean",
+      "gate": "verification/audits/DEFS_gate.md",
+      "built": true
+    }
+  ],
+  "results": [
+    {
+      "id": "L01",
+      "pdf_number": "2.1",
+      "kind": "Lemma",
+      "title": "completing the square",
+      "label": "lem:square",
+      "statement_loc": "source/main.tex:38-40",
+      "proof_loc": "source/main.tex:42-46",
+      "depends_on": [],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "UNCONDITIONAL",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/L01_gate.md",
+        "final": "verification/audits/L01_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D02",
+        "D03",
+        "D04"
+      ],
+      "updated": "2026-10-12 22:09",
+      "lean_main": "pv_work/L01.lean:35 Paper.L01.L01",
+      "summary_en": "Completing-the-square identity verified unconditionally; only the printed standing assumption is used.",
+      "models_used": [
+        "sonnet",
+        "opus"
+      ]
+    },
+    {
+      "id": "L02",
+      "pdf_number": "2.2",
+      "kind": "Lemma",
+      "title": "oracle risk below min",
+      "label": "lem:min",
+      "statement_loc": "source/main.tex:48-50",
+      "proof_loc": "source/main.tex:52-56",
+      "depends_on": [],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B1"
+      ],
+      "evidence": {
+        "gate": "verification/audits/L02_gate.md",
+        "final": "verification/audits/L02_final.md",
+        "issues": [
+          "verification/audits/L02_issue_1.md"
+        ]
+      },
+      "uses_defs": [
+        "D03",
+        "D04"
+      ],
+      "updated": "2026-10-12 22:14",
+      "partial": "S1 and S4 verified; S2 (harmonic mean claim) and S3 (rho <= 1/2 min) are false as printed and kept as gaps; the lemma conclusion rho <= min is true.",
+      "lean_main": "pv_work/L02ModGaps.lean:1 Paper.L02.L02_mod_gaps",
+      "summary_en": "Proof step at main.tex:54-55 is false as printed (conclusion true).",
+      "gaps": [
+        "L02_S2_Gap",
+        "L02_S3_Gap"
+      ],
+      "models_used": [
+        "sonnet",
+        "opus"
+      ]
+    },
+    {
+      "id": "T01",
+      "pdf_number": "2.3",
+      "kind": "Theorem",
+      "title": "oracle factor is optimal",
+      "label": "thm:oracle",
+      "statement_loc": "source/main.tex:58-61",
+      "proof_loc": "source/main.tex:63-67",
+      "depends_on": [
+        "L01",
+        "L02"
+      ],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "CONDITIONAL",
+      "conditions": [
+        "T01_L02Consumed"
+      ],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/T01_gate.md",
+        "final": "verification/audits/T01_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D02",
+        "D03",
+        "D04"
+      ],
+      "updated": "2026-10-12 22:19",
+      "lean_main": "pv_work/T01.lean:48 Paper.T01.T01",
+      "summary_en": "Theorem verified conditional on Lemma 2.2's conclusion (T01_L02Consumed); L02's printed proof has an error (B1) but its conclusion is true.",
+      "models_used": [
+        "sonnet",
+        "opus"
+      ]
+    },
+    {
+      "id": "C01",
+      "pdf_number": "2.4",
+      "kind": "Corollary",
+      "title": "oracle beats one half",
+      "label": "cor:half",
+      "statement_loc": "source/main.tex:69-71",
+      "proof_loc": "source/main.tex:73-76",
+      "depends_on": [
+        "L01",
+        "L02"
+      ],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "UNCONDITIONAL",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/C01_gate.md",
+        "final": "verification/audits/C01_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D02",
+        "D03",
+        "D04"
+      ],
+      "updated": "2026-10-12 22:45",
+      "lean_main": "pv_work/C01.lean:39 Paper.C01.C01",
+      "summary_en": "Corollary verified unconditionally from Lemma 2.1 alone; the remark at main.tex:75-76 (uses Lemma 2.2, which has issue B1) is not needed for the statement; main.tex:75 credits R(c*)=rho to Lemma 2.2 though it follows from Lemma 2.1 (editorial).",
+      "models_used": [
+        "sonnet"
+      ]
+    }
+  ],
+  "external_tools": [
+    {
+      "id": "T01_L02Consumed",
+      "lean": "pv_work/T01Stmt.lean",
+      "meaning": "Lemma 2.2 conclusion: for all theta sigma with Setting, rho <= min{theta^2, sigma^2}",
+      "provenance": "p",
+      "predecessor": "L02",
+      "source_loc": "source/main.tex:48-50",
+      "consumers": [
+        "T01 (step S5, clause le_min)"
+      ],
+      "mathlib_search": "not applicable: predecessor clause",
+      "human_check": "L02 conclusion is true (Lean-proved independently in gate probe), but its printed proof is wrong (B1); check the corrected proof or accept the statement"
+    }
+  ],
+  "source_defs": [
+    {
+      "id": "D01",
+      "name": "risk R(c)",
+      "loc": "source/main.tex:28-29",
+      "label": "def:risk"
+    },
+    {
+      "id": "D02",
+      "name": "oracle factor c*",
+      "loc": "source/main.tex:30-31",
+      "label": "def:risk"
+    },
+    {
+      "id": "D03",
+      "name": "oracle risk rho",
+      "loc": "source/main.tex:32-33",
+      "label": "def:risk"
+    },
+    {
+      "id": "D04",
+      "name": "standing assumption theta != 0, sigma > 0",
+      "loc": "source/main.tex:25-25"
+    }
+  ],
+  "_example_defs": {
+    "id": "DEFS",
+    "file": "pv_work/Defs.lean",
+    "gate": "verification/audits/DEFS_gate.md",
+    "built": true,
+    "_note": "use {\"id\": \"NONE\"} when the paper needs no shared definitions"
+  },
+  "_example_result": {
+    "id": "L01",
+    "pdf_number": "A.1",
+    "kind": "Lemma",
+    "title": "near-identity diffeomorphism",
+    "label": "lem:diffeo",
+    "statement_loc": "source/app.tex:7-9",
+    "proof_loc": "source/app.tex:10-16",
+    "depends_on": [],
+    "stage": "INVENTORIED",
+    "statement_fixed": false,
+    "round": 1,
+    "reason": "",
+    "verdict": "UNFINISHED",
+    "conditions": [],
+    "gaps": [],
+    "debts": [],
+    "unencoded": [],
+    "issues": [],
+    "upstream_issues": [],
+    "partial": "",
+    "lean_main": "pv_work/L01.lean:120 Paper.L01.main",
+    "evidence": {
+      "gate": "verification/audits/L01_gate.md",
+      "final": "verification/audits/L01_final.md",
+      "issues": [],
+      "reconnect": ""
+    },
+    "summary_en": "",
+    "updated": "YYYY-MM-DD HH:MM",
+    "uses_defs": [
+      "D01"
+    ]
+  },
+  "_example_tool": {
+    "id": "L02_L01Consumed",
+    "lean": "pv_work/L02Stmt.lean:12",
+    "meaning": "one-sentence statement read from the Lean definition",
+    "provenance": "i | ii | iii | iv | v | p (predecessor clause <ID>_<PredID>Consumed; set 'predecessor'). Gap hypotheses are NOT registered here (use the result's 'gaps')",
+    "predecessor": "L01",
+    "source_loc": "source/app.tex:171",
+    "consumers": [
+      "L09 (step S3)"
+    ],
+    "mathlib_search": "#check … / searched names …",
+    "human_check": "what exactly to check"
+  },
+  "_example_source_def": {
+    "id": "D01",
+    "name": "weighted negative Sobolev norm",
+    "loc": "source/sec_setting.tex:12-16",
+    "label": "def:hminus",
+    "_note": "one entry per defined object, with its own exact lines (v1.3.1)"
+  }
+}

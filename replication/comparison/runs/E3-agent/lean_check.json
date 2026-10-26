@@ -1,0 +1,36 @@
+[
+ {
+  "file": "lean/Check.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "pos_sum": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lem_square": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lem_min": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "thm_oracle": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "cor_half": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ }
+]

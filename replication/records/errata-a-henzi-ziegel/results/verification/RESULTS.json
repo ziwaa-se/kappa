@@ -1,0 +1,567 @@
+{
+  "_comment": "Machine-readable state (kit v1.3.1; optional fields models_used, tier, session_budget_usd, uses_defs, recheck, history may appear). pv-architect fills 'results' at /pv-setup; the coordinator keeps it current. The _example_* entries show every field and are ignored by the scripts. Field meanings: verification/rules/PIPELINE.md (stage/reason table, naming) and VERDICTS.md. Check with: python3 scripts/pv_status.py validate",
+  "paper": {
+    "title": "Valid sequential inference on probability forecast performance",
+    "main_tex": "source/VSIFP_02.tex",
+    "pdf": "source/VSIFP_02.pdf",
+    "numbering_basis": "PDF headings checked visually (pp. 5-8); counters (shared theorem/proposition counter per section); no .aux"
+  },
+  "lean": {
+    "toolchain": "leanprover/lean4:v4.19.0",
+    "mathlib_rev": "c44e0c8ee63ca166450922a373c7409c5d26b00b",
+    "packages": "linked; mathlib modules compiled: 6305 of 6305",
+    "pvtools_sha256": "445fe54fd278873b57a4b2e1af82a7e7d49447d8bb4fa5c13b23cbece65197ad"
+  },
+  "run_scope": [
+    "T01",
+    "T03",
+    "T02",
+    "P04",
+    "P05"
+  ],
+  "defs": [
+    {
+      "id": "Defs",
+      "file": "pv_work/Defs.lean",
+      "gate": "verification/audits/DEFS_gate_r2.md",
+      "built": true
+    }
+  ],
+  "results": [
+    {
+      "id": "T01",
+      "pdf_number": "3.1",
+      "kind": "Theorem",
+      "title": "characterization of e-values for H_S",
+      "label": "thm:uniqueness",
+      "statement_loc": "source/VSIFP_02.tex:143-148",
+      "proof_loc": "source/VSIFP_02.tex:399-416",
+      "depends_on": [],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B1"
+      ],
+      "evidence": {
+        "gate": "verification/audits/T01_gate.md",
+        "final": "verification/audits/T01_final.md",
+        "issues": [
+          "verification/audits/T01_issue_1.md"
+        ]
+      },
+      "uses_defs": [
+        "D01",
+        "D03",
+        "D05",
+        "D11",
+        "D13",
+        "D14",
+        "D22"
+      ],
+      "updated": "2026-10-13 01:06",
+      "lean_main": "pv_work/T01ModGaps.lean:308 Paper.T01.T01_mod_gaps",
+      "summary_en": "Theorem 3.1 holds; proof step E(0) in (0,1) at l.419 (and mirror at l.423) is false at lambda=1 (minor argument gap).",
+      "gaps": [
+        "T01_S8_Gap",
+        "T01_S10_Gap"
+      ],
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "T02",
+      "pdf_number": "3.2",
+      "kind": "Theorem",
+      "title": "GROW e-value for score dominance",
+      "label": "thm:grow",
+      "statement_loc": "source/VSIFP_02.tex:152-167",
+      "proof_loc": "source/VSIFP_02.tex:418-440",
+      "depends_on": [
+        "T01"
+      ],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B2"
+      ],
+      "evidence": {
+        "gate": "verification/audits/T02_gate.md",
+        "final": "verification/audits/T02_final.md",
+        "issues": [
+          "verification/audits/T02_issue_1.md"
+        ]
+      },
+      "uses_defs": [
+        "D01",
+        "D03",
+        "D05",
+        "D11",
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D22"
+      ],
+      "updated": "2026-10-13 01:12",
+      "partial": "prover session 1 done; pv_work/T02ModGaps.lean built (gaps S3a,S3b,S8,S11,S15); issue ruling T02_issue_1 pending review; final audit pending",
+      "lean_main": "pv_work/T02ModGaps.lean:385 Paper.T02.T02_mod_gaps",
+      "summary_en": "Theorem 3.2 holds; l.435 (and mirror l.462) claim fails at pi1=1 / pi1=0 (argument gap); S14 and other steps proved.",
+      "gaps": [
+        "T02_S3a_Gap",
+        "T02_S3b_Gap",
+        "T02_S8_Gap",
+        "T02_S11_Gap",
+        "T02_S15_Gap"
+      ],
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "T03",
+      "pdf_number": "3.3",
+      "kind": "Theorem",
+      "title": "GROW e-value for all scores",
+      "label": "thm:allscores",
+      "statement_loc": "source/VSIFP_02.tex:185-193",
+      "proof_loc": "source/VSIFP_02.tex:442-444",
+      "depends_on": [],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "CONDITIONAL",
+      "conditions": [
+        "X03"
+      ],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/T03_gate.md",
+        "final": "verification/audits/T03_final.md"
+      },
+      "uses_defs": [
+        "D04",
+        "D05",
+        "D12",
+        "D13",
+        "D15",
+        "D18"
+      ],
+      "updated": "2026-10-12 22:23",
+      "lean_main": "pv_work/T03.lean:145 Paper.T03.T03_main",
+      "summary_en": "GROW e-value for H against pi1 equals the likelihood ratio, given the cited Gruenwald et al. Theorem 1 (X03); S1-S4 direct computation proved.",
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "P04",
+      "pdf_number": "3.4",
+      "kind": "Proposition",
+      "title": "sequential e-values for lag h",
+      "label": "prop:combination",
+      "statement_loc": "source/VSIFP_02.tex:216-221",
+      "proof_loc": "source/VSIFP_02.tex:446-469",
+      "depends_on": [
+        "T01"
+      ],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "CONDITIONAL",
+      "conditions": [
+        "P04_T01Consumed",
+        "P04_MixingOfStrict"
+      ],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/P04_gate_r2.md",
+        "final": "verification/audits/P04_final.md"
+      },
+      "uses_defs": [
+        "D01",
+        "D02",
+        "D06",
+        "D08",
+        "D10",
+        "D13",
+        "D14",
+        "D19"
+      ],
+      "updated": "2026-10-13 10:55",
+      "partial": "",
+      "lean_main": "pv_work/P04.lean:912 Paper.P04.P04_main",
+      "summary_en": "Proposition 3.4 (sequential e-values for lag h, h=1 and h>1) proved in Lean; depends on the T01 e-value clause (T01 has issue B1) and the strict-consistency mixing fact.",
+      "models_used": [
+        "sonnet"
+      ],
+      "history": [
+        {
+          "verdict": "CONDITIONAL",
+          "stage": "FINAL_PASSED",
+          "reason": "",
+          "conditions": [
+            "P04_T01Consumed",
+            "P04_MixingOfStrict"
+          ],
+          "gaps": null,
+          "issues": [],
+          "upstream_issues": null,
+          "debts": [],
+          "unencoded": [],
+          "partial": "e-value clause covers Q with integrable score differences (TFA-1); S7 proved with corrected conditioning indices F_{k+hs} (l.470 editorial slip, FAIR_IMPLICIT_STEP)",
+          "lean_main": "pv_work/P04.lean:556 Paper.P04.P04_main",
+          "evidence": {
+            "gate": "verification/audits/rev1/P04_gate_r2.md",
+            "final": "verification/audits/rev1/P04_final.md",
+            "issues": [
+              "verification/audits/rev1/P04_issue_1.md"
+            ]
+          },
+          "summary_en": "Proposition 3.4 verified along the h=1 route, conditional on the T01 clause and the l.106 mixture representation; l.470 index shift is an editorial slip.",
+          "revision": "1",
+          "date": "2026-10-13 02:12",
+          "baseline_before": "verification/source_baseline_v1"
+        }
+      ],
+      "gaps": [],
+      "upstream_issues": [
+        "B1"
+      ]
+    },
+    {
+      "id": "P05",
+      "pdf_number": "3.5",
+      "kind": "Proposition",
+      "title": "validity under optional stopping",
+      "label": "prop:stopping",
+      "statement_loc": "source/VSIFP_02.tex:229-234",
+      "proof_loc": "source/VSIFP_02.tex:446-469",
+      "depends_on": [
+        "P04"
+      ],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "CONDITIONAL",
+      "conditions": [
+        "P04_T01Consumed",
+        "P04_MixingOfStrict"
+      ],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/P05_gate_r2.md",
+        "final": "verification/audits/P05_final_r2.md",
+        "reconnect": "verification/audits/P05_reconnect_r1.md"
+      },
+      "uses_defs": [
+        "D06",
+        "D08",
+        "D10",
+        "D14",
+        "D19"
+      ],
+      "updated": "2026-10-13 11:21",
+      "partial": "",
+      "lean_main": "pv_work/P05Closed_r1.lean:32 Paper.P05.main_closed",
+      "summary_en": "Proposition 3.5 (stopped value bound for stopping times, revised statement E(e_{tau+h-1}) <= 1): h=1 case proved along l.227 and l.200-214 (with l.400) as a fair implicit step, parameter-free; h>1 reconnected to P04 (P05Closed_r1). Conditional on P04_T01Consumed and P04_MixingOfStrict (h>1 branch).",
+      "gaps": [],
+      "upstream_issues": [
+        "B1"
+      ],
+      "models_used": [
+        "sonnet",
+        "opus"
+      ],
+      "history": [
+        {
+          "verdict": "ISSUE",
+          "stage": "STOPPED",
+          "reason": "ISSUE_RECORDED",
+          "conditions": [
+            "P05_P04Consumed"
+          ],
+          "gaps": [
+            "P05_Sbridge_Gap"
+          ],
+          "issues": [
+            "B3"
+          ],
+          "upstream_issues": [
+            "B1"
+          ],
+          "debts": [],
+          "unencoded": [],
+          "partial": "S0, Sapp, Snn, S1-S4 proved; stopped step Sbridge (E(e_t|F_t)<=1, l.474/476) is false in general",
+          "lean_main": "pv_work/P05ModGaps.lean:135 Paper.P05.P05_main_mod_gaps",
+          "evidence": {
+            "gate": "verification/audits/rev1/P05_gate_r2.md",
+            "final": "verification/audits/rev1/P05_final.md",
+            "issues": [
+              "verification/audits/rev1/P05_issue_1.md"
+            ]
+          },
+          "summary_en": "Proposition 3.5: proof step E(e_t|F_t)<=1 (l.474/476) is unjustified and the printed conclusion fails for h>=2 (Lean counterexample, E e_tau = 5/4); h=1 believed true, unchecked.",
+          "revision": "1",
+          "date": "2026-10-13 02:12",
+          "baseline_before": "verification/source_baseline_v1"
+        }
+      ]
+    }
+  ],
+  "external_tools": [
+    {
+      "id": "X03",
+      "lean": "pv_work/T03Stmt.lean:42",
+      "meaning": "Gruenwald et al. 2019 Thm 1 specialised to a Bernoulli point null boundary: the GROW e-value against a pi1 is the likelihood ratio, unique a.s.",
+      "provenance": "i",
+      "source_loc": "source/VSIFP_02.tex:183,443",
+      "consumers": [
+        "T03 (step S5)"
+      ],
+      "mathlib_search": "not a mathlib notion (GROW / reverse information projection); no #check evidence needed beyond absence of any such interface; auditor probe shows non-vacuity",
+      "human_check": "Confirm Thm 1 of Gruenwald, de Heide, Koolen 2019 covers both identifying the GROW e-value as the likelihood ratio and its a.s. uniqueness, in the encoded form"
+    },
+    {
+      "id": "P04_T01Consumed",
+      "lean": "pv_work/P04Stmt.lean:78",
+      "meaning": "T01 e-value clause: for p≠q, lambda in (0,1], E_{p,q;lambda} is an e-value (nonnegative, conditional expectation <=1) under every pi in H_S, for S with mixture representation",
+      "provenance": "p",
+      "predecessor": "T01",
+      "source_loc": "source/VSIFP_02.tex:199-214 (h=1 case, Theorem 3.1)",
+      "consumers": [
+        "P04 (S1, pointwise bound, S5-S8, main)"
+      ],
+      "mathlib_search": "not a mathlib notion; predecessor clause. Gate probe pv_work/probes/gate/P04/gate_P04_t01link.lean derives it from Paper.T01.T01_S2",
+      "human_check": "T01 is ISSUE (l.419 edge case, lambda=1); confirm Theorem 3.1 e-value part is accepted as stated"
+    },
+    {
+      "id": "P04_MixingOfStrict",
+      "lean": "pv_work/P04Stmt.lean:90",
+      "meaning": "l.106: a strictly consistent score S has a mixture representation over elementary scores with nu giving positive mass to (min(p,q),max(p,q)) (Gneiting-Raftery Thm 2.3 regularity)",
+      "provenance": "ii",
+      "source_loc": "source/VSIFP_02.tex:103 (used silently at l.199-214)",
+      "consumers": [
+        "P04 (S1, pointwise bound, S5-S8, main)"
+      ],
+      "mathlib_search": "not a mathlib notion (Choquet-type representation of consistent scores); no #check hit expected",
+      "human_check": "Check regularity conditions of Gneiting & Raftery 2007 Thm 2.3 and the l.106 sentence on strict consistency and positive mass of nu"
+    },
+    {
+      "id": "P05_P04Consumed",
+      "lean": "pv_work/P05Stmt.lean:43",
+      "meaning": "P04 proof clause l.452 (P04_S10 with c:=1, h>1): the shifted sums/products M^[k] are supermartingales so that optional stopping gives E_Q(e_{tau+h-1}) <= 1 for Q in H_S; takes nu and MixtureRep",
+      "provenance": "p",
+      "predecessor": "P04",
+      "source_loc": "source/VSIFP_02.tex:446-469 (l.452)",
+      "consumers": [
+        "P05 (S7, S8, main)"
+      ],
+      "mathlib_search": "not a mathlib notion; predecessor clause",
+      "human_check": "P04 is CONDITIONAL (P04_T01Consumed, P04_MixingOfStrict); this clause carries those conditions after reconnection",
+      "status": "reconnected in verification/audits/P05_reconnect_r1.md (2026-10-13 11:15); no longer a condition"
+    }
+  ],
+  "source_defs": [
+    {
+      "id": "D01",
+      "name": "scoring function and consistency",
+      "loc": "source/VSIFP_02.tex:69-73",
+      "label": "eq:scoring"
+    },
+    {
+      "id": "D02",
+      "name": "strict consistency",
+      "loc": "source/VSIFP_02.tex:73-73"
+    },
+    {
+      "id": "D03",
+      "name": "mixture representation and mixing measure nu",
+      "loc": "source/VSIFP_02.tex:90-94",
+      "label": "eq:mixture"
+    },
+    {
+      "id": "D04",
+      "name": "elementary score S_theta",
+      "loc": "source/VSIFP_02.tex:95-102",
+      "label": "eq:elementary"
+    },
+    {
+      "id": "D05",
+      "name": "expectation notation E_Q, E_pi",
+      "loc": "source/VSIFP_02.tex:88-88"
+    },
+    {
+      "id": "D06",
+      "name": "sequential setting (filtration, adapted data, lag h)",
+      "loc": "source/VSIFP_02.tex:108-108"
+    },
+    {
+      "id": "D07",
+      "name": "conditional forecast dominance",
+      "loc": "source/VSIFP_02.tex:110-110"
+    },
+    {
+      "id": "D08",
+      "name": "hypothesis H_{S;c}",
+      "loc": "source/VSIFP_02.tex:113-115",
+      "label": "eq:h0s"
+    },
+    {
+      "id": "D09",
+      "name": "hypothesis H_c",
+      "loc": "source/VSIFP_02.tex:116-118",
+      "label": "eq:h0"
+    },
+    {
+      "id": "D10",
+      "name": "condition sequence c_t",
+      "loc": "source/VSIFP_02.tex:119-119"
+    },
+    {
+      "id": "D11",
+      "name": "one-period hypothesis H_S",
+      "loc": "source/VSIFP_02.tex:132-132"
+    },
+    {
+      "id": "D12",
+      "name": "one-period hypothesis H",
+      "loc": "source/VSIFP_02.tex:133-133"
+    },
+    {
+      "id": "D13",
+      "name": "e-value with null hypothesis and alternative",
+      "loc": "source/VSIFP_02.tex:141-141"
+    },
+    {
+      "id": "D14",
+      "name": "e-value E_{p,q;lambda}",
+      "loc": "source/VSIFP_02.tex:145-147",
+      "label": "eq:representation"
+    },
+    {
+      "id": "D15",
+      "name": "GROW e-value",
+      "loc": "source/VSIFP_02.tex:150-150"
+    },
+    {
+      "id": "D16",
+      "name": "kappa_nu",
+      "loc": "source/VSIFP_02.tex:135-138"
+    },
+    {
+      "id": "D17",
+      "name": "GROW e-value E^{pi_1}_{p,q}",
+      "loc": "source/VSIFP_02.tex:161-166"
+    },
+    {
+      "id": "D18",
+      "name": "likelihood-ratio e-value E^{pi_1*}_{p,q}",
+      "loc": "source/VSIFP_02.tex:188-192"
+    },
+    {
+      "id": "D19",
+      "name": "index sets I_k and sequential e-value e_T",
+      "loc": "source/VSIFP_02.tex:217-219"
+    },
+    {
+      "id": "D20",
+      "name": "stopping time tau_alpha",
+      "loc": "source/VSIFP_02.tex:239-241",
+      "label": "eq:taualpha"
+    },
+    {
+      "id": "D21",
+      "name": "stopping time tau_{alpha,h}",
+      "loc": "source/VSIFP_02.tex:243-245"
+    },
+    {
+      "id": "D22",
+      "name": "score difference d_{p,q} and f(pi) (proof-local)",
+      "loc": "source/VSIFP_02.tex:400-403",
+      "label": "eq:expscore"
+    }
+  ],
+  "_example_defs": {
+    "id": "DEFS",
+    "file": "pv_work/Defs.lean",
+    "gate": "verification/audits/DEFS_gate.md",
+    "built": true,
+    "_note": "use {\"id\": \"NONE\"} when the paper needs no shared definitions"
+  },
+  "_example_result": {
+    "id": "L01",
+    "pdf_number": "A.1",
+    "kind": "Lemma",
+    "title": "near-identity diffeomorphism",
+    "label": "lem:diffeo",
+    "statement_loc": "source/app.tex:7-9",
+    "proof_loc": "source/app.tex:10-16",
+    "depends_on": [],
+    "stage": "INVENTORIED",
+    "statement_fixed": false,
+    "round": 1,
+    "reason": "",
+    "verdict": "UNFINISHED",
+    "conditions": [],
+    "gaps": [],
+    "debts": [],
+    "unencoded": [],
+    "issues": [],
+    "upstream_issues": [],
+    "partial": "",
+    "lean_main": "pv_work/L01.lean:120 Paper.L01.main",
+    "evidence": {
+      "gate": "verification/audits/L01_gate.md",
+      "final": "verification/audits/L01_final.md",
+      "issues": [],
+      "reconnect": ""
+    },
+    "summary_en": "",
+    "updated": "YYYY-MM-DD HH:MM",
+    "uses_defs": [
+      "D01"
+    ]
+  },
+  "_example_tool": {
+    "id": "L02_L01Consumed",
+    "lean": "pv_work/L02Stmt.lean:12",
+    "meaning": "one-sentence statement read from the Lean definition",
+    "provenance": "i | ii | iii | iv | v | p (predecessor clause <ID>_<PredID>Consumed; set 'predecessor'). Gap hypotheses are NOT registered here (use the result's 'gaps')",
+    "predecessor": "L01",
+    "source_loc": "source/app.tex:171",
+    "consumers": [
+      "L09 (step S3)"
+    ],
+    "mathlib_search": "#check … / searched names …",
+    "human_check": "what exactly to check"
+  },
+  "_example_source_def": {
+    "id": "D01",
+    "name": "weighted negative Sobolev norm",
+    "loc": "source/sec_setting.tex:12-16",
+    "label": "def:hminus",
+    "_note": "one entry per defined object, with its own exact lines (v1.3.1)"
+  }
+}

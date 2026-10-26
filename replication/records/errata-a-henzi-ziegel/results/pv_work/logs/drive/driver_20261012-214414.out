@@ -1,0 +1,27 @@
+[21:44] session 1 (sonnet, cap $30): 
+You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful cho...
+  -> cost $0.71, turns 25, completed
+  NOTE: Claude Code reports this folder as not trusted. The driver passes the permission file with --settings;
+        if kit commands are refused, open the folder once in Claude Code interactively and accept the trust dialog.
+  permission denials in session 1: 3 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_1.json)
+[21:47] session 2 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $14.58, turns 1, ERROR api_error
+  permission denials in session 2: 5 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_2.json)
+[22:51] usage limit reached (session 2, resets 2026-10-13 01:00 (America/Indianapolis)); sleeping 7987s, then continuing (wait 1 of at most 20)
+[01:04] continuing after the usage-limit wait
+WARN T02: UNFINISHED after work started; record 'reason' and 'partial'
+ERROR T01: ISSUE needs evidence.issues with a paper-side 'ISSUE VERDICT:' and a matching _audit.md ending 'COUNTEREXAMPLE VALID' or 'REVIEW: CONFIRMED'
+INVALID (1 errors)
+## Verification progress — Valid sequential inference on probability forecast performance (2026-10-13 01:04)
+
+**5 numbered results: 0 verified (unconditional) · 1 verified (conditional) · 1 issue recorded · 3 unfinished.**
+
+| No. | ID | Result | Verdict | Stage | Conditions / issues / where stopped |
+|---|---|---|---|---|---|
+| 3.1 | T01 | Theorem characterization of e-values for H_S | Issue recorded | STOPPED | Theorem 3.1 holds; proof step E(0) in (0,1) at l.419 (and mirror at l.423) is false at lambda=1 (minor argument gap). |
+| 3.2 | T02 | Theorem GROW e-value for score dominance | Unfinished | GATE_PASSED |  |
+| 3.3 | T03 | Theorem GROW e-value for all scores | Verified (conditional) | FINAL_PASSED | GROW e-value for H against pi1 equals the likelihood ratio, given the cited Gruenwald et al. Theorem 1 (X03); S1-S4 direct computation proved. |
+| 3.4 | P04 | Proposition sequential e-values for lag h | Unfinished | INVENTORIED |  |
+| 3.5 | P05 | Proposition validity under optional stopping | Unfinished | INVENTORIED |  |
+
+DRIVER STOPPED: validate_failed — validate is not VALID (see pv_work/logs/drive/validate.txt)

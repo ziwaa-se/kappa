@@ -1,0 +1,6 @@
+{"_paper": "Errata case A, arXiv 2103.08402v2; see ANSWER_KEY.md",
+ "3.1": {"expect": ["UNCONDITIONAL", "CONDITIONAL"]},
+ "3.2": {"expect": ["UNCONDITIONAL", "CONDITIONAL"]},
+ "3.3": {"expect": ["CONDITIONAL:i"], "accept": ["UNCONDITIONAL", "CONDITIONAL"]},
+ "3.4": {"expect": ["UNCONDITIONAL", "CONDITIONAL"]},
+ "3.5": {"expect": ["ISSUE:ERROR"], "other_class": ["ISSUE:PAPER_ARGUMENT_GAP"]}}

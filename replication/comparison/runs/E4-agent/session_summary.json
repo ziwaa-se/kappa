@@ -1,0 +1,19 @@
+{
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "total_cost_usd": 1.7844084,
+ "duration_ms": 587917,
+ "num_turns": 43,
+ "is_error": false,
+ "subtype": "success",
+ "usage_by_model": {
+  "claude-opus-5-5": {
+   "inputTokens": 60,
+   "outputTokens": 41179,
+   "cacheReadInputTokens": 1930862,
+   "cacheCreationInputTokens": 71802,
+   "costUSD": 1.7844084
+  }
+ }
+}

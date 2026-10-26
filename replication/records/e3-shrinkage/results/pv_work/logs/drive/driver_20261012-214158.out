@@ -1,0 +1,33 @@
+[21:41] session 1 (sonnet, cap $30): 
+You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful cho...
+  -> cost $0.36, turns 24, completed
+  NOTE: Claude Code reports this folder as not trusted. The driver passes the permission file with --settings;
+        if kit commands are refused, open the folder once in Claude Code interactively and accept the trust dialog.
+  permission denials in session 1: 1 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_1.json)
+[21:43] session 2 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $5.43, turns 7, completed
+  permission denials in session 2: 2 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_2.json)
+[22:19] session 3 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $1.65, turns 29, completed
+  permission denials in session 3: 5 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_3.json)
+Nothing left to start: every result has a verdict or a recorded reason.
+[22:45] session 4 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $1.98, turns 36, ERROR api_error
+  permission denials in session 4: 6 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_4.json)
+[22:52] usage limit reached (session 4, resets 2026-10-13 01:00 (America/Indianapolis)); sleeping 7975s, then continuing (wait 1 of at most 20)
+[01:04] continuing after the usage-limit wait
+[01:04] session 5 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $0.43, turns 47, completed
+  permission denials in session 5: 2 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_5.json)
+## Verification progress — The oracle risk of linear shrinkage (2026-10-13 01:06)
+
+**4 numbered results: 2 verified (unconditional) · 1 verified (conditional) · 1 issue recorded · 0 unfinished.**
+
+| No. | ID | Result | Verdict | Stage | Conditions / issues / where stopped |
+|---|---|---|---|---|---|
+| 2.1 | L01 | Lemma completing the square | Verified (unconditional) | FINAL_PASSED | Completing-the-square identity verified unconditionally; only the printed standing assumption is used. |
+| 2.2 | L02 | Lemma oracle risk below min | Issue recorded | STOPPED | Proof step at main.tex:54-55 is false as printed (conclusion true). |
+| 2.3 | T01 | Theorem oracle factor is optimal | Verified (conditional) | FINAL_PASSED | Theorem verified conditional on Lemma 2.2's conclusion (T01_L02Consumed); L02's printed proof has an error (B1) but its conclusion is true. |
+| 2.4 | C01 | Corollary oracle beats one half | Verified (unconditional) | FINAL_PASSED | Corollary verified unconditionally from Lemma 2.1 alone; the remark at main.tex:75-76 (uses Lemma 2.2, which has issue B1) is not needed for the statement; main.tex:75 credits R(c*)=rho to Lemma 2.2 though it follows from Lemma 2.1 (editorial). |
+
+DRIVER STOPPED: done_report — the report is in verification/report/ (AUTHOR_REPORT.md, EXTERNAL_TOOLS_WORKSHEET.md, FILES_TO_CHECK.md)

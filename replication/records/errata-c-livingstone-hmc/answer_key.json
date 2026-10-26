@@ -1,0 +1,7 @@
+{"_paper": "Errata case C, arXiv 1601.08057v4, scope set by us; see ANSWER_KEY.md",
+ "5.15": {"expect": ["UNCONDITIONAL", "CONDITIONAL"]},
+ "5.16": {"expect": ["ISSUE:PAPER_ASSUMPTION_GAP"], "accept": ["ISSUE:PAPER_ARGUMENT_GAP", "UNFINISHED"]},
+ "5.17": {"expect": ["UNCONDITIONAL", "CONDITIONAL"]},
+ "5.14": {"expect": ["CONDITIONAL:iv"], "accept": ["CONDITIONAL"]},
+ "2.2": {"expect": ["CONDITIONAL"], "accept": ["UNFINISHED"]},
+ "2.3": {"expect": ["ISSUE:PAPER_ARGUMENT_GAP"], "other_class": ["ISSUE:ERROR", "ISSUE:PAPER_ASSUMPTION_GAP"]}}

@@ -1,0 +1,83 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\title{The oracle risk of linear shrinkage}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+An observation $X$ with mean $\theta$ and variance $\sigma^2$ is shrunk towards zero by a factor $c$. We compute the
+best factor and its risk under squared error, and compare that risk with the risks of the two simplest
+estimators, $0$ and $X$.
+\end{abstract}
+
+\section{Setting}
+
+Throughout, $\theta \ne 0$ and $\sigma > 0$ are real numbers.
+
+\begin{definition}\label{def:risk}
+For $c \in \mathbb{R}$, the \emph{risk} of the estimator $cX$ is
+$R(c) = c^2 \sigma^2 + (1-c)^2 \theta^2$, its mean squared error when $X$ has mean $\theta$ and variance $\sigma^2$.
+The \emph{oracle factor} is
+$c^\ast = \theta^2 / (\theta^2 + \sigma^2)$.
+The \emph{oracle risk} is
+$\rho = \theta^2 \sigma^2 / (\theta^2 + \sigma^2)$.
+It is the risk of the oracle factor, as Lemma~\ref{lem:square} shows.
+\end{definition}
+
+\section{Results}
+
+\begin{lemma}\label{lem:square}
+For every $c \in \mathbb{R}$, $R(c) - \rho = (\theta^2 + \sigma^2)(c - c^\ast)^2$.
+\end{lemma}
+
+\begin{proof}
+Write $s = \theta^2 + \sigma^2$, so that $c^\ast = \theta^2 / s$ and $1 - c^\ast = \sigma^2 / s$. For
+$c = c^\ast + d$,
+\[
+  R(c) = (c^\ast + d)^2 \sigma^2 + (1 - c^\ast - d)^2 \theta^2
+       = \frac{\theta^4 \sigma^2 + \sigma^4 \theta^2}{s^2} + 2d\Bigl(\frac{\theta^2\sigma^2}{s} - \frac{\sigma^2\theta^2}{s}\Bigr) + s\, d^2
+       = \rho + s\, d^2 ,
+\]
+which is the claim.
+\end{proof}
+
+\begin{lemma}\label{lem:min}
+$\rho \le \min\{\theta^2, \sigma^2\}$.
+\end{lemma}
+
+\begin{proof}
+Since $\theta^2 + \sigma^2 > \sigma^2 > 0$, we have
+$\rho = \theta^2 \cdot \sigma^2 / (\theta^2 + \sigma^2) < \theta^2$, and in the same way $\rho < \sigma^2$.
+\end{proof}
+
+\begin{theorem}\label{thm:oracle}
+For every $c \in \mathbb{R}$, $R(c) \ge \rho$, with equality if and only if $c = c^\ast$. Moreover,
+$\rho \le \min\{R(0), R(1)\}$.
+\end{theorem}
+
+\begin{proof}
+By Lemma~\ref{lem:square}, $R(c) - \rho = (\theta^2 + \sigma^2)(c - c^\ast)^2 \ge 0$, with equality if and only if
+$c = c^\ast$, because $\theta^2 + \sigma^2 > 0$. Since $R(0) = \theta^2$ and $R(1) = \sigma^2$,
+Lemma~\ref{lem:min} gives $\rho \le \min\{R(0), R(1)\}$.
+\end{proof}
+
+\begin{corollary}\label{cor:half}
+$R(c^\ast) \le R(1/2)$.
+\end{corollary}
+
+\begin{proof}
+By Lemma~\ref{lem:square}, $R(1/2) - R(c^\ast) = (\theta^2 + \sigma^2)(1/2 - c^\ast)^2 \ge 0$. By
+Lemma~\ref{lem:min}, moreover, $R(c^\ast) = \rho \le \min\{\theta^2, \sigma^2\}$.
+\end{proof}
+
+\end{document}

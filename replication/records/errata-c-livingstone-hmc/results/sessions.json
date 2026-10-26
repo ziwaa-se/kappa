@@ -1,0 +1,139 @@
+[
+ {
+  "file": "session_1.json",
+  "total_cost_usd": 0.8248964000000001,
+  "num_turns": 30,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-12T21:44:18",
+  "ended": "2026-10-12T21:48:02"
+ },
+ {
+  "file": "session_10.json",
+  "total_cost_usd": 0.6574397000000001,
+  "num_turns": 20,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-13T11:43:29",
+  "ended": "2026-10-13T11:45:46"
+ },
+ {
+  "file": "session_11.json",
+  "total_cost_usd": 5.219274299999998,
+  "num_turns": 39,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-13T11:45:47",
+  "ended": "2026-10-13T12:02:00"
+ },
+ {
+  "file": "session_2.json",
+  "total_cost_usd": 11.921665100000006,
+  "num_turns": 1,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-12T21:48:02",
+  "ended": "2026-10-12T22:50:25"
+ },
+ {
+  "file": "session_3.json",
+  "total_cost_usd": 0,
+  "num_turns": 1,
+  "is_error": true,
+  "terminal_reason": "api_error",
+  "models": [],
+  "started": "2026-10-12T22:50:26",
+  "ended": "2026-10-12T22:50:27"
+ },
+ {
+  "file": "session_4.json",
+  "total_cost_usd": 8.233131000000004,
+  "num_turns": 9,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-13T01:04:59",
+  "ended": "2026-10-13T01:36:02"
+ },
+ {
+  "file": "session_5.json",
+  "total_cost_usd": 11.100336500000008,
+  "num_turns": 7,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-13T01:36:02",
+  "ended": "2026-10-13T02:19:56"
+ },
+ {
+  "file": "session_6.json",
+  "total_cost_usd": 4.287875,
+  "num_turns": 73,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-13T02:19:57",
+  "ended": "2026-10-13T02:32:47"
+ },
+ {
+  "file": "session_7.json",
+  "total_cost_usd": 0.433625,
+  "num_turns": 43,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-13T02:37:39",
+  "ended": "2026-10-13T02:39:13"
+ },
+ {
+  "file": "session_8.json",
+  "total_cost_usd": 0.1224807,
+  "num_turns": 6,
+  "is_error": true,
+  "terminal_reason": "api_error",
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-13T02:39:13",
+  "ended": "2026-10-13T02:39:19"
+ },
+ {
+  "file": "session_9.json",
+  "total_cost_usd": 24.85100620000001,
+  "num_turns": 8,
+  "is_error": false,
+  "terminal_reason": "completed",
+  "models": [
+   "claude-opus-5-5",
+   "claude-sonnet-5-5"
+  ],
+  "started": "2026-10-13T10:35:45",
+  "ended": "2026-10-13T11:43:29"
+ }
+]

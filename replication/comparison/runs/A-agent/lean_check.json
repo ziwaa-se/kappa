@@ -1,0 +1,344 @@
+[
+ {
+  "file": "lean/OnePeriod.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "S\u03b8_diff_zero": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "S\u03b8_diff_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "d_zero_eq": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "d_one_eq": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "integrableOn_Ico_of_bdd": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "d_signs": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "boundary_eq_kappa": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "thm_uniqueness": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "isEvalNullAlt_swap": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "thm_uniqueness'": null,
+   "thm_grow": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "thm_grow_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "H_eq_lt": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "H_eq_gt": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Estar_valid": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "thm_allscores": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ },
+ {
+  "file": "lean/Sequential.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "Sequential.condExp_one_add_mul_le_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Sequential.prod_bounds": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Sequential.prod_stronglyMeasurable": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Sequential.integral_prod_le_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Sequential.integral_avg_prod_le_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Sequential.eproc_stronglyMeasurable": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Sequential.eproc_integrable": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Sequential.eproc_supermartingale": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Sequential.integral_stoppedValue_le_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Sequential.lintegral_stoppedValue_le_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ },
+ {
+  "file": "lean/StoppingCounterexample.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "Counterexample.h25": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.P_true": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.P_false": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.integral_\u03bc": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.d_zero": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.d_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.E_zero": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.E_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.\u2131_small": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.\u2131_large": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.Y_adapted": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.\u2131_natural": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.null_holds": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.\u03c4_isStoppingTime": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.e3": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.e4": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.e3_valid": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.e4_valid": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.stopped_evalue": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.prop_3_5_false_h2": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "Counterexample.procedure_value": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ },
+ {
+  "file": "lean/Table.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "kappa_parts": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "brier_d0": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "brier_d1": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "brier_kappa": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "log_d0": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "log_d1": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "log_kappa": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "nrm_arg_pos": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "nrm_pos": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "nrm_sq": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "hasDerivAt_nrm": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "sph_d0": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "sph_d1": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "sph_kappa": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "appendixB": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ }
+]

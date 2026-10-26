@@ -1,0 +1,41 @@
+[
+ {
+  "file": "lean_blocks/block_01.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "empCDF_mono": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "empCDF_values": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ },
+ {
+  "file": "lean_blocks/block_02.lean",
+  "compiles": false,
+  "errors": 2,
+  "sorry": true,
+  "theorems": {
+   "glivenko_cantelli": null
+  },
+  "first_error": "Check.lean:10:18: error: function expected at"
+ },
+ {
+  "file": "lean_blocks/block_03.lean",
+  "compiles": false,
+  "errors": 2,
+  "sorry": true,
+  "theorems": {
+   "kolmogorov_smirnov": null
+  },
+  "first_error": "Check.lean:6:40: error: invalid binder annotation, type is not a class instance"
+ }
+]

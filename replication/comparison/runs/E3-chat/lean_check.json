@@ -1,0 +1,32 @@
+[
+ {
+  "file": "lean_blocks/block_01.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "OracleShrinkage.denom_pos": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "OracleShrinkage.square": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "OracleShrinkage.le_min'": null,
+   "OracleShrinkage.oracle": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "OracleShrinkage.half": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ }
+]

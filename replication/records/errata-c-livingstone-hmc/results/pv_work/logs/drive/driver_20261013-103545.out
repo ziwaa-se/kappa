@@ -1,0 +1,27 @@
+[10:35] session 9 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $24.85, turns 8, completed
+  NOTE: Claude Code reports this folder as not trusted. The driver passes the permission file with --settings;
+        if kit commands are refused, open the folder once in Claude Code interactively and accept the trust dialog.
+  permission denials in session 9: 8 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_9.json)
+[11:43] session 10 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $0.66, turns 20, completed
+  permission denials in session 10: 1 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_10.json)
+Nothing left to start: every result has a verdict or a recorded reason.
+archived the previous report to verification/report_archive/20261013-114547/
+[11:45] session 11 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $5.22, turns 39, completed
+  permission denials in session 11: 2 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_11.json)
+## Verification progress — On the Geometric Ergodicity of Hamiltonian Monte Carlo (2026-10-13 12:02)
+
+**6 numbered results: 3 verified (unconditional) · 2 verified (conditional) · 0 issue recorded · 1 unfinished.**
+
+| No. | ID | Result | Verdict | Stage | Conditions / issues / where stopped |
+|---|---|---|---|---|---|
+| 5.15 | L01 | Lemma first step doubles the norm | Verified (unconditional) | FINAL_PASSED | (before revision 1: Verified (unconditional)) Lemma 5.15 (first leapfrog step at least triples/doubles the norm, fixed delta) verified unconditionally. |
+| 5.16 | L02 | Lemma L steps multiply norm by 2^L | Verified (unconditional) | FINAL_PASSED | (before revision 1: Issue recorded) Lemma 5.16 verified unconditionally after reconnection to L01. |
+| 5.17 | L03 | Lemma acceptance rate tends to zero | Verified (unconditional) | FINAL_PASSED | (before revision 1: Verified (conditional)) Lemma 5.17 verified unconditionally after reconnection to L02 and L01. |
+| 5.14 | T02 | Theorem light tails not geometrically ergodic | Verified (conditional) | FINAL_PASSED | (before revision 1: Verified (conditional)) Theorem 5.14 verified conditionally on cited Prop 3.5, Gaussian facts and random-L Prop 3.5 (L03 clause discharged). |
+| 2.2 | T01 | Theorem negative results for HMC | Unfinished | STOPPED | (before revision 1: Verified (conditional)) Thm 2.2 verified conditionally for deterministic L; random-L part (i) unfinished because of a formalization-side encoding error (not a paper issue). |
+| 2.3 | C01 | Corollary exponential family HMC | Verified (conditional) | FINAL_PASSED | (before revision 1: Unfinished) Cor 2.3(ii) verified conditionally on the Theorem 2.2 clause, deterministic L; earlier B02 gone in revised source. |
+
+DRIVER STOPPED: done_report — the report is in verification/report/ (AUTHOR_REPORT.md, EXTERNAL_TOOLS_WORKSHEET.md, FILES_TO_CHECK.md)

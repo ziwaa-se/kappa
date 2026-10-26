@@ -1,0 +1,146 @@
+kit: output/kappa-1.4.0
+
+== Results by case and round (Tables 8-11 and the figures in the text)
+| Case | Round | Score against the key | Cost (USD) | Active minutes | Fact check (major/moderate/minor) |
+|---|---|---|---:|---:|---|
+| e1-sample-variance | 1 | 1 accepted, 4 agrees, 1 differs | 14.54 | 82 | 1/3/9 |
+| e2-proportions | 1 | 5 agrees, 1 differs | 14.74 | 75 | 1/3/7 |
+| e3-shrinkage | 1 | 4 agrees | 9.85 | 71 | 1/5/10 |
+| e3-shrinkage | 2 | 4 agrees | 7.40 | 23 | 1/4/9 |
+| e4-edf | 1 | 2 accepted, 1 agrees | 14.32 | 81 | 0/2/8 |
+| errata-a-henzi-ziegel | 1 | 3 agrees, 2 differs | 36.36 | 130 | 0/7/11 |
+| errata-a-henzi-ziegel | 2 | — | 24.08 | 83 | 2/8/13 |
+| errata-b-arab-lando-oliveira | 1 | 5 agrees, 7 differs, 1 missing | 65.24 | 171 | 1/9/13 |
+| errata-b-arab-lando-oliveira | 2 | — | 15.24 | 54 | 1/3/13 |
+| errata-c-livingstone-hmc | 1 | 1 accepted, 5 agrees | 36.37 | 154 | 2/6/9 |
+| errata-c-livingstone-hmc | 2 | — | 31.28 | 88 | 1/12/12 |
+identical to TABLES.md
+
+== e1-sample-variance, first round
+| No. | ID | Expected | Run | Score |
+|---|---|---|---|---|
+| 2.1 | L01 | UNCONDITIONAL | UNCONDITIONAL | agrees |
+| 2.2 | L02 | UNCONDITIONAL | UNCONDITIONAL | agrees |
+| 2.3 | P01 | CONDITIONAL:i | CONDITIONAL:i | agrees |
+| 2.4 | P02 | ISSUE:EXPOSITION_GAP | UNCONDITIONAL | accepted |
+| 2.5 | L03 | ISSUE:ERROR | ISSUE:ERROR | agrees |
+| 2.6 | C01 | CONDITIONAL:iv | ISSUE:PAPER_ARGUMENT_GAP | differs |
+
+1 accepted, 4 agrees, 1 differs
+
+== e2-proportions, first round
+| No. | ID | Expected | Run | Score |
+|---|---|---|---|---|
+| 2.1 | L01 | UNCONDITIONAL | UNCONDITIONAL | agrees |
+| 2.2 | L02 | ISSUE:DOMAIN_CLARIFICATION | ISSUE:DOMAIN_CLARIFICATION | agrees |
+| 2.3 | P01 | CONDITIONAL:ii | UNCONDITIONAL | differs |
+| 2.4 | L03 | ISSUE:ERROR | ISSUE:ERROR | agrees |
+| 2.5 | P02 | UNCONDITIONAL | UNCONDITIONAL | agrees |
+| 2.6 | P03 | ISSUE:PAPER_ASSUMPTION_GAP / ISSUE:PAPER_ARGUMENT_GAP | ISSUE:PAPER_ARGUMENT_GAP | agrees |
+
+5 agrees, 1 differs
+
+== e3-shrinkage, first round
+| No. | ID | Expected | Run | Score |
+|---|---|---|---|---|
+| 2.1 | L01 | UNCONDITIONAL | UNCONDITIONAL | agrees |
+| 2.2 | L02 | ISSUE:PAPER_ARGUMENT_GAP | ISSUE:PAPER_ARGUMENT_GAP | agrees |
+| 2.3 | T01 | CONDITIONAL:iv | CONDITIONAL:iv, CONDITIONAL:p | agrees |
+| 2.4 | C01 | UNCONDITIONAL | UNCONDITIONAL | agrees |
+
+4 agrees
+
+== e4-edf, first round
+| No. | ID | Expected | Run | Score |
+|---|---|---|---|---|
+| 2.1 | L01 | UNCONDITIONAL | UNCONDITIONAL | agrees |
+| 2.2 | P01 | CONDITIONAL:v / CONDITIONAL:ii | CONDITIONAL:i | accepted |
+| 2.3 | T01 | UNFINISHED:TRANSLATION_BLOCKED | CONDITIONAL:i | accepted |
+
+2 accepted, 1 agrees
+
+== errata-a-henzi-ziegel, first round
+| No. | ID | Expected | Run | Score |
+|---|---|---|---|---|
+| 3.1 | T01 | UNCONDITIONAL / CONDITIONAL | ISSUE:PAPER_ARGUMENT_GAP | differs |
+| 3.2 | T02 | UNCONDITIONAL / CONDITIONAL | ISSUE:PAPER_ARGUMENT_GAP | differs |
+| 3.3 | T03 | CONDITIONAL:i | CONDITIONAL:i | agrees |
+| 3.4 | P04 | UNCONDITIONAL / CONDITIONAL | CONDITIONAL:ii, CONDITIONAL:iv, CONDITIONAL:p | agrees |
+| 3.5 | P05 | ISSUE:ERROR | ISSUE:ERROR | agrees |
+
+3 agrees, 2 differs
+
+== errata-b-arab-lando-oliveira, first round
+| No. | ID | Expected | Run | Score |
+|---|---|---|---|---|
+| 2.3 | L01 | UNCONDITIONAL / CONDITIONAL | ISSUE:PAPER_ASSUMPTION_GAP | differs |
+| 2.5 | P01 | UNCONDITIONAL / CONDITIONAL | UNCONDITIONAL | agrees |
+| 2.8 | T01 | UNCONDITIONAL / CONDITIONAL | ISSUE:ERROR | differs |
+| 3.1 | T02 | ISSUE:PAPER_ARGUMENT_GAP | ISSUE:PAPER_ARGUMENT_GAP | agrees |
+| 3.2 | P02 | UNCONDITIONAL / CONDITIONAL | ISSUE:DOMAIN_CLARIFICATION, ISSUE:PAPER_ARGUMENT_GAP | differs |
+| 3.3 | P03 | CONDITIONAL:iv | CONDITIONAL:iv, CONDITIONAL:p | agrees |
+| 4.6 | P04 | UNCONDITIONAL / CONDITIONAL | ISSUE:PAPER_ASSUMPTION_GAP | differs |
+| 4.8 | T03 | UNCONDITIONAL / CONDITIONAL | ISSUE:ERROR, ISSUE:PAPER_ARGUMENT_GAP | differs |
+| 4.10 | L02 | UNCONDITIONAL / CONDITIONAL | ISSUE:PAPER_ASSUMPTION_GAP | differs |
+| 4.12 | T04 | UNCONDITIONAL / CONDITIONAL | UNCONDITIONAL | agrees |
+| 5.2 | P05 | UNCONDITIONAL / CONDITIONAL | ISSUE:PAPER_ASSUMPTION_GAP | differs |
+| 5.3 | P06 | UNCONDITIONAL / CONDITIONAL | UNCONDITIONAL | agrees |
+| 4.2 | — | CONDITIONAL | not registered | missing |
+
+5 agrees, 7 differs, 1 missing
+
+== errata-c-livingstone-hmc, first round
+| No. | ID | Expected | Run | Score |
+|---|---|---|---|---|
+| 5.15 | L01 | UNCONDITIONAL / CONDITIONAL | UNCONDITIONAL | agrees |
+| 5.16 | L02 | ISSUE:PAPER_ASSUMPTION_GAP | ISSUE:PAPER_ARGUMENT_GAP | accepted |
+| 5.17 | L03 | UNCONDITIONAL / CONDITIONAL | CONDITIONAL:iv, CONDITIONAL:p | agrees |
+| 5.14 | T02 | CONDITIONAL:iv | CONDITIONAL:ii, CONDITIONAL:iv, CONDITIONAL:p, CONDITIONAL:v | agrees |
+| 2.2 | T01 | CONDITIONAL | CONDITIONAL:ii, CONDITIONAL:iv, CONDITIONAL:p, CONDITIONAL:v | agrees |
+| 2.3 | C01 | ISSUE:PAPER_ARGUMENT_GAP | ISSUE:PAPER_ARGUMENT_GAP | agrees |
+
+1 accepted, 5 agrees
+
+== Comparison (Table 12), from the gradings
+| Paper (results) | Correctly classified K / A / C | False alarms K / A / C | Faithful Lean-backed K / A / C | Inputs hidden K / A / C | Verdicts without Lean evidence K / A / C | Cost USD K / A / C | Minutes K / A / C |
+|---|---|---|---|---|---|---|---|
+| E1 (6) | 6 / 6 / 6 | 0 / 0 / 0 | 5 / 6 / 3 | 0 / 0 / 0 | 0 / 0 / 1 | 14.54 / 0.47 / 0.46 | 82 / 2.1 / 3.2 |
+| E2 (6) | 6 / 6 / 6 | 0 / 0 / 0 | 6 / 6 / 5 | 0 / 0 / 0 | 0 / 0 / 0 | 14.74 / 0.37 / 0.21 | 75 / 1.8 / 1.4 |
+| E3 (4) | 4 / 4 / 4 | 0 / 0 / 0 | 3 / 1 / 1 (4 / 4 / 4 counting disclosed stronger statements) | 0 / 0 / 0 | 0 / 0 / 0 | 9.85 / 0.23 / 3.39 | 71 / 1.4 / 14.3 |
+| E4 (3) | 3 / 2 / 2 (3 / 3 / 3 lenient) | 0 / 1 / 1 (0 / 0 / 0 lenient) | 1 / 1 / 1 | 0 / 0 / 0 | 0 / 1 / 2 | 14.32 / 1.78 / 0.16 | 81 / 9.8 / 1.0 |
+| A (5) | 5 / 5 / 5 | 0 / 0 / 0 | 3 / 3 / 0 | 0 / 2 / 0 | 0 / 0 / 3 | 36.36 / 5.66 / 1.54 | 130 / 21.0 / 8.8 |
+| B (12) | 12 / 9 / 10 | 0 / 0 / 0 | 10 / 5 / 0 | 0 / 1 / 1 | 0 / 3 / 7 | 65.24 / 4.08 / 1.49 | 171 / 19.7 / 9.4 |
+| C (6) | 6 / 6 / 6 | 0 / 0 / 0 | 2 / 4 / 0 (6 / 4 / 1 counting disclosed conditions) | 0 / 0 / 0 | 0 / 0 / 2 | 36.37 / 3.24 / 1.45 | 154 / 11.6 / 4.6 |
+| **Total (42)** | **42 / 38 / 39** | **0 / 1 / 1** | **30 / 26 / 10** | **0 / 3 / 1** | **0 / 4 / 15** | **191.42 / 15.83 / 8.70** | **764 / 67 / 43** |
+
+== Offline replay of the seven cases
+e1-sample-variance: ok in 260 s — Modules rebuilt: 15 of 22 (drafts with `sorry` are not built). validate: INVALID (3 errors)
+e2-proportions: ok in 237 s — Modules rebuilt: 16 of 24 (drafts with `sorry` are not built). validate: VALID
+e3-shrinkage: ok in 109 s — Modules rebuilt: 9 of 13 (drafts with `sorry` are not built). validate: VALID
+e4-edf: ok in 123 s — Modules rebuilt: 7 of 10 (drafts with `sorry` are not built). validate: VALID
+errata-a-henzi-ziegel: ok in 190 s — Modules rebuilt: 15 of 22 (drafts with `sorry` are not built). validate: VALID
+errata-b-arab-lando-oliveira: ok in 366 s — Modules rebuilt: 31 of 47 (drafts with `sorry` are not built). validate: VALID
+errata-c-livingstone-hmc: ok in 211 s — Modules rebuilt: 17 of 23 (drafts with `sorry` are not built). validate: VALID
+
+== Lean files of the comparison runs (compiled, sorry, axioms)
+A-agent        4 files; 4 compile without sorry.
+A-chat         1 files; 1 compile without sorry.
+B-agent        9 files; 9 compile without sorry.
+B-chat         1 files; 1 compile without sorry.
+C-agent        2 files; 2 compile without sorry.
+C-chat         1 files; 1 compile without sorry.
+E1-agent       1 files; 1 compile without sorry.
+E1-chat        1 files; 0 compile without sorry.
+E2-agent       1 files; 1 compile without sorry.
+E2-chat        1 files; 1 compile without sorry.
+E3-agent       1 files; 1 compile without sorry.
+E3-chat        1 files; 1 compile without sorry.
+E4-agent       4 files; 4 compile without sorry.
+E4-chat        3 files; 1 compile without sorry.
+
+== Versions
+Mon Oct 26 00:06:45 EDT 2026
+Darwin 25.6.0 arm64
+Python 3.12.7
+Lean (version 4.19.0, arm64-apple-darwin23.6.0, commit 6caaee842e94, Release)
+Lake version 5.0.0-6caaee8 (Lean version 4.19.0)

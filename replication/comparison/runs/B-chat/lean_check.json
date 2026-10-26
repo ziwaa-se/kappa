@@ -1,0 +1,161 @@
+[
+ {
+  "file": "lean_blocks/block_01.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "InvSub.aux_sum": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.aux1": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.aux2": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.aux3": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.lemma_2_3": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.frechet_identity": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.frechet_invsub": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.subadd_of_antitone_div": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.prop_2_5_general": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.geom_invsub": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.geom_superheavy": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.continuity_of_subadd": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.thm_2_8_ineq": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.main_n2": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.paper_step_wrong_direction": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.paper_claim_exceeds_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.main_step_corrected": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.sqrt_strict_concave": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.subadd_nsmul": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.pareto_quantile": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.frechet_quantile": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.one_sub_exp_subadd": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.shifted_pareto_violates": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.shifted_pareto_not_invsub": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.lemma_4_10": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.mul_ge_add_sub_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.exp_not_superadditive": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.thm_4_12": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.R_exceeds_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "InvSub.V_exceeds_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ }
+]

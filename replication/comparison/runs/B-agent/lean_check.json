@@ -1,0 +1,362 @@
+[
+ {
+  "file": "lean/InvSub/Analytic.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "subadd_of_antistar": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "prop_2_5": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lemma_4_10": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "theorem_4_12": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "example_2_4": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "example_2_7_SHT": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "example_2_7_InvSub": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "prop_4_6_identity": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "pareto_quantile": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "prop_5_3_core": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "frechet_quantile": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ },
+ {
+  "file": "lean/InvSub/Basic.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "subadd_iff_cond23": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lemma_2_3": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lemma_2_3_needs_F0": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ },
+ {
+  "file": "lean/InvSub/Corrected.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "subadd_iff_cond23": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "cond23_measure": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "theorem_2_8_corrected": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "max0_nonneg": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lomaxF_atBot": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lomaxF_atTop": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "cdf_lomax\u03bc": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lomax_invSub": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "star_of_convex": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "theorem_4_8_corrected": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ },
+ {
+  "file": "lean/InvSub/Counterexamples.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "InvSub.cond23": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "max_one_pos": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "paretoF_apply": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "paretoF_atBot": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "paretoF_atTop": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "cdf_pareto\u03bc": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "inv_max_inv_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "pareto_invSub": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "hcut_continuous": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "hcut_zero": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "hcut_starShaped": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "hcut_monotone": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "hcut_convex": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "cdf_map_hcut_zero": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "theorem_2_8_false": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "meas_add_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "cdf_shift\u03bc": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "theorem_4_8_false": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "theorem_4_8_false'": null,
+   "thm_3_1_proof_last_step_false": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "example_4_13_not_cdf": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "example_4_16_not_cdf": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ },
+ {
+  "file": "lean/InvSub/InfMean.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "one_sub_cdf": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "prop_3_3": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ },
+ {
+  "file": "lean/InvSub/LeftRight.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "tendsto_Ioi_to_Ici": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "tendsto_Ici_to_Ioi": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "subA_iff_subB": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ },
+ {
+  "file": "lean/InvSub/Main.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "subadd_iff_cond23": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lemma_2_3": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "cond23_measure": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "key_step": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "theorem_3_1": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "theorem_3_1_st": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ },
+ {
+  "file": "lean/scratch/num.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {},
+  "first_error": ""
+ },
+ {
+  "file": "lean/scratch/t.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {},
+  "first_error": ""
+ }
+]

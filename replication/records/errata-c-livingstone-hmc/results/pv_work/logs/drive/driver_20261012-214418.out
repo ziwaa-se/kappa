@@ -1,0 +1,36 @@
+[21:44] session 1 (sonnet, cap $30): Scope of this check, set by the user: register as numbered results ONLY Theorem 2.2 (label thm:negative), Corollary 2.3 ...
+  -> cost $0.82, turns 30, completed
+  NOTE: Claude Code reports this folder as not trusted. The driver passes the permission file with --settings;
+        if kit commands are refused, open the folder once in Claude Code interactively and accept the trust dialog.
+  permission denials in session 1: 5 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_1.json)
+[21:48] session 2 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $11.92, turns 1, completed
+  permission denials in session 2: 3 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_2.json)
+[22:50] session 3 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $0.00, turns 1, ERROR api_error
+[22:50] usage limit reached (session 3, resets 2026-10-13 01:00 (America/Indianapolis)); sleeping 8072s, then continuing (wait 1 of at most 20)
+[01:04] continuing after the usage-limit wait
+[01:04] session 4 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $8.23, turns 9, completed
+  permission denials in session 4: 3 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_4.json)
+[01:36] session 5 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $11.10, turns 7, completed
+  permission denials in session 5: 3 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_5.json)
+Nothing left to start: every result has a verdict or a recorded reason.
+[02:19] session 6 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $4.29, turns 73, completed
+  permission denials in session 6: 8 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_6.json)
+## Verification progress — On the Geometric Ergodicity of Hamiltonian Monte Carlo (2026-10-13 02:32)
+
+**6 numbered results: 1 verified (unconditional) · 3 verified (conditional) · 2 issue recorded · 0 unfinished.**
+
+| No. | ID | Result | Verdict | Stage | Conditions / issues / where stopped |
+|---|---|---|---|---|---|
+| 5.15 | L01 | Lemma first step doubles the norm | Verified (unconditional) | FINAL_PASSED | (before revision enc1: Unfinished) Lemma 5.15 verified unconditionally in the fixed-delta reading (eta may depend on delta); the uniform-in-delta reading was our encoding choice and was retired (enc1). |
+| 5.16 | L02 | Lemma L steps multiply norm by 2^L | Issue recorded | STOPPED | Lemma 5.16: proof cites (18) at TEX:930 which the lemma does not assume (PAPER_ARGUMENT_GAP); conclusion still true under (17), not threatened. |
+| 5.17 | L03 | Lemma acceptance rate tends to zero | Verified (conditional) | FINAL_PASSED | Lemma 5.17 verified conditionally on the consumed clause of Lemma 5.16 (L03_L02Consumed); editorial/exposition notes only. |
+| 5.14 | T02 | Theorem light tails not geometrically ergodic | Verified (conditional) | FINAL_PASSED | Theorem 5.14 verified conditionally on the L02 consumed clause, Prop 3.5 and Gaussian facts; X1 passage to esssup r=1 is a fair implicit step. |
+| 2.2 | T01 | Theorem negative results for HMC | Verified (conditional) | FINAL_PASSED | (before revision enc1: Unfinished) Theorem 2.2 verified conditionally: part (i) via Thm 5.14 (T02) and part (ii) via the cited Thm 5.18 (external input), with X3/X2 exposition gaps noted. |
+| 2.3 | C01 | Corollary exponential family HMC | Issue recorded | STOPPED | Cor 2.3(ii): the appeal to Thm 2.2 at TEX:806 fails for 2<beta<log2(6) because (18) is false there (PAPER_ARGUMENT_GAP); conclusion not refuted. |
+
+DRIVER STOPPED: done_report — the report is in verification/report/ (AUTHOR_REPORT.md, EXTERNAL_TOOLS_WORKSHEET.md, FILES_TO_CHECK.md)

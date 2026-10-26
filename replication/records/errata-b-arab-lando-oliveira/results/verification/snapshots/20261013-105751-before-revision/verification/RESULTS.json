@@ -1,0 +1,826 @@
+{
+  "_comment": "Machine-readable state (kit v1.3.1; optional fields models_used, tier, session_budget_usd, uses_defs, recheck, history may appear). pv-architect fills 'results' at /pv-setup; the coordinator keeps it current. The _example_* entries show every field and are ignored by the scripts. Field meanings: verification/rules/PIPELINE.md (stage/reason table, naming) and VERDICTS.md. Check with: python3 scripts/pv_status.py validate",
+  "paper": {
+    "title": "Convex combinations of random variables stochastically dominate the parent for a new class of heavy tailed distributions",
+    "main_tex": "source/SuperParetoPaper-v12.tex",
+    "pdf": "source/SuperParetoPaper-v12.pdf",
+    "numbering_basis": "PDF pages 3-7 read visually (Def 2.1 .. Prop 4.3 confirmed); no .aux available; later numbers inferred from the shared theorem counter within sections"
+  },
+  "lean": {
+    "toolchain": "leanprover/lean4:v4.19.0",
+    "mathlib_rev": "c44e0c8ee63ca166450922a373c7409c5d26b00b",
+    "packages": "linked; mathlib modules compiled 6305 of 6305",
+    "pvtools_sha256": "445fe54fd278873b57a4b2e1af82a7e7d49447d8bb4fa5c13b23cbece65197ad"
+  },
+  "run_scope": [
+    "T03",
+    "P05",
+    "P06"
+  ],
+  "defs": [
+    {
+      "id": "NONE"
+    }
+  ],
+  "results": [
+    {
+      "id": "L01",
+      "pdf_number": "2.3",
+      "kind": "Lemma",
+      "title": "InvSub characterisation",
+      "label": "lem:ITS-carac",
+      "statement_loc": "source/SuperParetoPaper-v12.tex:128-135",
+      "proof_loc": "source/SuperParetoPaper-v12.tex:136-138",
+      "depends_on": [],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B01"
+      ],
+      "evidence": {
+        "gate": "verification/audits/L01_gate.md",
+        "issues": [
+          "verification/audits/L01_issue_1.md"
+        ]
+      },
+      "uses_defs": [
+        "D03",
+        "D05",
+        "D09",
+        "D10"
+      ],
+      "updated": "2026-10-12 22:14",
+      "partial": "Statement gated; counterexample proves the printed 'if' direction false (X=0 a.s.). The only-if direction and the rewriting step were not proved in Lean in this session.",
+      "summary_en": "Lemma 2.3 as printed is false: it omits F_X(0)=0 from Def 2.2; X=0 a.s. is a Lean-checked counterexample to the 'if' direction."
+    },
+    {
+      "id": "P01",
+      "pdf_number": "2.5",
+      "kind": "Proposition",
+      "title": "InvSub via hazard rate bound",
+      "label": "prop:ITS-dens",
+      "statement_loc": "source/SuperParetoPaper-v12.tex:148-151",
+      "proof_loc": "source/SuperParetoPaper-v12.tex:152-154",
+      "depends_on": [],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "UNCONDITIONAL",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/P01_gate_r2.md",
+        "final": "verification/audits/P01_final.md"
+      },
+      "uses_defs": [
+        "D03",
+        "D04",
+        "D05",
+        "D09",
+        "D10",
+        "D22"
+      ],
+      "updated": "2026-10-12 22:27",
+      "lean_main": "pv_work/P01.lean:298 Paper.P01.P01_main",
+      "summary_en": "Prop 2.5 verified unconditionally; the derivative step is rendered in integrated (Tonelli) form, a faithful rendering per the audit; 'negative' at :153 should read non-positive (editorial).",
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "T01",
+      "pdf_number": "2.8",
+      "kind": "Theorem",
+      "title": "closure under star-shaped maps",
+      "label": "thm:inclusion",
+      "statement_loc": "source/SuperParetoPaper-v12.tex:169-172",
+      "proof_loc": "source/SuperParetoPaper-v12.tex:173-181",
+      "depends_on": [
+        "L01"
+      ],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [
+        "T01_X02Tool",
+        "T01_L01Consumed"
+      ],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B05"
+      ],
+      "evidence": {
+        "gate": "verification/audits/T01_gate_r2.md",
+        "final": "verification/audits/T01_final.md",
+        "issues": [
+          "verification/audits/T01_issue_1.md",
+          "verification/audits/T01_issue_1_audit.md"
+        ]
+      },
+      "uses_defs": [
+        "D01",
+        "D02",
+        "D03",
+        "D04",
+        "D05",
+        "D10"
+      ],
+      "updated": "2026-10-13 01:28",
+      "partial": "all obligations except S0 and S2 verified in the gap file; S2 (F_{h(X)}(0)=0) is the confirmed issue; S0 ruled ENCODING_ERROR (formalization side, not re-encoded)",
+      "lean_main": "pv_work/T01ModGaps.lean:1 Paper.T01.T01_main_mod_gaps",
+      "summary_en": "Theorem 2.8 is false as printed: h(x)=max(x-1,0) gives F_{h(X)}(0)=1/2 (Lean counterexample); rest verified in gap file.",
+      "models_used": [
+        "sonnet"
+      ],
+      "upstream_issues": [
+        "B01"
+      ]
+    },
+    {
+      "id": "T02",
+      "pdf_number": "3.1",
+      "kind": "Theorem",
+      "title": "main dominance theorem",
+      "label": "thm:main",
+      "statement_loc": "source/SuperParetoPaper-v12.tex:186-189",
+      "proof_loc": "source/SuperParetoPaper-v12.tex:190-257",
+      "depends_on": [
+        "L01"
+      ],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [
+        "T02_L01Consumed"
+      ],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B06"
+      ],
+      "evidence": {
+        "gate": "verification/audits/T02_gate_r2.md",
+        "final": "verification/audits/T02_final.md",
+        "issues": [
+          "verification/audits/T02_issue_1.md",
+          "verification/audits/T02_issue_1_audit.md"
+        ]
+      },
+      "uses_defs": [
+        "D01",
+        "D05",
+        "D10",
+        "D11",
+        "D24"
+      ],
+      "updated": "2026-10-13 01:36",
+      "partial": "S1-S4, S6b, S7-S9, S10a, S11 verified in gap file; S10b is the confirmed issue; S5/S6a (atoms) and zero-weights gaps unruled (not registered as issues)",
+      "lean_main": "pv_work/T02ModGaps.lean:1 Paper.T02.T02_main_mod_gaps",
+      "summary_en": "Proof of Thm 3.1 has an invalid step at :256 (intermediate claim false; Lean counterexample), though the final bound follows from :254; other steps verified.",
+      "upstream_issues": [
+        "B01"
+      ],
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "P02",
+      "pdf_number": "3.2",
+      "kind": "Proposition",
+      "title": "dominance forces infinite mean",
+      "label": "prop:inf-mean",
+      "statement_loc": "source/SuperParetoPaper-v12.tex:261-264",
+      "proof_loc": "source/SuperParetoPaper-v12.tex:265-267",
+      "depends_on": [],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B02",
+        "B03"
+      ],
+      "evidence": {
+        "gate": "verification/audits/P02_gate_r2.md",
+        "final": "verification/audits/P02_final.md",
+        "issues": [
+          "verification/audits/P02_issue_2.md",
+          "verification/audits/P02_issue_1_r2.md"
+        ]
+      },
+      "uses_defs": [
+        "D11",
+        "D24"
+      ],
+      "updated": "2026-10-12 22:45",
+      "partial": "Verified apart from the two gaps: S2-S6, i.e. Prop 3.2 for n=2 with X,X1,X2 >= 0 concluding not-integrable (S6 has no Lean non-vacuity witness). Not verified: reduction to n=2 (S1) and the statement without nonnegativity.",
+      "lean_main": "pv_work/P02ModGaps.lean:1 Paper.P02.P02_main_mod_gaps",
+      "summary_en": "Prop 3.2's proof uses sqrt X without X>=0 (B02) and its n=2 reduction depends on how the hypothesis is read (B03); rest verified.",
+      "gaps": [
+        "P02_S1_Gap",
+        "P02_TwoCase_Gap"
+      ],
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "P03",
+      "pdf_number": "3.3",
+      "kind": "Proposition",
+      "title": "InvSub implies infinite mean",
+      "label": "prop:mean-fsub",
+      "statement_loc": "source/SuperParetoPaper-v12.tex:270-273",
+      "proof_loc": "source/SuperParetoPaper-v12.tex:269-269",
+      "depends_on": [
+        "T02",
+        "P02"
+      ],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "CONDITIONAL",
+      "conditions": [
+        "P03_T02Consumed",
+        "P03_P02Consumed",
+        "T02_L01Consumed"
+      ],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/P03_gate.md",
+        "final": "verification/audits/P03_final.md"
+      },
+      "uses_defs": [
+        "D10",
+        "D11"
+      ],
+      "updated": "2026-10-13 01:52",
+      "lean_main": "pv_work/P03.lean:228 Paper.P03.P03_main",
+      "summary_en": "Prop 3.3 verified conditionally on the consumed clauses of Thm 3.1 (T02), Prop 3.2 (P02) and Lemma 2.3 (L01), all not closed by the source; the non-degeneracy step at :269 is a fair implicit step.",
+      "models_used": [
+        "sonnet",
+        "opus"
+      ]
+    },
+    {
+      "id": "P04",
+      "pdf_number": "4.6",
+      "kind": "Proposition",
+      "title": "DOR via convex transform order",
+      "label": "prop:conv",
+      "statement_loc": "source/SuperParetoPaper-v12.tex:315-318",
+      "proof_loc": "source/SuperParetoPaper-v12.tex:319-321",
+      "depends_on": [],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [
+        "P04_X01Tool"
+      ],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B07"
+      ],
+      "evidence": {
+        "gate": "verification/audits/P04_gate_r2.md",
+        "final": "verification/audits/P04_final.md",
+        "issues": [
+          "verification/audits/P04_issue_2.md"
+        ]
+      },
+      "uses_defs": [
+        "D02",
+        "D05",
+        "D07",
+        "D12",
+        "D15",
+        "D16",
+        "D17",
+        "D23"
+      ],
+      "updated": "2026-10-13 02:11",
+      "partial": "all clauses for non-degenerate X verified in P04.lean (conditional on P04_X01Tool for clause 2 parenthetical)",
+      "lean_main": "pv_work/P04.lean:509 Paper.P04.P04_main",
+      "summary_en": "Prop 4.6 as printed is false for a.s. constant X (Lean counterexample, review VALID); verified with non-degeneracy added; the :320 step is a fair implicit step.",
+      "models_used": [
+        "sonnet",
+        "opus"
+      ]
+    },
+    {
+      "id": "T03",
+      "pdf_number": "4.8",
+      "kind": "Theorem",
+      "title": "super-Pareto implies InvSub",
+      "label": "cor:inclusion",
+      "statement_loc": "source/SuperParetoPaper-v12.tex:332-335",
+      "proof_loc": "source/SuperParetoPaper-v12.tex:336-338",
+      "depends_on": [
+        "T01",
+        "P04"
+      ],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B09",
+        "B10"
+      ],
+      "evidence": {
+        "gate": "verification/audits/T03_gate.md",
+        "issues": [
+          "verification/audits/T03_issue_1.md",
+          "verification/audits/T03_issue_2.md"
+        ]
+      },
+      "uses_defs": [
+        "D04",
+        "D10",
+        "D12",
+        "D15",
+        "D16",
+        "D17"
+      ],
+      "updated": "2026-10-13 02:31",
+      "partial": "No proof session run: the printed theorem and the :337 step are refuted by Lean counterexamples; no clause verified",
+      "lean_main": "pv_work/T03Draft.lean:61 Paper.T03.T03_main",
+      "summary_en": "Thm 4.8 is false as printed (max(Z-2,0) and Z+1; Lean counterexamples, review VALID) and the h(0)=0 step at :337 fails for X=Z.",
+      "upstream_issues": [
+        "B05"
+      ],
+      "models_used": [
+        "sonnet",
+        "opus"
+      ]
+    },
+    {
+      "id": "L02",
+      "pdf_number": "4.10",
+      "kind": "Lemma",
+      "title": "super-heavy-tailed characterisation",
+      "label": "lem:inv-NWU",
+      "statement_loc": "source/SuperParetoPaper-v12.tex:359-366",
+      "proof_loc": "source/SuperParetoPaper-v12.tex:358-358",
+      "depends_on": [
+        "L01"
+      ],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B04"
+      ],
+      "evidence": {
+        "gate": "verification/audits/L02_gate_r2.md",
+        "final": "verification/audits/L02_final.md",
+        "issues": [
+          "verification/audits/L02_issue_1.md",
+          "verification/audits/L02_issue_1_audit.md"
+        ]
+      },
+      "uses_defs": [
+        "D05",
+        "D18"
+      ],
+      "updated": "2026-10-13 01:18",
+      "partial": "S1-S3 and the only-if direction verified in gap file; if-direction (F_X(0)=0 conjunct) is the stopped gap",
+      "lean_main": "pv_work/L02ModGaps.lean:1 Paper.L02.L02_main_mod_gaps",
+      "summary_en": "Lemma 4.10 omits F_X(0)=0 from Def 4.9, so the 'if' direction is false for X=0 a.s. (Lean counterexample); rest verified in gap file.",
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "T04",
+      "pdf_number": "4.12",
+      "kind": "Theorem",
+      "title": "super-heavy-tailed implies InvSub",
+      "label": "thm:inv-nwu-fsub",
+      "statement_loc": "source/SuperParetoPaper-v12.tex:376-379",
+      "proof_loc": "source/SuperParetoPaper-v12.tex:380-386",
+      "depends_on": [
+        "L01",
+        "L02"
+      ],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "UNCONDITIONAL",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/T04_gate_r2.md",
+        "final": "verification/audits/T04_final.md"
+      },
+      "uses_defs": [
+        "D03",
+        "D05",
+        "D09",
+        "D10",
+        "D18"
+      ],
+      "updated": "2026-10-13 01:46",
+      "lean_main": "pv_work/T04.lean:70 Paper.T04.T04_main",
+      "summary_en": "Thm 4.12 verified unconditionally; the Log 0 case at :381 is a fair implicit step (S4z); 'exponential is superadditive' at :383 is an editorial slip.",
+      "models_used": [
+        "sonnet"
+      ]
+    },
+    {
+      "id": "P05",
+      "pdf_number": "5.2",
+      "kind": "Proposition",
+      "title": "super-heavy-tailed via i-sb order",
+      "label": "cor:invNWU",
+      "statement_loc": "source/SuperParetoPaper-v12.tex:429-432",
+      "proof_loc": "source/SuperParetoPaper-v12.tex:433-436",
+      "depends_on": [
+        "L02"
+      ],
+      "stage": "STOPPED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "ISSUE_RECORDED",
+      "verdict": "ISSUE",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [
+        "B08"
+      ],
+      "evidence": {
+        "gate": "verification/audits/P05_gate.md",
+        "final": "verification/audits/P05_final.md",
+        "issues": [
+          "verification/audits/P05_issue_1.md",
+          "verification/audits/P05_issue_1_audit.md"
+        ]
+      },
+      "uses_defs": [
+        "D02",
+        "D05",
+        "D06",
+        "D14",
+        "D18",
+        "D21"
+      ],
+      "updated": "2026-10-13 02:29",
+      "partial": "S1-S3 verified in P05ModGaps.lean; 'only if' direction not affected; 'if' direction false as printed (X=0 a.s.)",
+      "lean_main": "pv_work/P05ModGaps.lean:311 Paper.P05.P05_main_mod_gaps",
+      "summary_en": "Prop 5.2 omits F_X(0)=0, so the 'if' direction is false for X=0 a.s. (Lean counterexample, review VALID); S1-S3 verified.",
+      "gaps": [
+        "P05_main_Gap"
+      ],
+      "models_used": [
+        "sonnet",
+        "opus"
+      ]
+    },
+    {
+      "id": "P06",
+      "pdf_number": "5.3",
+      "kind": "Proposition",
+      "title": "InvSub via i-sb order",
+      "label": "cor:fsub",
+      "statement_loc": "source/SuperParetoPaper-v12.tex:440-443",
+      "proof_loc": "source/SuperParetoPaper-v12.tex:444-446",
+      "depends_on": [],
+      "stage": "FINAL_PASSED",
+      "statement_fixed": true,
+      "round": 1,
+      "reason": "",
+      "verdict": "UNCONDITIONAL",
+      "conditions": [],
+      "debts": [],
+      "unencoded": [],
+      "issues": [],
+      "evidence": {
+        "gate": "verification/audits/P06_gate.md",
+        "final": "verification/audits/P06_final.md"
+      },
+      "uses_defs": [
+        "D02",
+        "D03",
+        "D10",
+        "D12",
+        "D21"
+      ],
+      "updated": "2026-10-13 02:21",
+      "lean_main": "pv_work/P06.lean:216 Paper.P06.P06_main",
+      "summary_en": "Prop 5.3 verified unconditionally; the F^- to F switch (S3) and the p=1 edge (S1') are fair implicit steps (editorial: state them).",
+      "models_used": [
+        "sonnet",
+        "opus"
+      ]
+    }
+  ],
+  "external_tools": [
+    {
+      "id": "T01_X02Tool",
+      "lean": "pv_work/T01Stmt.lean:26",
+      "meaning": "Lemma 4.1 of ineq-order2024 (cited): the generalised inverse of a continuous, increasing, star-shaped h is anti-star-shaped.",
+      "provenance": "i",
+      "source_loc": "source/SuperParetoPaper-v12.tex:174",
+      "consumers": [
+        "T01 (step S3)"
+      ],
+      "mathlib_search": "not in mathlib: star-shaped / anti-star-shaped function inverse (project-defined notions; no #check target)",
+      "human_check": "Check Lemma 4.1 of the cited paper (ineq-order2024) states this, and whether it assumes h increasing (see T01_issue_2)."
+    },
+    {
+      "id": "T01_L01Consumed",
+      "lean": "pv_work/T01Stmt.lean:36",
+      "meaning": "Lemma 2.3 (L01) in its corrected form: InvSub implies subadditive condition, and F(0)=0 plus the condition implies InvSub.",
+      "provenance": "p",
+      "predecessor": "L01",
+      "source_loc": "source/SuperParetoPaper-v12.tex:128-135",
+      "consumers": [
+        "T01 (main, F:178 forward half for X; F:180 backward half for h(X))"
+      ],
+      "mathlib_search": "not applicable (predecessor clause)",
+      "human_check": "L01 is ISSUE (B01); the corrected L01 with F(0)=0 is the clause used here, and it is not closed by the source."
+    },
+    {
+      "id": "P03_T02Consumed",
+      "lean": "pv_work/P03Stmt.lean:17",
+      "meaning": "Theorem 3.1 (T02) conclusion eq:main-st for i.i.d. copies of an InvSub X, instance n=2, theta=1/2.",
+      "provenance": "p",
+      "predecessor": "T02",
+      "source_loc": "source/SuperParetoPaper-v12.tex:269",
+      "consumers": [
+        "P03 (S4)"
+      ],
+      "mathlib_search": "not applicable (predecessor clause)",
+      "human_check": "T02 is ISSUE (B06); the clause is not closed by the source."
+    },
+    {
+      "id": "P03_P02Consumed",
+      "lean": "pv_work/P03Stmt.lean:32",
+      "meaning": "Proposition 3.2 (P02) conclusion (infinite mean given eq:main-st and non-degeneracy), instance n=2, theta=1/2, for real-valued X.",
+      "provenance": "p",
+      "predecessor": "P02",
+      "source_loc": "source/SuperParetoPaper-v12.tex:269",
+      "consumers": [
+        "P03 (S6)"
+      ],
+      "mathlib_search": "not applicable (predecessor clause)",
+      "human_check": "P02 is ISSUE (B02/B03); verified only for nonnegative X while the clause covers real-valued X; not closed by the source."
+    },
+    {
+      "id": "P04_X01Tool",
+      "lean": "pv_work/P04Stmt.lean:64",
+      "meaning": "Prop 1 of superPareto2024 (= Prop 4.3): super-Pareto iff 1/Fbar_X concave (stated in the form with F<1 everywhere).",
+      "provenance": "i",
+      "source_loc": "source/SuperParetoPaper-v12.tex:296-299",
+      "consumers": [
+        "P04 (S5, clause 2 / :317 parenthetical)"
+      ],
+      "mathlib_search": "not in mathlib (domain-specific cited result)",
+      "human_check": "Check Prop 1 of superPareto2024 states the equivalence in this form, including the F<1 condition and the domain of concavity."
+    },
+    {
+      "id": "T02_L01Consumed",
+      "lean": "pv_work/T02Stmt.lean:33",
+      "meaning": "Lemma 2.3 (L01), \"only if\" direction only, as used by T02: InvSub implies the subadditive condition (eq:sub-1x) for the law considered.",
+      "provenance": "p",
+      "predecessor": "L01",
+      "source_loc": "source/SuperParetoPaper-v12.tex:201",
+      "consumers": [
+        "T02 (S3, S4, pos_step for S10a/S11)",
+        "P03"
+      ],
+      "mathlib_search": "not applicable (predecessor clause)",
+      "human_check": "L01 is ISSUE (B01: F_X(0)=0 omitted from the lemma); the clause used here is the \"only if\" direction, which B01 records as not affected, but it is not closed in Lean by this project."
+    }
+  ],
+  "source_defs": [
+    {
+      "id": "D01",
+      "name": "increasing/decreasing = non-decreasing/non-increasing",
+      "loc": "source/SuperParetoPaper-v12.tex:111-111"
+    },
+    {
+      "id": "D02",
+      "name": "generalised inverse v^{-1}(u)=sup{x: v(x)<=u}",
+      "loc": "source/SuperParetoPaper-v12.tex:111-111"
+    },
+    {
+      "id": "D03",
+      "name": "subadditive / superadditive function",
+      "loc": "source/SuperParetoPaper-v12.tex:111-111"
+    },
+    {
+      "id": "D04",
+      "name": "star-shaped / anti-star-shaped function",
+      "loc": "source/SuperParetoPaper-v12.tex:111-111"
+    },
+    {
+      "id": "D05",
+      "name": "cdf F_X and survival function Fbar_X",
+      "loc": "source/SuperParetoPaper-v12.tex:113-113"
+    },
+    {
+      "id": "D06",
+      "name": "left-continuous cdf F_X^-(x)=P(X<x)",
+      "loc": "source/SuperParetoPaper-v12.tex:113-113"
+    },
+    {
+      "id": "D07",
+      "name": "odds function Lambda_X",
+      "loc": "source/SuperParetoPaper-v12.tex:113-113"
+    },
+    {
+      "id": "D08",
+      "name": "stochastic dominance <=_st",
+      "loc": "source/SuperParetoPaper-v12.tex:115-118",
+      "label": "def:order1"
+    },
+    {
+      "id": "D09",
+      "name": "inverted distribution F^-_{1/X}(x)=1-F_X(1/x)",
+      "loc": "source/SuperParetoPaper-v12.tex:121-121"
+    },
+    {
+      "id": "D10",
+      "name": "InvSub class",
+      "loc": "source/SuperParetoPaper-v12.tex:122-125",
+      "label": "def-ITS-sub"
+    },
+    {
+      "id": "D11",
+      "name": "dominance relation (1) eq:main-st",
+      "loc": "source/SuperParetoPaper-v12.tex:95-99",
+      "label": "eq:main-st"
+    },
+    {
+      "id": "D12",
+      "name": "Pareto(1) cdf P",
+      "loc": "source/SuperParetoPaper-v12.tex:279-279"
+    },
+    {
+      "id": "D13",
+      "name": "Cauchy cdf C",
+      "loc": "source/SuperParetoPaper-v12.tex:279-279"
+    },
+    {
+      "id": "D14",
+      "name": "Frechet(1) cdf H",
+      "loc": "source/SuperParetoPaper-v12.tex:142-142"
+    },
+    {
+      "id": "D15",
+      "name": "super-Pareto",
+      "loc": "source/SuperParetoPaper-v12.tex:284-287",
+      "label": "def:superPareto"
+    },
+    {
+      "id": "D16",
+      "name": "DOR class",
+      "loc": "source/SuperParetoPaper-v12.tex:304-307",
+      "label": "def:classes"
+    },
+    {
+      "id": "D17",
+      "name": "convex transform order <=_c",
+      "loc": "source/SuperParetoPaper-v12.tex:308-311",
+      "label": "def:order2"
+    },
+    {
+      "id": "D18",
+      "name": "super-heavy-tailed",
+      "loc": "source/SuperParetoPaper-v12.tex:344-349",
+      "label": "def:superheavy"
+    },
+    {
+      "id": "D19",
+      "name": "NWU",
+      "loc": "source/SuperParetoPaper-v12.tex:351-351"
+    },
+    {
+      "id": "D20",
+      "name": "super-Cauchy",
+      "loc": "source/SuperParetoPaper-v12.tex:399-402",
+      "label": "def:superCauchy"
+    },
+    {
+      "id": "D21",
+      "name": "inverted-subadditive order <=_{i-sb}",
+      "loc": "source/SuperParetoPaper-v12.tex:422-425",
+      "label": "def:InvSub-order"
+    },
+    {
+      "id": "D22",
+      "name": "hazard rate r_X",
+      "loc": "source/SuperParetoPaper-v12.tex:150-150"
+    },
+    {
+      "id": "D23",
+      "name": "odds rate lambda_X",
+      "loc": "source/SuperParetoPaper-v12.tex:301-301"
+    },
+    {
+      "id": "D24",
+      "name": "setting of (1): iid copies X_i, weights theta_i>=0 summing to 1",
+      "loc": "source/SuperParetoPaper-v12.tex:95-95"
+    }
+  ],
+  "_example_defs": {
+    "id": "DEFS",
+    "file": "pv_work/Defs.lean",
+    "gate": "verification/audits/DEFS_gate.md",
+    "built": true,
+    "_note": "use {\"id\": \"NONE\"} when the paper needs no shared definitions"
+  },
+  "_example_result": {
+    "id": "L01",
+    "pdf_number": "A.1",
+    "kind": "Lemma",
+    "title": "near-identity diffeomorphism",
+    "label": "lem:diffeo",
+    "statement_loc": "source/app.tex:7-9",
+    "proof_loc": "source/app.tex:10-16",
+    "depends_on": [],
+    "stage": "INVENTORIED",
+    "statement_fixed": false,
+    "round": 1,
+    "reason": "",
+    "verdict": "UNFINISHED",
+    "conditions": [],
+    "gaps": [],
+    "debts": [],
+    "unencoded": [],
+    "issues": [],
+    "upstream_issues": [],
+    "partial": "",
+    "lean_main": "pv_work/L01.lean:120 Paper.L01.main",
+    "evidence": {
+      "gate": "verification/audits/L01_gate.md",
+      "final": "verification/audits/L01_final.md",
+      "issues": [],
+      "reconnect": ""
+    },
+    "summary_en": "",
+    "updated": "YYYY-MM-DD HH:MM",
+    "uses_defs": [
+      "D01"
+    ]
+  },
+  "_example_tool": {
+    "id": "L02_L01Consumed",
+    "lean": "pv_work/L02Stmt.lean:12",
+    "meaning": "one-sentence statement read from the Lean definition",
+    "provenance": "i | ii | iii | iv | v | p (predecessor clause <ID>_<PredID>Consumed; set 'predecessor'). Gap hypotheses are NOT registered here (use the result's 'gaps')",
+    "predecessor": "L01",
+    "source_loc": "source/app.tex:171",
+    "consumers": [
+      "L09 (step S3)"
+    ],
+    "mathlib_search": "#check … / searched names …",
+    "human_check": "what exactly to check"
+  },
+  "_example_source_def": {
+    "id": "D01",
+    "name": "weighted negative Sobolev norm",
+    "loc": "source/sec_setting.tex:12-16",
+    "label": "def:hminus",
+    "_note": "one entry per defined object, with its own exact lines (v1.3.1)"
+  }
+}

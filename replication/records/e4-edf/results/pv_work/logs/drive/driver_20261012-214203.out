@@ -1,0 +1,31 @@
+[21:42] session 1 (sonnet, cap $30): 
+You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful cho...
+  -> cost $0.32, turns 17, completed
+  NOTE: Claude Code reports this folder as not trusted. The driver passes the permission file with --settings;
+        if kit commands are refused, open the folder once in Claude Code interactively and accept the trust dialog.
+  permission denials in session 1: 2 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_1.json)
+[21:43] session 2 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $9.37, turns 9, completed
+  permission denials in session 2: 2 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_2.json)
+[22:41] session 3 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $1.31, turns 2, ERROR api_error
+[22:51] usage limit reached (session 3, resets 2026-10-13 01:00 (America/Indianapolis)); sleeping 8023s, then continuing (wait 1 of at most 20)
+[01:04] continuing after the usage-limit wait
+[01:05] session 4 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $1.04, turns 26, completed
+  permission denials in session 4: 3 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_4.json)
+Nothing left to start: every result has a verdict or a recorded reason.
+[01:09] session 5 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $2.29, turns 62, completed
+  permission denials in session 5: 6 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_5.json)
+## Verification progress — Three facts about the empirical distribution function (2026-10-13 01:16)
+
+**3 numbered results: 1 verified (unconditional) · 2 verified (conditional) · 0 issue recorded · 0 unfinished.**
+
+| No. | ID | Result | Verdict | Stage | Conditions / issues / where stopped |
+|---|---|---|---|---|---|
+| 2.1 | L01 | Lemma EDF monotone, integer steps | Verified (unconditional) | FINAL_PASSED | EDF is nondecreasing and n F_n(t) is an integer in 0..n; proved along the printed route. |
+| 2.2 | P01 | Proposition Glivenko-Cantelli | Verified (conditional) | FINAL_PASSED | D_n tends to 0 a.s. for iid samples; holds given the cited Glivenko-Cantelli theorem, which is the source's whole proof. |
+| 2.3 | T01 | Theorem Kolmogorov-Smirnov limit law | Verified (conditional) | FINAL_PASSED | Verified conditionally: the gated statement is proved in full (S1-S6), conditional on DonskerUniformSup and KolmogorovFormula. |
+
+DRIVER STOPPED: done_report — the report is in verification/report/ (AUTHOR_REPORT.md, EXTERNAL_TOOLS_WORKSHEET.md, FILES_TO_CHECK.md)

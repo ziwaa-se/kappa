@@ -1,0 +1,71 @@
+[
+ {
+  "file": "lean/Check.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "lem_quarter_identity": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lem_quarter": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lem_positive_false": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lem_positive_open": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lem_nonneg": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "prop_concave": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lem_linear_false": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lem_linear_fix": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "prop_uniform": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "mean_add": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "prop_sum": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "prop_sum_identity_false": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ }
+]

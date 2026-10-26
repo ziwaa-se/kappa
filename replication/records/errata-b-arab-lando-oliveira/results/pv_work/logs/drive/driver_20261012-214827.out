@@ -1,0 +1,27 @@
+[21:48] session 1 (sonnet, cap $30): 
+You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful cho...
+  -> cost $0.79, turns 29, completed
+  NOTE: Claude Code reports this folder as not trusted. The driver passes the permission file with --settings;
+        if kit commands are refused, open the folder once in Claude Code interactively and accept the trust dialog.
+  permission denials in session 1: 3 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_1.json)
+[21:52] session 2 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $12.59, turns 13, completed
+  permission denials in session 2: 9 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_2.json)
+[22:45] session 3 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $2.39, turns 1, ERROR api_error
+[22:51] usage limit reached (session 3, resets 2026-10-13 01:00 (America/Indianapolis)); sleeping 8013s, then continuing (wait 1 of at most 20)
+[01:04] continuing after the usage-limit wait
+[01:04] session 4 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $16.55, turns 7, completed
+  permission denials in session 4: 7 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_4.json)
+[01:37] session 5 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $14.57, turns 10, completed
+  permission denials in session 5: 7 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_5.json)
+[02:12] session 6 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $10.77, turns 6, completed
+  permission denials in session 6: 2 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_6.json)
+Nothing left to start: every result has a verdict or a recorded reason.
+[02:31] session 7 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $2.04, turns 13, ERROR api_error
+  permission denials in session 7: 2 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_7.json)
+[02:39] usage limit reached (session 7, resets 2026-10-16 16:00 (America/Indianapolis)); sleeping 307541s, then continuing (wait 2 of at most 20)

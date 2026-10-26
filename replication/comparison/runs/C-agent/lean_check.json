@@ -1,0 +1,170 @@
+[
+ {
+  "file": "lean/HeavyTails.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "X_succ": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "P_succ": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "displacement": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "tail_small": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "thm_5_18": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "bounded_grad_expfam": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "rpow_small": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "no_exp_moment_expfam": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ },
+ {
+  "file": "lean/LightTails.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "X_succ": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "P_succ": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "eps_P": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "two_step": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "rpow_small": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "norm_ge_aux": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lemma_5_15": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lemma_5_16_doubling": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lemma_5_16": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "logAcc_tendsto": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lemma_5_17": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "acc_small": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "tail_small": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "expected_acc_tendsto_zero": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "thm_5_14": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "not_osc_expfam": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "two_rpow_three_halves_lt_three": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "hasDerivAt_expfam": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "not_osc_beta_five_halves": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "explode_expfam": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "osc2_expfam": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "cor_2_3_ii_large": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ }
+]

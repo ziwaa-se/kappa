@@ -17,3 +17,6 @@ __pycache__/
 
 # Archives
 *.zip
+
+# Output of replication/replicate.sh
+replication/output/

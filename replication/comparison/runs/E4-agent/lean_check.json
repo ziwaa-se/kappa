@@ -1,0 +1,123 @@
+[
+ {
+  "file": "lean/GC.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "grid": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "slln_set": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "empS_mono": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "empS_nonneg": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "empS_le_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "real_Iio_le": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "glivenko_cantelli": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ },
+ {
+  "file": "lean/Grid.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "grid": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ },
+ {
+  "file": "lean/Kolmogorov.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "kterm_bound": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "r_lt_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "geom_succ": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "summable_kterm": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "K_close_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "K_tendsto_one": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ },
+ {
+  "file": "lean/Lemma21.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "edf_monotone": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "edf_mul_mem": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lemma_2_1": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ }
+]

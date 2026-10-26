@@ -1,0 +1,23 @@
+[10:35] session 8 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $12.43, turns 7, completed
+  NOTE: Claude Code reports this folder as not trusted. The driver passes the permission file with --settings;
+        if kit commands are refused, open the folder once in Claude Code interactively and accept the trust dialog.
+  permission denials in session 8: 3 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_8.json)
+Nothing left to start: every result has a verdict or a recorded reason.
+archived the previous report to verification/report_archive/20261013-111542/
+[11:15] session 9 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $5.29, turns 89, completed
+  permission denials in session 9: 5 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_9.json)
+## Verification progress — Valid sequential inference on probability forecast performance (2026-10-13 11:31)
+
+**5 numbered results: 0 verified (unconditional) · 3 verified (conditional) · 2 issue recorded · 0 unfinished.**
+
+| No. | ID | Result | Verdict | Stage | Conditions / issues / where stopped |
+|---|---|---|---|---|---|
+| 3.1 | T01 | Theorem characterization of e-values for H_S | Issue recorded | STOPPED | Theorem 3.1 holds; proof step E(0) in (0,1) at l.419 (and mirror at l.423) is false at lambda=1 (minor argument gap). |
+| 3.2 | T02 | Theorem GROW e-value for score dominance | Issue recorded | STOPPED | Theorem 3.2 holds; l.435 (and mirror l.462) claim fails at pi1=1 / pi1=0 (argument gap); S14 and other steps proved. |
+| 3.3 | T03 | Theorem GROW e-value for all scores | Verified (conditional) | FINAL_PASSED | GROW e-value for H against pi1 equals the likelihood ratio, given the cited Gruenwald et al. Theorem 1 (X03); S1-S4 direct computation proved. |
+| 3.4 | P04 | Proposition sequential e-values for lag h | Verified (conditional) | FINAL_PASSED | (before revision 1: Verified (conditional)) Proposition 3.4 (sequential e-values for lag h, h=1 and h>1) proved in Lean; depends on the T01 e-value clause (T01 has issue B1) and the strict-consistency mixing fact. |
+| 3.5 | P05 | Proposition validity under optional stopping | Verified (conditional) | FINAL_PASSED | (before revision 1: Issue recorded) Proposition 3.5 (stopped value bound for stopping times, revised statement E(e_{tau+h-1}) <= 1): h=1 case proved along l.227 and l.200-214 (with l.400) as a fair implicit step, parameter-free; h>1 reconnected to P04 (P05Closed_r1). Conditional on P04_T01Consumed and P04_MixingOfStrict (h>1 branch). |
+
+DRIVER STOPPED: done_report — the report is in verification/report/ (AUTHOR_REPORT.md, EXTERNAL_TOOLS_WORKSHEET.md, FILES_TO_CHECK.md)

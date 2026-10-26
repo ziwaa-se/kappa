@@ -1,0 +1,36 @@
+[
+ {
+  "file": "lean_blocks/block_01.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "lemma_5_15_core": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "gamma_L": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "lemma_5_17_square": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "two_rpow_three_halves_lt_three": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "oscillations_fails_beta_five_halves": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ }
+]

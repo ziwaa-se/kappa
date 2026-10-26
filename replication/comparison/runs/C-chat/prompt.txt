@@ -1,0 +1,3 @@
+[the LaTeX source of the paper]
+
+Above is the LaTeX source of my paper. Please use Lean 4 with Mathlib to help me check it. For each numbered result (theorem, proposition, lemma, corollary), tell me whether its statement and its proof are correct, give Lean 4 code that proves it, or a counterexample if it is false, and point out any errors in the paper. Check only Theorem 2.2, Corollary 2.3(ii), Theorem 5.14 and Lemmas 5.15-5.17; you may use the other results of the paper without checking them.

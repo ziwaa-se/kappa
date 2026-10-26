@@ -1,0 +1,5 @@
+[02:39] session 8 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $0.12, turns 6, ERROR api_error
+  NOTE: Claude Code reports this folder as not trusted. The driver passes the permission file with --settings;
+        if kit commands are refused, open the folder once in Claude Code interactively and accept the trust dialog.
+[02:39] usage limit reached (session 8, resets 2026-10-16 16:00 (America/Indianapolis)); sleeping 307540s, then continuing (wait 1 of at most 20)

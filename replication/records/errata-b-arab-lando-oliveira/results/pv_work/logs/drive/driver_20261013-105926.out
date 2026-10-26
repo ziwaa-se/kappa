@@ -1,0 +1,30 @@
+[10:59] session 10 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $7.03, turns 9, completed
+  NOTE: Claude Code reports this folder as not trusted. The driver passes the permission file with --settings;
+        if kit commands are refused, open the folder once in Claude Code interactively and accept the trust dialog.
+  permission denials in session 10: 1 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_10.json)
+Nothing left to start: every result has a verdict or a recorded reason.
+archived the previous report to verification/report_archive/20261013-113005/
+[11:30] session 11 (sonnet, cap $30): You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choi...
+  -> cost $7.75, turns 40, completed
+  permission denials in session 11: 7 (details: python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_11.json)
+## Verification progress — Convex combinations of random variables stochastically dominate the parent for a new class of heavy tailed distributions (2026-10-13 11:51)
+
+**12 numbered results: 3 verified (unconditional) · 2 verified (conditional) · 7 issue recorded · 0 unfinished.**
+
+| No. | ID | Result | Verdict | Stage | Conditions / issues / where stopped |
+|---|---|---|---|---|---|
+| 2.3 | L01 | Lemma InvSub characterisation | Issue recorded | STOPPED | Lemma 2.3 as printed is false: it omits F_X(0)=0 from Def 2.2; X=0 a.s. is a Lean-checked counterexample to the 'if' direction. |
+| 2.5 | P01 | Proposition InvSub via hazard rate bound | Verified (unconditional) | FINAL_PASSED | Prop 2.5 verified unconditionally; the derivative step is rendered in integrated (Tonelli) form, a faithful rendering per the audit; 'negative' at :153 should read non-positive (editorial). |
+| 2.8 | T01 | Theorem closure under star-shaped maps | Issue recorded | STOPPED | Theorem 2.8 is false as printed: h(x)=max(x-1,0) gives F_{h(X)}(0)=1/2 (Lean counterexample); rest verified in gap file. |
+| 3.1 | T02 | Theorem main dominance theorem | Verified (conditional) | FINAL_PASSED | (before revision 1: Issue recorded) Thm 3.1 verified conditionally on the only-if direction of Lemma 2.3 (T02_L01Consumed); the revised induction step is correct as written; zero weights, n=1, x<0 and weight renormalisation are fair implicit steps. |
+| 3.2 | P02 | Proposition dominance forces infinite mean | Issue recorded | STOPPED | Prop 3.2's proof uses sqrt X without X>=0 (B02) and its n=2 reduction depends on how the hypothesis is read (B03); rest verified. |
+| 3.3 | P03 | Proposition InvSub implies infinite mean | Verified (conditional) | FINAL_PASSED | Prop 3.3 verified conditionally on T02_L01Consumed (only-if half of Lemma 2.3) and P03_P02Consumed (Prop 3.2, ISSUE); the Thm 3.1 clause is reconnected to T02; the non-degeneracy step at :269 is a fair implicit step. |
+| 4.6 | P04 | Proposition DOR via convex transform order | Issue recorded | STOPPED | Prop 4.6 as printed is false for a.s. constant X (Lean counterexample, review VALID); verified with non-degeneracy added; the :320 step is a fair implicit step. |
+| 4.8 | T03 | Theorem super-Pareto implies InvSub | Issue recorded | STOPPED | Thm 4.8 is false as printed (max(Z-2,0) and Z+1; Lean counterexamples, review VALID) and the h(0)=0 step at :337 fails for X=Z. |
+| 4.10 | L02 | Lemma super-heavy-tailed characterisation | Issue recorded | STOPPED | Lemma 4.10 omits F_X(0)=0 from Def 4.9, so the 'if' direction is false for X=0 a.s. (Lean counterexample); rest verified in gap file. |
+| 4.12 | T04 | Theorem super-heavy-tailed implies InvSub | Verified (unconditional) | FINAL_PASSED | Thm 4.12 verified unconditionally; the Log 0 case at :381 is a fair implicit step (S4z); 'exponential is superadditive' at :383 is an editorial slip. |
+| 5.2 | P05 | Proposition super-heavy-tailed via i-sb order | Issue recorded | STOPPED | Prop 5.2 omits F_X(0)=0, so the 'if' direction is false for X=0 a.s. (Lean counterexample, review VALID); S1-S3 verified. |
+| 5.3 | P06 | Proposition InvSub via i-sb order | Verified (unconditional) | FINAL_PASSED | Prop 5.3 verified unconditionally; the F^- to F switch (S3) and the p=1 edge (S1') are fair implicit steps (editorial: state them). |
+
+DRIVER STOPPED: done_report — the report is in verification/report/ (AUTHOR_REPORT.md, EXTERNAL_TOOLS_WORKSHEET.md, FILES_TO_CHECK.md)

@@ -1,0 +1,90 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\title{Variance bounds for proportions and sums}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We record bounds on the variance $p(1-p)/n$ of a sample proportion, a concavity property of its square root, a
+uniform bound in $n$, and a bound for the sample variance of a sum of two data vectors.
+\end{abstract}
+
+\section{Setting}
+
+Throughout, $n \ge 1$ is an integer and $I$ denotes the unit interval.
+
+\begin{definition}\label{def:vp}
+For $p \in \mathbb{R}$, let $V_n(p) = p(1-p)/n$; for $p \in I$ this is the variance of the proportion of successes
+in $n$ independent trials with success probability $p$.
+\end{definition}
+
+\begin{definition}\label{def:svar}
+For $m \ge 2$ and $u \in \mathbb{R}^m$, let $\bar u = \frac1m \sum_{i=1}^m u_i$ and
+$s^2(u) = \frac{1}{m-1} \sum_{i=1}^m (u_i - \bar u)^2$.
+\end{definition}
+
+\section{Results}
+
+\begin{lemma}\label{lem:quarter}
+For every $p \in \mathbb{R}$, $p(1-p) = \frac14 - (p - \frac12)^2$. In particular $V_n(p) \le \frac{1}{4n}$.
+\end{lemma}
+
+\begin{proof}
+Expanding, $\frac14 - (p - \frac12)^2 = \frac14 - p^2 + p - \frac14 = p(1-p)$. Since $(p - \frac12)^2 \ge 0$ and
+$n > 0$, the bound follows.
+\end{proof}
+
+\begin{lemma}\label{lem:positive}
+For every $p \in I$, $V_n(p) > 0$.
+\end{lemma}
+
+\begin{proof}
+For $p \in I$ both $p$ and $1 - p$ are positive, and $n > 0$.
+\end{proof}
+
+\begin{proposition}\label{prop:concave}
+For all $p, q \in I$,
+$\sqrt{V_n\bigl(\tfrac{p+q}{2}\bigr)} \ge \frac12 \Bigl(\sqrt{V_n(p)} + \sqrt{V_n(q)}\Bigr)$.
+\end{proposition}
+
+\begin{proof}
+It is well known that the function $p \mapsto \sqrt{p(1-p)}$ is concave on $I$. The claim is the inequality defining
+concavity at the midpoint of $p$ and $q$, divided by $\sqrt{n}$.
+\end{proof}
+
+\begin{lemma}\label{lem:linear}
+For every $p \in I$, $V_n(p) \le \frac{p}{4n}$.
+\end{lemma}
+
+\begin{proof}
+By Lemma~\ref{lem:quarter}, $V_n(p) = \frac{p(1-p)}{n} \le \frac{p}{4n}$.
+\end{proof}
+
+\begin{proposition}\label{prop:uniform}
+There is a constant $C$ such that $V_n(p) \le C/n$ for every $n \ge 1$ and every $p \in \mathbb{R}$.
+\end{proposition}
+
+\begin{proof}
+By Lemma~\ref{lem:quarter}, $C = \frac14$ works.
+\end{proof}
+
+\begin{proposition}\label{prop:sum}
+For $m \ge 2$ and $x, y \in \mathbb{R}^m$, $s^2(x + y) \le 2 s^2(x) + 2 s^2(y)$.
+\end{proposition}
+
+\begin{proof}
+We have $s^2(x + y) = s^2(x) + s^2(y)$, and $s^2(x) + s^2(y) \le 2 s^2(x) + 2 s^2(y)$ because both terms are
+nonnegative.
+\end{proof}
+
+\end{document}

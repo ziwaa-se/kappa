@@ -1,0 +1,4 @@
+{"_paper": "E4 Three facts about the empirical distribution function; see ANSWER_KEY.md",
+ "2.1": {"expect": ["UNCONDITIONAL"]},
+ "2.2": {"expect": ["CONDITIONAL:v", "CONDITIONAL:ii"], "accept": ["CONDITIONAL:i", "UNFINISHED:TRANSLATION_BLOCKED"]},
+ "2.3": {"expect": ["UNFINISHED:TRANSLATION_BLOCKED"], "accept": ["CONDITIONAL"]}}

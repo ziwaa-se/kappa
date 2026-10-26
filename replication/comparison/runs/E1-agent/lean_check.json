@@ -1,0 +1,71 @@
+[
+ {
+  "file": "lean/SampleVariance.lean",
+  "compiles": true,
+  "errors": 0,
+  "sorry": false,
+  "theorems": {
+   "SampleVariance.sum_eq_n_mul_mean": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "SampleVariance.lemma_2_1": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "SampleVariance.lemma_2_2": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "SampleVariance.sum_sq_shift": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "SampleVariance.proposition_2_3": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "SampleVariance.sum_sq_dev_eq": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "SampleVariance.var_nonneg": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "SampleVariance.proposition_2_4": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "SampleVariance.lemma_2_5_false": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "SampleVariance.lemma_2_5_corrected": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "SampleVariance.corollary_2_6_proof_step_false": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ],
+   "SampleVariance.corollary_2_6": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  "first_error": ""
+ }
+]
