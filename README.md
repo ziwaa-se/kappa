@@ -2,6 +2,8 @@
 
 *Kit of Agents for Proof-checking Papers with a proof Assistant*, released as the TeX Proof-Check Kit up to v1.3.4.
 
+Paper: [arXiv:2610.35596](https://arxiv.org/abs/2610.35596) · [How to cite](#citing-kappa)
+
 **Check the proofs already written in a LaTeX paper by translating them faithfully into Lean 4**, with a team of [Claude Code](https://code.claude.com/docs) agents that review each other's work. Every numbered result (theorem, proposition, lemma, corollary) gets one of four verdicts:
 
 | Verdict | Meaning |
@@ -195,15 +197,36 @@ kappa/
 
 ## Paper
 
-Zihua She and Xiao Wang (2026). *KAPPA: Checking the Proofs in Statistics Papers with Lean 4 and Language Model
-Agents.* The paper describes the design, follows a complete run, applies the kit to four example papers with answer
-keys and to three published statistical papers checked blind before their corrections, and compares it with a direct
-use of the same language model.
+Zihua She and Xiao Wang (2026). [*KAPPA: Checking the Proofs in Statistics Papers with Lean 4 and Language Model
+Agents*](https://arxiv.org/abs/2610.35596). arXiv:2610.35596. The paper describes the design, follows a complete
+run, applies the kit to four example papers with answer keys and to three published statistical papers checked blind
+before their corrections, and compares it with a direct use of the same language model.
 
 [`replication/`](replication/) holds the paper's replication materials: the records of every run, the answer keys,
 the comparison runs and `replicate.sh`, which reproduces every table of results in a few seconds and, with
 `--replay <lean-env>`, rebuilds every archived Lean file and reruns the mechanical audits in under an hour, all
 without a language model. See [replication/README.md](replication/README.md).
+
+## Citing KAPPA
+
+If you use KAPPA in your work, please cite the paper:
+
+```bibtex
+@misc{she2026kappa,
+  title         = {{KAPPA}: Checking the Proofs in Statistics Papers with {Lean} 4 and
+                   Language Model Agents},
+  author        = {Zihua She and Xiao Wang},
+  year          = {2026},
+  eprint        = {2610.35596},
+  archivePrefix = {arXiv},
+  primaryClass  = {stat.CO},
+  doi           = {10.48550/arXiv.2610.35596},
+  url           = {https://arxiv.org/abs/2610.35596}
+}
+```
+
+The "Cite this repository" button on GitHub, made from [CITATION.cff](CITATION.cff), gives this reference in APA and
+BibTeX.
 
 ## Roadmap
 

@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+message: "If you use KAPPA, please cite the paper given as the preferred citation."
+type: software
+title: "KAPPA: Kit of Agents for Proof-checking Papers with a proof Assistant"
+abstract: >-
+  KAPPA checks the proofs already written in a LaTeX paper by translating them
+  step by step into Lean 4, with language model agents that review each
+  other's work.
+authors:
+  - family-names: She
+    given-names: Zihua
+    affiliation: Purdue University
+  - family-names: Wang
+    given-names: Xiao
+    affiliation: Purdue University
+version: 1.4.0
+date-released: "2026-10-25"
+license: MIT
+repository-code: "https://github.com/ziwaa-se/kappa"
+keywords:
+  - proof checking
+  - formal verification
+  - Lean
+  - language models
+  - statistical theory
+  - reproducibility
+preferred-citation:
+  type: article
+  title: "KAPPA: Checking the Proofs in Statistics Papers with Lean 4 and Language Model Agents"
+  authors:
+    - family-names: She
+      given-names: Zihua
+      affiliation: Purdue University
+    - family-names: Wang
+      given-names: Xiao
+      affiliation: Purdue University
+  journal: "arXiv preprint arXiv:2610.35596"
+  year: 2026
+  doi: "10.48550/arXiv.2610.35596"
+  url: "https://arxiv.org/abs/2610.35596"
