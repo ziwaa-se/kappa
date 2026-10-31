@@ -57,10 +57,13 @@ When it returns, deal with every Major and Moderate item one by one, and correct
 
 ## 5. Delivery
 
+- Run `python3 scripts/pv_graph.py` and `python3 scripts/pv_summary.py` (v1.5). They write `verification/report/VERIFICATION_GRAPH.html` (every result, its verdict and dependencies, in a browser) and `verification/report/CHECK_SUMMARY.md` (a one-page summary for readers who did not run the check) from the records alone, without a model; do not edit their output by hand.
+- Run `python3 scripts/pv_status.py report-stamp` (v1.5). It records which `RESULTS.json` this report was made from, and `validate` warns as soon as the records change after it. It refuses when the records changed since the previous report but a file that pv-compiler writes is unchanged: an update of the report, however small, starts again at §2 (pv-compiler), then §3–§5.
 - Run `python3 scripts/pv_snapshot.py save --label report`.
 - Tell the user:
   - the four counts and the English summary table;
   - the most substantive issues;
   - the grade-A external inputs that need a human check;
   - the reading order of the three main files: AUTHOR_REPORT → FILES_TO_CHECK → EXTERNAL_TOOLS_WORKSHEET;
+  - that `VERIFICATION_GRAPH.html` shows the whole check at a glance, that `CHECK_SUMMARY.md` is a one-page summary they can pass on, and that `python3 scripts/pv_export.py` packages the Lean files as a standalone Lean project if they want to share them;
   - while external parameters remain, **do not claim that the whole paper is fully verified**.

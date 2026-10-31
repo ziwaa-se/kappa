@@ -6,14 +6,14 @@ Each stage allows only the reasons listed in the table below. `pv_status.py vali
 
 | `stage` | Meaning | Allowed `reason` |
 |---|---|---|
-| `NOT_STARTED` / `INVENTORIED` | Registered, not yet drafted | empty; `WAITING_ON_DEPENDENCY` (a predecessor has still not passed the gate at the end of a pass); `SOURCE_CHANGED` (reset after a revision) |
+| `NOT_STARTED` / `INVENTORIED` | Registered, not yet drafted | empty; `WAITING_ON_DEPENDENCY` (a predecessor has still not passed the gate at the end of a pass); `SOURCE_CHANGED` (reset after a revision); `NEW_IN_REVISION` (v1.5: new in a revision) |
 | `STATEMENT_DRAFTED` | Draft written, waiting for or undergoing the gate | empty |
 | `GATE_PASSED` | Statement has passed the gate; also set `statement_fixed: true` | empty |
 | `PROVING` | Proof in progress | empty |
 | `PROVED` | Proved, waiting for the final audit | empty; `AUDIT_PENDING` |
 | `FINAL_PASSED` | Final audit passed | empty |
 | `ISSUE_CHECK` | From dispatching the issue ruling until the review is finished | empty |
-| `STOPPED` | Stopped; **must** have a reason | `GATE_FAILED`, `TRANSLATION_BLOCKED`, `BUDGET_EXHAUSTED`, `AUDIT_FAILED`, `ISSUE_RECORDED`, `ISSUE_UNCONFIRMED` |
+| `STOPPED` | Stopped; **must** have a reason | `GATE_FAILED`, `TRANSLATION_BLOCKED`, `BUDGET_EXHAUSTED`, `AUDIT_FAILED`, `ISSUE_RECORDED`, `ISSUE_UNCONFIRMED`, `INFRASTRUCTURE_RULING` |
 
 How the stop reasons differ:
 
@@ -21,6 +21,8 @@ How the stop reasons differ:
 |---|---|
 | `TRANSLATION_BLOCKED` | **Formalization-side obstacles** such as a missing Lean interface or a missing mathlib module |
 | `BUDGET_EXHAUSTED` | A single obligation made no progress in 4 consecutive attempts in each of the two proof sessions of a pass (the second on the stronger model), or the proof sessions are used up |
+| `NEW_IN_REVISION` | (v1.5) A result that is new in a revision of the paper (`reset <ID> --revision <k> --new`); allowed at `NOT_STARTED` and `INVENTORIED`, cleared when work starts |
+| `INFRASTRUCTURE_RULING` | (v1.5) The prover stopped an obligation on the infrastructure budget (stage 4) and the gate has not ruled yet; not a final reason |
 | `GATE_FAILED` | The gate gave FAIL twice |
 | `AUDIT_FAILED` | The final audit gave FAIL twice |
 | `ISSUE_RECORDED` | A registered paper issue, confirmed by review |
@@ -49,6 +51,7 @@ Result `T01` is used as the example. The second and later reports get `_r2`, `_r
 | Statement draft (`import T01Stmt`, theorems with `sorry`) | `pv_work/T01Draft.lean` | pv-drafter |
 | Drafting notes | `pv_work/notes/T01_draft_notes.md` | pv-drafter |
 | Statement gate report | `verification/audits/T01_gate.md` (`_gate_r2.md` …) | pv-gate |
+| Infrastructure ruling (v1.5) | `verification/audits/T01_infra_r<k>.md` | pv-gate |
 | Proof file | `pv_work/T01.lean` (and `.olean`) | pv-prover |
 | Gap file (when there are stopped obligations) | `pv_work/T01ModGaps.lean` (and `.olean`) | pv-prover |
 | Proof notes | `pv_work/notes/T01_prover_notes.md` | pv-prover |
@@ -87,6 +90,7 @@ Every report must contain its verdict line within its **last 5 lines**; the scri
 | reasoning review | `REVIEW: CONFIRMED` or `REVIEW: NOT CONFIRMED` |
 | predecessor reconnection | `RECONNECT AUDIT: PASS` or `RECONNECT AUDIT: FAIL`, then (v1.3.1) `CONDITIONS: …` with the complete set after reconnection |
 | re-check (v1.3.1) | `RECHECK: PASS` or `RECHECK: FAIL` |
+| infrastructure ruling (v1.5) | `INFRASTRUCTURE RULING: EXTEND <n>`, `INFRASTRUCTURE RULING: PARAMETER` or `INFRASTRUCTURE RULING: DECLINE` |
 
 ---
 
@@ -129,7 +133,7 @@ Every report must contain its verdict line within its **last 5 lines**; the scri
 ## Stage 3: statement gate (pv-gate)
 
 - Item-by-item review; see the `pv-gate` definition. The review covers both `<ID>Stmt.lean` and `<ID>Draft.lean`.
-- **Snapshot**: run `#pv_type_hashes_here` separately on a **copy** of each of the two files, and put the output in the report. Copies are used so that the snapshot corresponds to the text the gate actually read, not to an `.olean` compiled earlier.
+- **Snapshot**: run `#pv_type_hashes_here` separately on a **copy** of each of the two files, and put the output in the report, between the lines `<!-- PV SNAPSHOT BEGIN -->` and `<!-- PV SNAPSHOT END -->`. Copies are used so that the snapshot corresponds to the text the gate actually read, not to an `.olean` compiled earlier. (v1.5) The scripts read only that block, so fingerprints quoted elsewhere in the report are not gated declarations, and a `<X>_Gap` line never is one; reports without the markers are read as a whole, as before.
 - Verdicts:
   - **PASS**: the coordinator sets `statement_fixed: true` and reruns `build <ID>Stmt`, so that the `.olean` matches the text the gate read.
   - **PASS_WITH_AMENDMENTS**: pv-drafter makes the changes item by item as the report specifies; pv-gate checks them, takes a new snapshot, and writes `_gate_r2.md`, whose last line is PASS. **Proving may start only after PASS.**
@@ -140,6 +144,11 @@ Every report must contain its verdict line within its **last 5 lines**; the scri
 - Copy the draft to `pv_work/<ID>.lean` using Read/Write, not `cp`. **Gated declarations are never changed.**
 - Prove strictly along the source route. Private helper lemmas may be used only for technical conversions.
 - **Infrastructure budget**: when the auxiliary material for a single step clearly goes beyond technical conversion (a body of general theory that is not in the source, or more than about 150 lines of auxiliary code for a single step), stop and report; the gate decides whether to turn it into a (v) parameter. Turning it into a parameter changes the statement, so it must be re-gated.
+  - (v1.5) The prover reports such a stop as `INFRASTRUCTURE_RULING`, with the route and its estimated length. The coordinator records `STOPPED` + `INFRASTRUCTURE_RULING`; `pv_status.py next` lists the result as `RULING`. Before any further proof session, pv-gate rules in infrastructure-ruling mode (`verification/audits/<ID>_infra_r<k>.md`), with one of three outcomes:
+    1. `EXTEND <n>`: the route is technical conversion of standard facts; the prover gets one proof session (it counts toward the 2 of the pass) with a cap of n helper lines for that step;
+    2. `PARAMETER`: the fact is one the source only cites or silently uses (`VERDICTS.md` §4.2); it becomes a (v) input, which changes the statement: continue as for a statement problem found by the final audit (reset with `--reason ''`, drafter, gate);
+    3. `DECLINE`: neither; record `BUDGET_EXHAUSTED`, which leaves the result for the second pass.
+  - At most 2 infrastructure rulings per result; after that, record `BUDGET_EXHAUSTED`.
 - **Steps with insufficient support in the source:**
   - Do not look for an alternative proof; the obligation keeps its `sorry` in `<ID>.lean`; report the suspected issue.
   - Also write a **gap file** `pv_work/<ID>ModGaps.lean`. It is a copy of `<ID>.lean` with only three kinds of change allowed:
@@ -205,6 +214,12 @@ After a predecessor result P becomes `FINAL_PASSED` (UNCONDITIONAL or CONDITIONA
    - if all conditions have disappeared, X becomes UNCONDITIONAL.
 4. **`RECONNECT AUDIT: FAIL`**: give pv-prover one fix session; if it still FAILs, X keeps its original (p) conditions, and the reason is recorded.
 5. **P ends up ISSUE or UNFINISHED**: X keeps its (p) conditions; the report treats them as (iv) and lists them in the class most in need of human check. If X itself is ISSUE, no reconnection is done.
+
+**Discharging an external input (v1.5).** An external input of another provenance ((ii), (iii), (v), or (iv) without a predecessor) can become provable after its result was verified: its Mathlib module was built since (the gate recorded `in source, not built: <Module>` in `mathlib_search`), or a person found the route and marked it with `python3 scripts/pv_status.py provable <TOOL> --why "<route>"`. `pv_status.py reconnect` then lists every CONDITIONAL result that uses it, and it is closed by the same steps as above:
+
+1. pv-prover writes `pv_work/<X>Closed_r<k>.lean` with `theorem <TOOL>_holds : <the input's proposition>`, proved without new external inputs, and `main_closed` without that parameter; one Closed file may discharge inputs and reconnect predecessors together.
+2. pv-auditor's reconnection audit confirms with the `rfl` method that `main_closed` is X's main theorem with the input supplied by `<TOOL>_holds`, checks the axioms, and lists the remaining conditions.
+3. `record <X> … --evidence-reconnect <report> --lean-main '<X>Closed_r<k>.lean:<line> Paper.<X>.main_closed'` marks the input as proved in that file (`proved_in`); the other results that use it are listed by `reconnect` as "connect it". If the proof fails, run `pv_status.py provable <TOOL> --undo --why "<what failed>"` so that it is not listed again.
 
 ## Handling suspected issues: the next step depends on the classification
 

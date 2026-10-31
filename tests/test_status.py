@@ -285,3 +285,130 @@ class LeanMain(KitTestCase):
         p = self.pr.status("validate")
         self.assertIn("is declared at line 2", p.out)
         self.assertNotIn("INVALID", p.out)
+
+
+class NewInRevision(KitTestCase):                                          # v1.5
+    def test_new_result_is_marked_and_shown_as_new(self):
+        pr = Project(self.tmp, results=[result("A1"), result("N1")])
+        pr.make_passed("A1")
+        p = pr.status("reset", "N1", "--revision", "4", "--new")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertTrue(p.out.rstrip().endswith("VALID"), p.out)
+        r = pr.result("N1")
+        self.assertEqual((r["reason"], r["history"][-1]["new"]), ("NEW_IN_REVISION", True))
+        self.assertIn("| N1 | N1 | new (revision 4) | Unfinished |", pr.status("followup").out)
+        self.assertIn("(before revision 4: new)", pr.status("table").out)
+        self.assertIn("READY\tN1", pr.status("next").out)
+        p = pr.status("reset", "A1", "--revision", "4", "--new")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("not started yet", p.out)
+        # its first gate pass decides nothing for dependents (there is no earlier statement)
+        pr.write("verification/audits/N1_gate.md", "STATEMENT GATE: PASS\n")
+        p = pr.status("record", "N1", "--stage", "GATE_PASSED", "--statement-fixed", "true")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertNotIn("CASCADE", p.out)
+        self.assertEqual(pr.result("N1")["reason"], "")
+
+
+class DischargedInput(KitTestCase):                                        # v1.5
+    """An external input that becomes provable after its result was verified (PIPELINE stage 6b)."""
+
+    def setUp(self):
+        super().setUp()
+        self.pr = Project(self.tmp, results=[result("X1"), result("Y1")],
+                          tools=[tool("Ext1", "v", consumers=["X1", "Y1"],
+                                      mathlib_search="in source, not built: Mathlib.Topology.Foo")])
+        self.pr.make_passed("X1", verdict="CONDITIONAL", conditions=["Ext1"])
+        self.pr.make_passed("Y1", verdict="CONDITIONAL", conditions=["Ext1"])
+
+    def connect(self, rid):
+        self.pr.write(f"verification/audits/{rid}_reconnect_r1.md", "# Reconnection\n\nRECONNECT AUDIT: PASS\nCONDITIONS: none\n")
+        self.pr.write(f"pv_work/{rid}Closed_r1.lean", f"namespace Paper.{rid}\ntheorem main_closed : True := trivial\nend Paper.{rid}\n")
+        return self.pr.status("record", rid, "--verdict", "UNCONDITIONAL", "--stage", "FINAL_PASSED",
+                              "--evidence-reconnect", f"verification/audits/{rid}_reconnect_r1.md",
+                              "--lean-main", f"pv_work/{rid}Closed_r1.lean:2 Paper.{rid}.main_closed")
+
+    def test_built_module_or_mark_lists_the_input(self):
+        pr = self.pr
+        self.assertIn("no pending reconnections", pr.status("reconnect").out)
+        self.assertIn("in the Mathlib source but not built: Mathlib.Topology.Foo", pr.status("tools").out)
+        pr.write(".lake/packages/mathlib/.lake/build/lib/lean/Mathlib/Topology/Foo.olean", "")
+        out = pr.status("reconnect").out
+        self.assertIn("X1\tuses Ext1\tMathlib module Mathlib.Topology.Foo is now built: prove it and connect it", out)
+        self.assertIn("external input Ext1 can now be discharged", pr.status("validate").out)
+        p = pr.status("provable", "Ext1", "--undo", "--why", "the route needs more than the lemma")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertIn("no pending reconnections", pr.status("reconnect").out)
+        p = pr.status("provable", "Ext1", "--why", "Mathlib's foo_bar gives it")
+        self.assertIn("X1\tuses Ext1\tmarked provable: Mathlib's foo_bar", p.out)
+
+    def test_proved_and_connected_input_is_no_longer_open(self):
+        p = self.connect("X1")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertNotIn("final audit suggests", p.out)     # the reconnection, not the final audit, decides
+        self.assertIn("external input Ext1: marked as proved in pv_work/X1Closed_r1.lean\n", p.out)
+        self.assertIn("WARN Y1: external input Ext1 can now be discharged", p.out)
+        t = next(x for x in self.pr.state()["external_tools"] if x["id"] == "Ext1")
+        self.assertEqual(t["proved_in"], "pv_work/X1Closed_r1.lean")
+        self.assertIn("still a condition of Y1 until connected there", t["status"])
+        self.assertIn("Y1\tuses Ext1\tproved in Lean in pv_work/X1Closed_r1.lean: connect it", self.pr.status("reconnect").out)
+        p = self.connect("Y1")
+        self.assertNotIn("WARN", p.out)
+        self.assertIn("no longer a condition", self.pr.status("tools").out)
+        self.assertIn("no pending reconnections", self.pr.status("reconnect").out)
+        self.assertEqual(self.pr.script("pv_summary.py").returncode, 0)
+        self.assertIn("Proved in Lean after their results were verified, and connected (v1.5): `Ext1`",
+                      self.pr.read("verification/report/CHECK_SUMMARY.md"))
+
+    def test_last_predecessor_reconnection_gives_no_warning(self):
+        pr = Project(self.tmp, results=[result("L01"), result("L02", depends_on=["L01"])],
+                     tools=[tool("L02_L01Consumed", "p", predecessor="L01")], name="p")
+        pr.make_passed("L01")
+        pr.make_passed("L02", verdict="CONDITIONAL", conditions=["L02_L01Consumed"])
+        pr.write("verification/audits/L02_reconnect_r1.md", "RECONNECT AUDIT: PASS\nCONDITIONS: none\n")
+        pr.write("pv_work/L02Closed_r1.lean", "namespace Paper.L02\ntheorem main : True := trivial\nend Paper.L02\n")
+        p = pr.status("record", "L02", "--verdict", "UNCONDITIONAL", "--stage", "FINAL_PASSED", "--evidence-reconnect",
+                      "verification/audits/L02_reconnect_r1.md", "--lean-main", "pv_work/L02Closed_r1.lean:2 Paper.L02.main")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertNotIn("final audit suggests", p.out)
+
+
+class InfrastructureRuling(KitTestCase):                                   # v1.5
+    def test_stop_waits_for_the_gate_and_rulings_are_capped(self):
+        pr = Project(self.tmp, results=[result("P1")])
+        p = pr.status("record", "P1", "--verdict", "UNFINISHED", "--stage", "STOPPED", "--reason", "INFRASTRUCTURE_RULING",
+                      "--partial", "S1-S3 proved; S4 needs about 200 helper lines")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertRegex(pr.status("next").out, r"RULING\tP1\tP1\t.*infrastructure-ruling mode .*ruling 1 of at most 2")
+        self.assertNotIn("P1", pr.status("next", "--second-pass").out)
+        pr.write("verification/audits/P1_infra_r1.md", "reasons\n\nINFRASTRUCTURE RULING: EXTEND 250\n")
+        self.assertIn("ruling 2 of at most 2", pr.status("next").out)
+        self.assertIn("INFRASTRUCTURE RULING: EXTEND 250", pr.status("outputs", "P1").out)
+        pr.write("verification/audits/P1_infra_r2.md", "reasons\n\nINFRASTRUCTURE RULING: DECLINE\n")
+        self.assertNotIn("RULING\tP1", pr.status("next").out)
+        self.assertIn("record BUDGET_EXHAUSTED instead", pr.status("validate").out)
+
+
+class ReportStamp(KitTestCase):                                            # v1.5
+    def test_stale_report_is_flagged_and_an_update_without_the_compiler_refused(self):
+        pr = Project(self.tmp, results=[result("A1"), result("A2")])
+        pr.make_passed("A1")
+        pr.write("verification/report/AUTHOR_REPORT.md", "report\n")
+        p = pr.status("report-stamp")
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("missing in verification/report/work/: consistency_check.md, author_notes.md, external_tools.md", p.out)
+        for n in ("consistency_check.md", "author_notes.md", "external_tools.md"):
+            pr.write(f"verification/report/work/{n}", f"{n} from the first compilation\n")
+        self.assertEqual(pr.status("report-stamp").returncode, 0)
+        self.assertNotIn("older records", pr.status("validate").out)
+        pr.make_passed("A2")                              # the records change after the report
+        self.assertIn("the report in verification/report/ was made from older records", pr.status("validate").out)
+        pr.write("verification/report/work/external_tools.md", "updated by hand\n")
+        p = pr.status("report-stamp")
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("verification/report/work/consistency_check.md, verification/report/work/author_notes.md", p.out)
+        self.assertNotIn("work/external_tools.md", p.out)
+        for n in ("consistency_check.md", "author_notes.md"):
+            pr.write(f"verification/report/work/{n}", f"{n} compiled again\n")
+        self.assertEqual(pr.status("report-stamp").returncode, 0)
+        self.assertNotIn("older records", pr.status("validate").out)

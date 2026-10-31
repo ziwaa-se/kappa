@@ -94,6 +94,7 @@ On the last line write `REVIEW: CONFIRMED` or `REVIEW: NOT CONFIRMED`.
 - each `<X>_<P>Consumed_holds` really follows from P's main theorem;
 - the axioms are clean (you may run `python3 scripts/pv_audit_mech.py <X> --module <X>Closed_r<k> --skip-statement` for the compile, rebuild, axiom and walk checks);
 - list the complete set of X's conditions after reconnection, i.e. the union of X's remaining conditions and P's conditions.
+- (v1.5) for a discharged external input (PIPELINE stage 6b): `<TOOL>_holds` has exactly the input's proposition as its type (`example : <TOOL> := <TOOL>_holds`), uses no new external input, and the input is no longer among the conditions.
 
 End with two lines: `RECONNECT AUDIT: PASS` or `RECONNECT AUDIT: FAIL`, then `CONDITIONS: <ids>` (or `CONDITIONS: none`) with that complete set (v1.3.1).
 

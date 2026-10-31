@@ -49,5 +49,7 @@ sum, written for the kit with an answer key fixed before the run ([ANSWER_KEY.md
 - **Scored** with `python3 ../tools/score.py results answer_key.json` (run in this folder).
 - **Replayed offline** with `examples/tools/replay.py` (no language model): all six results rebuilt and their verdicts confirmed in 127 s.
 - `results/` is the run's record, copied with `examples/tools/sanitize.py` (local paths and user names replaced by
-  placeholders; nothing else edited). Costs are those Claude Code reported for each session, at list prices (`results/sessions.json`); the
+  placeholders; nothing else edited), with two later additions: `results/verification/report/CHECK_SUMMARY.md` and
+  `VERIFICATION_GRAPH.html` were made from these records on 2026-10-30 by kit v1.5.0 (`scripts/pv_summary.py`,
+  `scripts/pv_graph.py`, without a language model). Costs are those Claude Code reported for each session, at list prices (`results/sessions.json`); the
   estimates from the transcripts (`results/usage.md`) agree to within five cents. Times exclude waits for usage limits.

@@ -178,7 +178,7 @@ scripts/pv_drive.sh                                  # unattended /pv-run in fre
 python3 scripts/pv_cards_check.py                    # after changing a rules file: every section cited by a rule card still exists
 ```
 
-- `pv_audit_mech.py` replaces the auditor's manual probes for compile, rebuild, the `PVTools.lean` hash, fingerprint comparison, `#pv_axioms`, `#pv_walk` and the first level of `#pv_hyp_usage`. It only reports; the auditor still judges route fidelity, helpers, unaudited constants, gap-file `example` checks and non-vacuity. The auditor runs it; results from the prover or coordinator are not accepted.
+- `pv_audit_mech.py` replaces the auditor's manual probes for compile, rebuild, the `PVTools.lean` hash, fingerprint comparison, `#pv_axioms`, `#pv_walk` and the first level of `#pv_hyp_usage`, and (v1.5) checks that every Lake package is the git checkout of its `lake-manifest.json` revision with no local changes (item 13). (v1.5) When the module walk reaches a non-standard axiom, it walks each declaration on its own: the compiler auxiliaries of a computable `def` (internal names such as `…._cstage1`) refer to the core axiom `lcProof`, which no theorem reaches, so they do not fail item 7. It only reports; the auditor still judges route fidelity, helpers, unaudited constants, gap-file `example` checks and non-vacuity. The auditor runs it; results from the prover or coordinator are not accepted.
 - `record` and `add-tool` only write, count and look up paths; every judgement is passed in by the coordinator.
 
 ## 8. Status and progress

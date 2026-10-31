@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""pv_audit_mech.py — the mechanical checks of a final audit in one command (kit v1.3).
+"""pv_audit_mech.py — the mechanical checks of a final audit in one command (kit v1.3; v1.5: items 4, 7, 13).
 
 Run by pv-auditor itself (never by the prover or the coordinator on its behalf), from the project root:
 
@@ -15,10 +15,15 @@ What it does (VERIFICATION_METHODS.md §1–§3, pv-auditor steps 1–5):
   2. scripts/pv_lean.sh rebuild <module> <ID>: IDENTICAL
   3. sha256 of pv_work/PVTools.lean equals lean.pvtools_sha256 in RESULTS.json
   4. fingerprints (#pv_type_hashes of <ID>Stmt and <module>) equal the gate snapshot line by line (th, vh, bi);
-     for a gap file: each <ID>_S<k>_Gap has vh equal to the th of S<k> in the snapshot
+     for a gap file: each <ID>_S<k>_Gap has vh equal to the th of S<k> in the snapshot. (v1.5) The snapshot is the
+     block between <!-- PV SNAPSHOT BEGIN --> and <!-- PV SNAPSHOT END --> when the report has one; fingerprints
+     quoted elsewhere in its prose, and <X>_Gap lines anywhere, are not gated declarations
   5. the same for every Defs* module against the latest DEFS gate snapshot
   6. #pv_axioms <module>: ALL STANDARD
-  7. #pv_walk <module>: no sorryAx, only propext / Classical.choice / Quot.sound in the closure
+  7. #pv_walk <module>: no sorryAx, only propext / Classical.choice / Quot.sound in the closure. (v1.5) If the module
+     walk reaches anything else, every declaration that #pv_axioms checks is walked on its own (#pv_walk_decl), and
+     those walks decide: compiler auxiliaries of a computable def (internal names such as `…._cstage1`) refer to the
+     core axiom `lcProof`, which no theorem reaches
   8. project constants reached by the walk, grouped by module, with the audit record that covers each module
   9. declarations of <module> that are not in the snapshot (helper lemmas): listed for the auditor to review
  10. #pv_hyp_usage of every gated theorem (and <main>_mod_gaps): USED / UNUSED per hypothesis
@@ -28,6 +33,8 @@ What it does (VERIFICATION_METHODS.md §1–§3, pv-auditor steps 1–5):
      `TRACED CONDITIONS: <ids> | none` for the auditor's CONDITIONS line
  12. (v1.3.1) who last wrote the audited files, from the guard hook's log pv_work/logs/writes.jsonl: FAIL if it
      was the coordinator (it does not write proofs)
+ 13. (v1.5) every package of lake-manifest.json is a git checkout at the manifest's revision with no local changes
+     (`git rev-parse HEAD`, `git status --porcelain`, run by this script so that the auditor needs no git rights)
 
 Writes verification/audits/<ID>_mech.md (then _mech_r2.md, ...). Its last line is
   MECH CHECKS: PASS            or   MECH CHECKS: FAIL (<items>)
@@ -87,11 +94,20 @@ def latest_pass(stem, prefix):
     return None
 
 
+SNAP_BLOCK = re.compile(r"<!--\s*PV SNAPSHOT BEGIN\s*-->(.*?)<!--\s*PV SNAPSHOT END\s*-->", re.S)
+
+
 def snapshot(path):
+    """Gated declarations of a gate report. (v1.5) Only the snapshot block counts when the report has one, since a
+    report may quote other fingerprints in its prose. A <X>_Gap definition is never gated: the prover writes gap
+    files after the gate, so a gate report only quotes them (e.g. in a ruling)."""
+    text = path.read_text(errors="replace")
+    blocks = SNAP_BLOCK.findall(text)
     snap = {}
-    for m in FP.finditer(path.read_text(errors="replace")):
+    for m in FP.finditer("\n".join(blocks) if blocks else text):
         name, kind, th, vh, bi = m.groups()
-        snap[name] = (kind, th, vh, bi)
+        if not name.endswith("_Gap"):
+            snap[name] = (kind, th, vh, bi)
     return snap
 
 
@@ -99,7 +115,7 @@ def parse_probe(text):
     """Parse the output of a PVTools probe. Lean prints info messages as plain lines (no file:line prefix);
     warnings and errors carry a `file:line:col: severity:` prefix."""
     out = {"fps": {}, "axiom_bad": [], "axioms_ok": None, "walk_axioms": None, "sorry": None, "reached": [],
-           "hyp": {}, "errors": [], "walks": {}}
+           "hyp": {}, "errors": [], "walks": {}, "walk_ax": {}}
     cur_mod = cur_hyp = cur_walk = None
     lines = text.splitlines()
     for n, raw in enumerate(lines):
@@ -138,6 +154,8 @@ def parse_probe(text):
             if am:
                 out["walk_axioms"] = [x.strip() for x in am.group(1).split(",") if x.strip()]
                 out["sorry"] = am.group(2) == "true"
+                if cur_walk:
+                    out["walk_ax"][cur_walk] = (out["walk_axioms"], out["sorry"])
         elif line.startswith("WALK "):
             wm = re.match(r"WALK (?:declaration|module) (\S+)", line)
             cur_walk = wm.group(1) if wm else None
@@ -229,6 +247,41 @@ def trace_conditions(rid, state, targets, walks, hyps):
     loose -= cond | formal
     missing = registered - cond - formal - loose
     return sorted(cond), sorted(formal), sorted(loose), sorted(missing)
+
+
+def package_checks():
+    """Item 13: (status, detail). FAIL when a package is missing, is at another revision than lake-manifest.json, or
+    has local changes; NOT RECORDED when there is no manifest or a package is not a git checkout."""
+    try:
+        pkgs = json.loads((ROOT / "lake-manifest.json").read_text()).get("packages", [])
+    except Exception:
+        return "NOT RECORDED", "no readable lake-manifest.json"
+    bad, unknown, ok = [], [], 0
+    for pk in pkgs:
+        name, rev = pk.get("name"), pk.get("rev")
+        if pk.get("type", "git") != "git" or not name:
+            continue
+        d = ROOT / ".lake" / "packages" / name
+        if not d.is_dir():
+            bad.append(f"{name}: missing")
+            continue
+        ec, head = sh(["git", "-C", str(d), "rev-parse", "HEAD"])
+        if ec:
+            unknown.append(f"{name}: not a git checkout ({head.strip()[:80]})")
+            continue
+        ec, st = sh(["git", "-C", str(d), "status", "--porcelain"])
+        changed = [l for l in st.splitlines() if l.strip()]
+        if head.strip() != rev:
+            bad.append(f"{name}: HEAD {head.strip()[:12]} but manifest {str(rev)[:12]}")
+        elif ec or changed:
+            bad.append(f"{name}: {len(changed)} local changes, e.g. `{changed[0][3:].strip() if changed else st.strip()[:80]}`")
+        else:
+            ok += 1
+    if bad:
+        return "FAIL", "; ".join(bad + unknown)
+    if unknown:
+        return "NOT RECORDED", "; ".join(unknown)
+    return "PASS", f"{ok} packages at the manifest revisions, no local changes"
 
 
 def run_probe(rid, tag, body):
@@ -409,10 +462,30 @@ def main():
     add(f"| 6 | `#pv_axioms {mod}` | {'PASS' if ok else 'FAIL'} | "
         f"{'ALL STANDARD' if ok else '; '.join(axiom_bad)[:600] or 'no ALL STANDARD line'} |")
     ok = sorry_reached is False and walk_axioms is not None and set(walk_axioms) <= STANDARD
+    detail = f"sorryAx reached: {sorry_reached}; axioms: {walk_axioms}"
+    decls = sorted(fps.get(mod, {}))
+    if not ok and walk_axioms is not None and decls:
+        # v1.5: the module walk also starts from compiler auxiliaries (internal names); walk each declaration that
+        # #pv_axioms checks on its own and let those walks decide
+        body = f"import {mod}\nimport PVTools\n" + "".join(f"#pv_walk_decl {n}\n" for n in decls)
+        _, r3, P3, probe3 = run_probe(rid, "mech3", body)
+        per = P3["walk_ax"]
+        dirty = [n for n in decls if n not in per or per[n][1] or not set(per[n][0]) <= STANDARD]
+        if P3["errors"]:
+            manual.append(f"per-declaration walk probe `{probe3}` had errors (log `{r3.get('log')}`):\n```\n" +
+                          "\n".join(P3["errors"][:2]) + "\n```")
+        elif not dirty:
+            ok = True
+            extra = sorted(set(walk_axioms) - STANDARD) + (["sorryAx"] if sorry_reached else [])
+            detail = (f"module walk: {detail}. {', '.join(extra)} is reached only from internal names (compiler "
+                      f"auxiliaries such as `…._cstage1` of a computable def); each of the {len(decls)} declarations "
+                      f"walked on its own (`{probe3}`) reaches only standard axioms and no sorryAx")
+        else:
+            detail += "; walked on their own, these declarations reach it: " + ", ".join(
+                f"`{n}` {per.get(n, (['no walk output'], None))[0]}" for n in dirty[:6])
     if not ok:
         fails.append("walk")
-    add(f"| 7 | `#pv_walk {mod}`: sorryAx and closure axioms | {'PASS' if ok else 'FAIL'} | "
-        f"sorryAx reached: {sorry_reached}; axioms: {walk_axioms} |")
+    add(f"| 7 | `#pv_walk {mod}`: sorryAx and closure axioms | {'PASS' if ok else 'FAIL'} | {detail[:900]} |")
 
     # 8. project constants reached, by module, with the record that covers each module
     by_mod = {}
@@ -483,6 +556,12 @@ def main():
             add(f"| 12 | last writer of `{rel}` | FAIL | the coordinator, {w.get('time')} (it does not write proofs, POLICY §3) |")
         else:
             add(f"| 12 | last writer of `{rel}` | PASS | {w.get('role')} (agent {str(w.get('agent_id'))[:8]}), {w.get('time')} |")
+
+    # 13. the Lake packages are the pinned checkouts (v1.5)
+    pst, pdet = package_checks()
+    if pst == "FAIL":
+        fails.append("packages")
+    add(f"| 13 | Lake packages at the lake-manifest.json revisions, unmodified | {pst} | {pdet[:900]} |")
 
     # report
     AUDITS.mkdir(parents=True, exist_ok=True)

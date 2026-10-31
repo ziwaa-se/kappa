@@ -18,6 +18,9 @@ class Settings(KitTestCase):
                      "Bash(python3 ./scripts/pv_audit_mech.py *)"]:
             self.assertIn(rule, allow)
         self.assertNotIn("Bash(lake env lean *)", allow)     # it would bypass pv_lean.sh and its IO guard
+        for s in ("pv_graph.py", "pv_summary.py", "pv_export.py"):                                    # v1.5
+            self.assertIn(f"Bash(python3 scripts/{s} *)", allow)
+            self.assertIn(f"Bash(python3 {pr.root}/scripts/{s} *)", allow)
 
     def test_expand_is_idempotent_and_follows_a_moved_project(self):
         pr = Project(self.tmp)

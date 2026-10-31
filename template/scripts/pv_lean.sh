@@ -11,6 +11,8 @@
 #                                               and sha256 comparison with pv_work/<Module>.olean
 #   scripts/pv_lean.sh packages                print whether .lake/packages is linked or copied, and how many
 #                                               mathlib modules are compiled (linked: never run `lake build`)
+#   scripts/pv_lean.sh module <Mathlib.X.Y>    (v1.5) is a library module built, in the source but not built (and
+#                                               how many of its imports are unbuilt), or not in any package
 #
 # Every compile writes a numbered log pv_work/logs/<name>_<k>.log whose last line is "EXIT=<code>", and prints one
 # RESULT line with the same code. Exit codes: the compiler's own code; 3 for a refused build; 5 for a file that uses
@@ -26,7 +28,7 @@ mkdir -p "$LOGS"
 
 mode="${1:-}"
 target="${2:-}"
-usage() { sed -n '2,20p' "$0"; exit 2; }
+usage() { sed -n '2,22p' "$0"; exit 2; }
 # sha256 of a file on macOS (shasum) and Linux (sha256sum), with a python3 fallback.
 sha256() {
   if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1
@@ -57,6 +59,53 @@ if [[ "$mode" == "packages" ]]; then
 fi
 
 [[ -n "$target" ]] || usage
+
+if [[ "$mode" == "module" ]]; then
+  # v1.5: an import that fails with "object file ... does not exist" may name a module that is in the pinned source
+  # but was not compiled (a partly built, linked Mathlib); then the fact is in Mathlib and need not be a (v) input.
+  python3 - "$ROOT" "$target" <<'PYEOF'
+import re, sys
+from pathlib import Path
+root, mod = Path(sys.argv[1]), sys.argv[2]
+pk = root / ".lake" / "packages"
+def where(m):
+    rel = m.replace(".", "/")
+    for d in sorted(pk.glob("*")) if pk.is_dir() else []:
+        if (d / (rel + ".lean")).is_file():
+            return d / (rel + ".lean"), (d / ".lake/build/lib/lean" / (rel + ".olean")).is_file()
+    return None, None
+src, built = where(mod)
+if src is None:
+    print(f"MODULE {mod}: not in the source of any package in .lake/packages")
+    sys.exit(1)
+if built:
+    print(f"MODULE {mod}: built")
+    sys.exit(0)
+seen, todo, unbuilt = {mod}, [src], []
+while todo:
+    text = re.sub(r"/-.*?-/", "", todo.pop().read_text(errors="replace"), flags=re.S)
+    for m in re.findall(r"^[ \t]*import[ \t]+([A-Za-z0-9_.']+(?:[ \t]+[A-Za-z0-9_.']+)*)", text, flags=re.M):
+        for name in m.split():
+            if name in seen or name.split(".")[0] in ("Init", "Lean", "Std", "Lake"):
+                continue
+            seen.add(name)
+            f, b = where(name)
+            if f is not None and not b:
+                unbuilt.append(name)
+                todo.append(f)
+if unbuilt:
+    print(f"MODULE {mod}: in source, not built; {len(unbuilt)} module(s) it imports (directly or not) are not built "
+          f"either: {', '.join(sorted(unbuilt)[:5])}{' …' if len(unbuilt) > 5 else ''}")
+else:
+    print(f"MODULE {mod}: in source, not built; every module it imports is built, so building it compiles this one "
+          f"module only")
+print(f"write 'in source, not built: {mod}' in mathlib_search; only the user builds it (lake build {mod} in the folder "
+      f"that owns .lake/packages: it writes there)")
+sys.exit(3)
+PYEOF
+  exit $?
+fi
+
 case "$mode" in
   check|build) file="$WORK/$target.lean"; base="$target" ;;
   probe) file="$target"; [[ "$file" = /* ]] || file="$ROOT/$file"; base="$(basename "$file" .lean)" ;;

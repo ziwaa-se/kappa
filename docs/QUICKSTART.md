@@ -1,4 +1,4 @@
-# KAPPA v1.4.0: quick start
+# KAPPA v1.5.0: quick start
 
 The kit checks the proofs **already written** in a LaTeX paper. It translates them into Lean 4, compiles them, and gives each numbered result one of four verdicts. It never repairs a proof, never searches for a new one, and never edits the paper. (A repair mode is planned; see the README's Roadmap.)
 
@@ -104,6 +104,8 @@ cd ~/proofcheck/papers/mypaper-check && scripts/pv_drive.sh --setup source/MAIN.
 1. `AUTHOR_REPORT.md`: what was found, and suggested fixes.
 2. `FILES_TO_CHECK.md`: where each result lives in the paper and in Lean.
 3. `EXTERNAL_TOOLS_WORKSHEET.md`: the cited results, each with its exact Lean statement.
+
+Also there: `VERIFICATION_GRAPH.html` (open it in a browser) and `CHECK_SUMMARY.md` (one page to pass on).
 
 **What still needs a person:**
 - the cited results are true;

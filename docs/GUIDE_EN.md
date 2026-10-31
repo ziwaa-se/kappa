@@ -1,4 +1,4 @@
-# KAPPA v1.4.0: the complete workflow
+# KAPPA v1.5.0: the complete workflow
 
 This guide takes you from a new computer to a finished report. It also covers what to do when the paper changes or when you check a condition yourself. The prompts in 8.1, 8.3, 8.4 and 8.5 were sent verbatim, in this order, in an end-to-end test on the test paper `bench/paper`; the record is `bench/results/WORKFLOW_TEST.md`. Slash commands such as `/pv-status` are Claude Code's standard way to start the same steps.
 
@@ -25,7 +25,7 @@ It never repairs a proof, never searches for a different proof, and never edits 
   Read kappa/CLAUDE_START_HERE.md and follow it.
   ```
 
-  (If you downloaded a ZIP from GitHub, the unzipped folder is called `kappa-main`, or `kappa-1.4.0` for a release. Rename it to `kappa`, or use its actual name in the sentence.)
+  (If you downloaded a ZIP from GitHub, the unzipped folder is called `kappa-main`, or `kappa-1.5.0` for a release. Rename it to `kappa`, or use its actual name in the sentence.)
 
   Claude checks the machine and sets up Lean once (it asks before downloading anything). It then makes a **new folder for each paper** (`papers/<name>-check`), helps you put the paper's files in, checks that nothing is missing, and tells you how to start. Send the same sentence again whenever you want to check another paper, continue, re-check a corrected version, or make a report. It finds your existing projects and never mixes two papers in one folder.
 - **By hand:** sections 2–4 below.
@@ -141,7 +141,7 @@ After every result has a verdict, send the **report prompt** (8.5). You then get
 | 2 | `FILES_TO_CHECK.md` | For each result: paper location ↔ Lean theorem (file:line) ↔ audit report |
 | 3 | `EXTERNAL_TOOLS_WORKSHEET.md` | Each cited or unproved input, with its exact Lean text, sorted by risk, with check boxes |
 
-The report is checked by an independent fact-checker before you see it.
+The report is checked by an independent fact-checker before you see it. Two more files are made from the records without a model: `VERIFICATION_GRAPH.html`, the whole check as a graph in a browser, and `CHECK_SUMMARY.md`, one page you can pass on to co-authors. To share the Lean proofs, `python3 scripts/pv_export.py` packages them as a standalone Lean project.
 
 **What a person still has to do:**
 1. Check that the external inputs are true, for example cited theorems against their sources.

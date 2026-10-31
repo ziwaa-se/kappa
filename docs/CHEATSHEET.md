@@ -28,7 +28,7 @@ The check runs in this chat and needs no attention. Only a question about the pa
 - `/pv-resume` continues after a usage-limit pause or a disconnect; nothing is lost. (A check started in the background with Claude's help continues by itself after the limit resets; keep the computer on and the lid open.)
 - `/clear` then `/pv-resume` every few results keeps the cost down.
 
-**The results** are in `~/proofcheck/papers/<short-name>-check/verification/report/`. Read `AUTHOR_REPORT.md` first; it has a summary table at the top.
+**The results** are in `~/proofcheck/papers/<short-name>-check/verification/report/`. Read `AUTHOR_REPORT.md` first; it has a summary table at the top. Open `VERIFICATION_GRAPH.html` in a browser to see every result and its dependencies; `CHECK_SUMMARY.md` is one page you can pass on.
 
 | Verdict | Meaning |
 |---|---|

@@ -1,6 +1,6 @@
 # Instructions for Claude: guided setup of KAPPA
 
-You are helping a mathematician check the proofs in a LaTeX paper with KAPPA (v1.4.0: the folder that contains this file). They may not be used to managing folders, so **you** keep the files in order: one paper, one project folder, never mixed. Speak the language they write in. Be brief, ask one question at a time, and say what you are about to do before you do it.
+You are helping a mathematician check the proofs in a LaTeX paper with KAPPA (v1.5.0: the folder that contains this file). They may not be used to managing folders, so **you** keep the files in order: one paper, one project folder, never mixed. Speak the language they write in. Be brief, ask one question at a time, and say what you are about to do before you do it.
 
 **Hard rules for this session**
 - Download or install nothing without asking first, in this chat; this covers the elan installer and the Lean/Mathlib download. Say how big it is.
@@ -18,7 +18,7 @@ Run every script from the kit: `<kit>/autosetup/<script>`.
 
 ## A. Find the kit, then look around
 
-1. If the user pointed you to a ZIP (for example `kappa-main.zip`, or `kappa-1.4.0.zip` from a release) rather than a folder, unpack it into `<base>` without overwriting: `unzip -n <zip> -d <base>`, or `python3 -m zipfile -e <zip> <base>` if `unzip` is missing. The kit is the unpacked top folder. If an older kit folder also exists, use the newer one (compare `template/KIT_VERSION`); existing projects are upgraded in step D.4.
+1. If the user pointed you to a ZIP (for example `kappa-main.zip`, or `kappa-1.5.0.zip` from a release) rather than a folder, unpack it into `<base>` without overwriting: `unzip -n <zip> -d <base>`, or `python3 -m zipfile -e <zip> <base>` if `unzip` is missing. The kit is the unpacked top folder. If an older kit folder also exists, use the newer one (compare `template/KIT_VERSION`); existing projects are upgraded in step D.4.
 2. Run `<kit>/autosetup/doctor.sh <base>`, `python3 <kit>/autosetup/projects.py <base>` and, if `<base>/lean-env` exists, `<kit>/autosetup/lean_env.sh <base> --check`. If that prints `INCOMPLETE`, your summary must say so, with its consequence: proof steps needing a missing Mathlib part will stop as `TRANSLATION_BLOCKED`. See step B. Summarize for the user in a few lines: what is ready, what is missing, and which paper projects exist.
 
 ## B. Fix what is missing (only once per machine)
@@ -59,6 +59,7 @@ If they are unsure which project, show the list from `projects.py`: the paper ti
    - It prints `CREATED: <project>`.
 2. **The paper's files.** Ask where the paper is on this machine (a folder path), or tell them they can drag the files into `<project>/source/` in the VS Code explorer and then tell you.
    - If they give a path: list what you would copy, which is everything needed to compile (`.tex`, `.bib`/`.bbl`, `.sty`/`.cls`, the figures it includes, the **PDF** and the **`.aux`**), keeping sub-folders. Leave out old drafts and backups. Copy only after they agree.
+   - If the paper is on arXiv and they would rather fetch it from there, offer `python3 <kit>/autosetup/fetch_arxiv.py <arXiv id> <project>`; it downloads, so run it only after they agree. Then ask for the PDF and `.aux` if they have them.
    - Then run `python3 <kit>/autosetup/check_paper.py <project>`. Tell them its result in one line: `READY` with the title, or what is missing. Fix the gaps with them until it says `READY`.
    - A missing PDF or `.aux` is not fatal, but they give exact theorem numbers. If `pdflatex` exists, offer to compile a copy in `<project>/pv_work/latex_build/` and copy back only the `.pdf` and `.aux`.
    - If there are several main files, ask which one is the paper; the others go out of `source/`.

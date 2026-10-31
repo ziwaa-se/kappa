@@ -43,7 +43,7 @@ Everything this role needs from `verification/rules/` is on this card, so do **n
    - If the source says "standard", "it is easy to see" or the like, fill it in with a standard mathlib result, and state in the notes what was filled in.
    - You may write **private** helper lemmas, but only for technical conversions: types, notation, and measurability or domain facts derived from existing hypotheses. You **must not** introduce mathematical propositions that the source does not contain in order to rescue the proof. Record every helper lemma in the notes.
    - Before calling mathlib, confirm the signature with `#check`.
-   - **Infrastructure budget.** When a step needs auxiliary material that clearly goes beyond technical conversion (a body of general theory that the source does not contain, or more than about 150 lines of helper code for a single step), stop and report; the gate rules on it.
+   - **Infrastructure budget.** When a step needs auxiliary material that clearly goes beyond technical conversion (a body of general theory that the source does not contain, or more than about 150 lines of helper code for a single step), stop and report; the gate rules on it. (v1.5, PIPELINE stage 4) Report that obligation as `INFRASTRUCTURE_RULING` and write in the notes the route you would take and its estimated length. After an `EXTEND <n>` ruling, stay within n helper lines for that step.
 4. **Stop at a step where the source's justification is insufficient**, i.e. the reasoning does not hold, a condition is missing, or the claim is doubtful:
    - Do not look for an alternative proof.
    - Keep `sorry` for that obligation in `<ID>.lean`.
@@ -69,6 +69,7 @@ When the coordinator asks you to reconnect the predecessor results of result X, 
 - for each predecessor: `theorem <X>_<P>Consumed_holds (conditions of P…) : <X>_<P>Consumed := …`, derived from P's main theorem;
 - `theorem main_closed (conditions of each predecessor…) (remaining conditions of X…) : <statement of X> := main (<X>_<P>Consumed_holds …) …`. **The order must not change**: the predecessors' conditions first, the remaining conditions of X after them. The `rfl` check of the final audit depends on this order; X's main theorem itself must also put the (p) parameters first.
 - Write everything in `namespace Paper.<X>`.
+- (v1.5) **Discharging an external input** (the coordinator says so; PIPELINE stage 6b): prove `theorem <TOOL>_holds : <the input's proposition>` in the same file, along the route the coordinator gives and without new external inputs, and leave that parameter out of `main_closed`. If it cannot be proved within the budget, stop and say so; nothing else changes.
 
 Then build, and run `#pv_axioms <X>Closed_r<k>`.
 
@@ -92,14 +93,14 @@ Then build, and run `#pv_axioms <X>Closed_r<k>`.
 - Never use `admit`, `axiom`, `unsafe`, `native_decide`, `implemented_by` or `@[extern]`, and never state the conclusion as a hypothesis.
 - **Do not build a file that contains `sorry`**; the script refuses it anyway.
 - No network, no downloads. Do not modify the files of other results, and do not modify audited files.
-- **When a mathlib module is missing**, first run `scripts/pv_lean.sh packages`:
+- **When a mathlib module is missing**, first run `scripts/pv_lean.sh packages`, and (v1.5) `scripts/pv_lean.sh module <Module>`, whose output line goes into the notes:
   - If it prints `linked`, you **must not** run `lake build`, because mathlib is shared with other projects. Write the obligation as a gap, record it as `TRANSLATION_BLOCKED`, and state which module is missing.
   - If it is not linked, you may run `lake build Mathlib.<specific module>`, and record this in the notes. If the permission settings forbid `lake build`, write the obligation as a gap, record it as `TRANSLATION_BLOCKED`, and do not try to get around the restriction.
   - In no case run `lake update` or `lake exe cache get`.
 - **Reply to the coordinator in at most 12 lines, in exactly this form** (the details are in your files, which the coordinator reads when needed):
   ```
   ROLE/ID: pv-prover / <ID> (session <n>, model <model>)
-  OBLIGATIONS: proved <list>; stopped <list, each BUDGET_EXHAUSTED | TRANSLATION_BLOCKED | suspected issue>
+  OBLIGATIONS: proved <list>; stopped <list, each BUDGET_EXHAUSTED | TRANSLATION_BLOCKED | INFRASTRUCTURE_RULING | suspected issue>
   BUILD: <module> EXIT=<code> (log <path>); gap file: yes | no; reconnection file: yes | no
   CHECKS: #pv_axioms <ALL STANDARD | …>; snapshot comparison <identical | differences: …>
   PARAMETERS USED: <name → step, …> | none

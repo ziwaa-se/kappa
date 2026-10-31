@@ -1,4 +1,4 @@
-# KAPPA v1.4.0: reference manual
+# KAPPA v1.5.0: reference manual
 
 > **Start with** [`GUIDE_EN.md`](GUIDE_EN.md), the complete workflow on one page. It covers setup, including the guided setup with [`CLAUDE_START_HERE.md`](../CLAUDE_START_HERE.md), the prompts to send, what you get, re-checking after corrections, recording conditions you checked, and upgrading. This manual is the detailed reference.
 
@@ -141,6 +141,8 @@ Put the LaTeX into the new project's `source/`:
 
 Keep the original relative paths. If you have the **`.aux`** and **PDF** produced by compilation, put them in too; they are used to match the PDF numbering exactly.
 
+If the paper is on arXiv, you can instead fetch its LaTeX source (v1.5): `python3 <kit>/autosetup/fetch_arxiv.py <arXiv id> <project>`. This downloads, so run it yourself; the agents never do. It writes into `source/`, never overwrites a file, and refuses archives with unsafe paths or links. arXiv's source has no compiled PDF and usually no `.aux`; add them if you have them.
+
 ### Step 4: Set permissions (optional, but recommended before initialization)
 
 During automatic progress, Claude may ask for confirmation every time it runs a command or writes a file. When you are away from the computer, it stops there and waits for you.
@@ -223,6 +225,9 @@ To do only part of the work, you can specify a scope:
 | See the progress table directly in a terminal | `python3 scripts/pv_status.py table` |
 | The source manuscript has a new version | Put the new LaTeX into `source/`, then `/pv-revise` |
 | Save a snapshot by hand | `python3 scripts/pv_snapshot.py save --label my-note` |
+| See every result, its verdict and its dependencies as a graph (v1.5) | `python3 scripts/pv_graph.py`, then open `verification/report/VERIFICATION_GRAPH.html` in a browser |
+| A one-page summary to pass on (v1.5) | `python3 scripts/pv_summary.py` writes `verification/report/CHECK_SUMMARY.md` |
+| Package the Lean proofs as a standalone Lean project (v1.5) | `python3 scripts/pv_export.py` writes `export/lean/`; inside it, `lake exe cache get && lake build` |
 | See where the tokens went (by role, model and result) | `python3 scripts/pv_usage.py` |
 | Run unattended from a terminal, in short fresh sessions (v1.3) | `scripts/pv_drive.sh` (see below) |
 
@@ -286,6 +291,17 @@ It generates three files in `verification/report/`. Read them in this order:
 
 Before delivery the report goes through an **independent fact check**, because summaries written by the coordinator have contained errors before.
 
+Two more files are made at the end from the records alone, with fixed wording and without a model (v1.5), so they need no fact check:
+
+| File | Purpose |
+|---|---|
+| `VERIFICATION_GRAPH.html` | The whole check at a glance, in a browser: every result colored by its verdict, with its dependencies; select one to see its conditions, issues and Lean theorem |
+| `CHECK_SUMMARY.md` | One page to pass on, to co-authors or anyone who did not run the check: what was checked, the verdicts, the issues, the conditions, and what was not checked |
+
+Both can be remade at any time, also during a run, with `python3 scripts/pv_graph.py` and `python3 scripts/pv_summary.py`.
+
+**Sharing the Lean proofs.** `python3 scripts/pv_export.py` copies, unchanged, the Lean file of every result with a verdict, the counterexamples named in `BLOCKERS.md` and everything they import into `export/lean/` (`--out DIR` for another place). The folder is a Lake project pinned to the check's Lean and Mathlib, with `SHA256SUMS`, a README listing each result's verdict and theorem, and `Axioms.lean`, which prints the axioms each main theorem uses. Anyone can build it with `lake exe cache get && lake build`, without the kit or a model.
+
 **You need to check only three things by hand:**
 1. **Whether the external inputs are true.** This is mandatory; no one has verified them.
 2. Whether the **base definitions** match the paper.
@@ -300,6 +316,10 @@ If you check a condition, for example a cited theorem against the book it comes 
 - The progress table and the report mark it "conditions checked by a person", with who, when and how.
 - Only a Lean proof of the condition itself can turn it into "verified unconditionally".
 
+### When a condition can be proved after all (v1.5)
+
+Sometimes a condition turns out to be provable after its result was verified: you found the Mathlib lemma that gives it, or its Mathlib module was in the source but not compiled (the search note then says `in source, not built: <Module>`, and `scripts/pv_lean.sh module <Module>` shows how much would have to be built). Tell Claude which condition and why, or build the module yourself (`lake build <Module>` in the folder that owns `.lake/packages`; agents never build library modules). The coordinator records it with `python3 scripts/pv_status.py provable <ID> --why …`; `pv_status.py reconnect` then lists the results that use it, and `/pv-run` (or the driver) proves the condition and connects the proof, as in the reconnection of predecessor results (`PIPELINE.md` stage 6b). The condition is then recorded as proved in Lean, and a result left with no condition becomes "verified unconditionally".
+
 ### After you correct the paper (v1.3.1)
 
 Put the corrected LaTeX (and the new PDF and `.aux`) into `source/`, replacing the old files, then run `/pv-revise`, and afterwards `/pv-run` (or the driver) for the results it resets.
@@ -308,7 +328,8 @@ Put the corrected LaTeX (and the new PDF and `.aux`) into `source/`, replacing t
 - **Old files.** `reset` moves the old proof files and review reports of a reset result to `pv_work/superseded/rev<k>/` and `verification/audits/rev<k>/`, so that the current files are the only ones in place; its history points to the archived copies.
 - **"Is this passage unchanged?"** `/pv-revise` makes `source/` the new baseline at its last step. Reviewers who need to confirm that some text did not change compare against the previous manuscript, which `reset` records in each result's history (`baseline_before`, e.g. `verification/source_baseline_v1/`).
 - An earlier issue is marked resolved only when the re-check gives the result a verified verdict with a new final audit.
-- `python3 scripts/pv_status.py followup` and the next `/pv-report` show each re-checked result before and after.
+- `python3 scripts/pv_status.py followup` and the next `/pv-report` show each re-checked result before and after. Results that are new in the revision are registered with `reset <ID> --revision <k> --new` (v1.5) and shown as new.
+- (v1.5) Once the records change after a report, `validate` warns that the report is out of date. Update it with `/pv-report` from the start: it refuses to stamp a report whose compiled records were not made again.
 
 ### Importing an earlier check that was not made with the kit (v1.3.1)
 
@@ -406,7 +427,7 @@ Yes. You can simply say it in natural language, for example "start automatic pro
 ## 8. Known limitations
 
 - `PVTools.lean` has only been tested on Lean 4.19.0 + mathlib `c44e0c8e…`.
-- **"Not in Mathlib" is only as good as the local Mathlib.** If fewer than all Mathlib modules are compiled (`scripts/pv_lean.sh packages`, `autosetup/lean_env.sh <base> --check`), a step can stop as `TRANSLATION_BLOCKED` for a module that exists but is not built. Use a complete environment (`lean_env.sh --download`); the report states the count. On macOS 26 and later, `lake exe cache get` fails with Lean 4.19.0's bundled linker; `lean_env.sh --download` relinks the cache tool with the system compiler (v1.3.1).
+- **"Not in Mathlib" is only as good as the local Mathlib.** If fewer than all Mathlib modules are compiled (`scripts/pv_lean.sh packages`, `autosetup/lean_env.sh <base> --check`), a step can stop as `TRANSLATION_BLOCKED` for a module that exists but is not built (since v1.5 the search note then says `in source, not built: <Module>`, and the condition can be proved later; see "When a condition can be proved after all"). Use a complete environment (`lean_env.sh --download`); the report states the count. On macOS 26 and later, `lake exe cache get` fails with Lean 4.19.0's bundled linker; `lean_env.sh --download` relinks the cache tool with the system compiler (v1.3.1).
 - The guard hook and the Lean IO check are safeguards against mistakes, not a sandbox: they rely on Claude Code naming the calling subagent, and the IO check is a text scan of the file being compiled.
 - Conditions traced by `pv_audit_mech.py` (item 11) read hypothesis types as printed (cut at 100 characters) and bundled hypotheses; ambiguous cases are listed for the auditor rather than decided.
 - The statement fingerprint has three parts: the type hash, the `def` content hash, and the binder annotations (explicit or implicit). Names of bound variables are not included. When hashes differ, read the `#print` output of both sides before drawing a conclusion.

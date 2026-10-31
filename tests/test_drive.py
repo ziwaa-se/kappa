@@ -164,12 +164,28 @@ class Driver(KitTestCase):
         self.assertEqual(p.returncode, 4, p.out)
         self.assertEqual(st["reason"], "no_progress")
 
+    def test_infrastructure_stop_goes_to_the_gate(self):                 # v1.5
+        pr = Project(self.tmp, results=[result("P1", stage="STOPPED", reason="INFRASTRUCTURE_RULING",
+                                                partial="S4 needs about 200 helper lines")])
+        ruling = {"files": {"verification/audits/P1_infra_r1.md": "route is technical\n\nINFRASTRUCTURE RULING: EXTEND 250\n"},
+                  "run": ["python3 scripts/pv_status.py record P1 --stage PROVING --reason ''"]}
+        p, st, fc = self.drive(pr, [ruling, passes("P1")])
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertEqual(st["reason"], "done")
+        self.assertIn("scope: P1", fc.prompts()[0])
+        self.assertIn("a RULING row still needs the gate's infrastructure ruling", fc.prompts()[0])
+        self.assertEqual(pr.result("P1")["verdict"], "UNCONDITIONAL")
+
     def test_report_mode_archives_the_old_report(self):                  # PENDING #5
         pr = Project(self.tmp, results=[result("L01")])
         pr.write("verification/report/AUTHOR_REPORT.md", "old report\n")
         pr.write("verification/report/work/factcheck.md", "old factcheck\n")
+        pr.write("verification/report/VERIFICATION_GRAPH.html", "old graph\n")
+        pr.write("verification/report/REPORT_STAMP.json", "{}\n")
         report = {"files": {"verification/report/AUTHOR_REPORT.md": "new report\n",
-                            "verification/report/work/factcheck.md": "new factcheck\n"}}
+                            "verification/report/work/factcheck.md": "new factcheck\n",
+                            **{f"verification/report/work/{n}": "compiled\n"
+                               for n in ("consistency_check.md", "author_notes.md", "external_tools.md")}}}
         p, st, fc = self.drive(pr, [passes("L01"), report], "--report")
         self.assertEqual(p.returncode, 0, p.out)
         self.assertEqual(st["reason"], "done_report")
@@ -177,6 +193,12 @@ class Driver(KitTestCase):
         archived = list((pr.root / "verification/report_archive").glob("*/AUTHOR_REPORT.md"))
         self.assertEqual([a.read_text() for a in archived], ["old report\n"])
         self.assertEqual(pr.read("verification/report/AUTHOR_REPORT.md"), "new report\n")
+        graphs = list((pr.root / "verification/report_archive").glob("*/VERIFICATION_GRAPH.html"))
+        self.assertEqual([g.read_text() for g in graphs], ["old graph\n"])
+        self.assertIn("Verification graph", pr.read("verification/report/VERIFICATION_GRAPH.html"))   # v1.5
+        self.assertIn("# Check summary", pr.read("verification/report/CHECK_SUMMARY.md"))
+        self.assertEqual(len(list((pr.root / "verification/report_archive").glob("*/REPORT_STAMP.json"))), 1)
+        self.assertIn("results_sha256", pr.read("verification/report/REPORT_STAMP.json"))
 
     def test_report_incomplete(self):
         pr = Project(self.tmp, results=[result("L01")])

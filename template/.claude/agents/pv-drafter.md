@@ -61,6 +61,7 @@ Write everything in `namespace Paper.<ID>`.
    - mark the provenance type (i)–(v) and the source location;
    - specialize it only as the source uses it; it **must not be stronger** than the source, and it **must not be "goal-shaped"**;
    - before claiming "mathlib does not have it", first `#check` in a probe under `pv_work/probes/drafter/<ID>/`, or search in `.lake/packages/mathlib/Mathlib`, and write the names searched and the results into the notes. **Do not** leave `#check` in the draft.
+   - (v1.5, VERDICTS §4.2) if an `import` of a library module fails with `object file … does not exist`, run `scripts/pv_lean.sh module <Module>`; when it says `in source, not built`, write `in source, not built: <Module>` in that input's `mathlib_search`. Do not build library modules.
 4. **Predecessor results.**
    - If a predecessor result is already `FINAL_PASSED`: `import` its module directly and call its main theorem.
    - If a predecessor result is not yet proved: import `<PredID>Stmt`, and write its **exact consumed clause** as a parameter `def <ID>_<PredID>Consumed : Prop` (with this result's prefix; place it **first** in the main theorem), writing only the part that is actually used; its provenance type is (p). Use only names from `Defs*` and `<PredID>Stmt`, or fully unfolded content. The notes must state where this clause is located in the predecessor result, and how its applicability conditions are satisfied in this result. After the predecessor result is proved, the coordinator arranges the reconnection (`PIPELINE.md` stage 6b).

@@ -33,7 +33,7 @@ Repeat the following steps until every result in scope has a verdict, or is UNFI
 
 1. **Pick work.**
    1. First run `python3 scripts/pv_status.py reconnect`; if anything needs reconnection, do that first (stage 6b).
-   2. Then run `python3 scripts/pv_status.py next`: `READY` rows are results that can start; `BLOCKED` rows state which predecessor blocks them; `RECHECK` rows (v1.3.1) are verified results whose upstream was re-proved with an unchanged statement.
+   2. Then run `python3 scripts/pv_status.py next`: `READY` rows are results that can start; `BLOCKED` rows state which predecessor blocks them; `RECHECK` rows (v1.3.1) are verified results whose upstream was re-proved with an unchanged statement; `RULING` rows (v1.5) wait for the gate's infrastructure ruling (step 4).
    3. **A `RECHECK` row** (`PIPELINE.md`, "Cascade reset on statement change", step 3): rebuild the result's modules with `scripts/pv_lean.sh build <module>` in dependency order (its `Stmt`, then the files of `lean_main` and of any `Closed` file), then dispatch pv-auditor in re-check mode (template in §2). After `RECHECK: PASS`, run `python3 scripts/pv_status.py record <ID> --recheck-passed`; after `RECHECK: FAIL`, reset the result with `pv_status.py reset <ID> --revision <k>`.
 2. **Parallelism.** **No more than 3** subagents may run at the same time in total; issue rulings and reviews count toward this. Each Lean file may have only one writer at a time. **In an unattended (headless) session, never end your turn while subagents you started are still running**: wait for them, because they are stopped when the session ends. **Wait through their completion notifications** (v1.3.1): do not set timers, `sleep` commands, scheduled wake-ups or monitors to wait for them. Such a timer keeps firing after the agents have returned, and every wake-up re-reads the whole context. If one was started anyway, cancel it as soon as the agents are back.
 3. **Before starting a subagent**, add a row to the "Running subagents" table in `RESUME.md`: role, target, files it should produce, start time. Delete the row after the subagent returns.
@@ -49,6 +49,8 @@ Repeat the following steps until every result in scope has a verdict, or is UNFI
    ```
 
    **Prover sessions and models (v1.3).** The first proof session runs on the model in the pv-prover definition (sonnet). If it reports `BUDGET_EXHAUSTED` for any obligation, start the second proof session at once with `model: "opus"` in the `Agent` call, for the stuck obligations only, and give it the first session's notes. `TRANSLATION_BLOCKED` does not escalate: a stronger model cannot supply a missing library module. The second proof session of a pass, including one after a final-audit FAIL, always runs with `model: "opus"`. Record the models used with `--models-used`.
+
+   **Infrastructure rulings (v1.5, `PIPELINE.md` stage 4).** If the prover reports `INFRASTRUCTURE_RULING` for an obligation, record `STOPPED` + `INFRASTRUCTURE_RULING` (`next` then lists the result as `RULING`), and dispatch pv-gate in infrastructure-ruling mode (template in §2) before any further proof session. Then: `EXTEND <n>` → one proof session with that cap; `PARAMETER` → as for a statement problem below; `DECLINE` → record `BUDGET_EXHAUSTED`.
 
    **When the final audit FAILs:**
    - Proof problem: return the FAIL items to pv-prover; this counts as one proof session.
@@ -99,6 +101,7 @@ Focus: <TFAs or doubts raised by the drafter>.
 Output: verification/audits/<ID>_gate.md (the k-th time, write _gate_rk.md), containing the snapshots of both files. Do not modify the draft. No network, no downloads.
 ```
 Amendment-check mode: `Check the amendments to <ID> made according to <previous gate report>, looking only at the changed parts; redo the snapshot and write it to <ID>_gate_r<k>.md.`
+Infrastructure-ruling mode (v1.5): `Infrastructure ruling on <ID> obligation S<k> (PIPELINE stage 4): the prover's notes pv_work/notes/<ID>_prover_notes.md, section <…>; proof file pv_work/<ID>.lean; source <file:line-line>. Output: verification/audits/<ID>_infra_r<k>.md, last line INFRASTRUCTURE RULING: EXTEND <n> | PARAMETER | DECLINE. No network, no downloads.`
 
 **pv-prover:**
 ```
@@ -108,6 +111,7 @@ Outputs: pv_work/<ID>.lean (and .olean); if any obligation stops, also pv_work/<
 No network, no downloads.
 ```
 Reconnection mode: `Reconnect predecessors <P…> for X: write pv_work/<X>Closed_r<k>.lean (PIPELINE stage 6b). Main theorems of the predecessors: <pv_work/P.lean:line name…>; parameters used by X: <X>_<P>Consumed….`
+(v1.5) For an input that `reconnect` lists as discharged: `Discharge external input <TOOL> of X in pv_work/<X>Closed_r<k>.lean (PIPELINE stage 6b): prove <TOOL>_holds (<why it is provable now, from the reconnect line>) and leave it out of main_closed.` If the proof fails, run `python3 scripts/pv_status.py provable <TOOL> --undo --why "<what failed>"`.
 
 **pv-auditor:**
 ```
@@ -176,6 +180,7 @@ The judgements (verdict, conditions, codes, summaries) are yours, as below; the 
 
 ## 4. Reporting to the user (at every stage)
 
+- (v1.5) **When an input's `mathlib_search` says `in source, not built: <Module>`** (VERDICTS §4.2): tell the user that building that one module would let the kit prove the input, with the line from `scripts/pv_lean.sh module <Module>` and the command `lake build <Module>`, run by the user in the folder that owns `.lake/packages` (it writes there, so it is the user's decision). Never run it yourself. In an unattended session, write it into `RESUME.md` instead.
 - **After each subagent returns**: one or two sentences saying who finished what, what the result was, and what comes next.
 - **After each result gets a verdict**: one paragraph, with the **progress table** (`python3 scripts/pv_status.py table`), so that it can be screenshotted and shared.
 - **When a paper issue is found**: state the result number, the location of the original sentence, the classification, and whether it threatens the conclusion.

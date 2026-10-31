@@ -4,9 +4,78 @@
 
 Not yet available; see the README's [Roadmap](README.md#roadmap). This version only verifies proofs that are already written.
 
+- **Version 2: other language models** through their APIs, besides Claude Code, so that the kit can be used without a Claude subscription.
+- **Version 2: fully local checks** with a model running on your own machine, so that an unpublished manuscript never leaves it.
 - **Repair mode:** after an issue is confirmed, propose a correction, verify it in Lean within attempt and time limits, pass it through the gate and the final audit, and report it separately from the verdict on the paper as written.
 - **Completing unfinished steps:** an optional, longer proof search for steps stopped by formalization difficulty.
 - **Closing conditions automatically** when a cited result is available in Mathlib.
+
+## v1.5.0 (2026-10-30)
+
+Thank you to everyone who has tried the kit and sent us feedback since its release. This version takes up the first
+suggestions; more will follow.
+
+- **Verification graph** (`scripts/pv_graph.py`): `verification/report/VERIFICATION_GRAPH.html`, one self-contained
+  page that opens offline in any browser. Every numbered result is a box colored by its verdict, with arrows for its
+  dependencies; selecting one shows its place in the paper, its Lean theorem, its conditions (with a person's check),
+  its issues and what it uses. Below the graph, the same content as a table.
+- **Check summary** (`scripts/pv_summary.py`): `verification/report/CHECK_SUMMARY.md`, one page for readers who did
+  not run the check, such as co-authors: what was checked, every verdict, the issues, the conditions, what was not
+  checked, and where the evidence is.
+- Both are made from the records alone (RESULTS.json, BLOCKERS.md), with fixed wording and without a language model,
+  so they need no fact check. `/pv-report` and the unattended driver make them at the end; they can be remade at any
+  time.
+- **Standalone Lean project** (`scripts/pv_export.py`): copies the Lean files of every result with a verdict, the
+  counterexamples and everything they import into `export/lean/`, with a lakefile pinned to the check's Lean and
+  Mathlib, checksums, a README with each result's verdict and theorem, and `Axioms.lean`. Anyone can then run
+  `lake exe cache get && lake build` without the kit or a model. Tested by building the exports of two example runs.
+- `autosetup/fetch_arxiv.py <id> <project>`: puts the LaTeX source of an arXiv paper into the project's `source/`,
+  for you to run before a check (agents never download). It never overwrites a file and refuses archives with unsafe
+  paths or links.
+- The permission file allows the three new scripts. For an existing project: `install.sh <project> --upgrade`, then
+  add the new rules to `.claude/settings.json` (`python3 scripts/pv_settings.py check` lists them).
+- Tests for the four scripts, and for the driver making the graph and the summary after the report.
+
+### Fixes
+
+- **A stop on the infrastructure budget goes to the gate.** When the prover stops a step because it needs more
+  helper material than the budget allows, it now reports `INFRASTRUCTURE_RULING`. `pv_status.py next` lists the
+  result as `RULING`, and the coordinator and the unattended driver ask the gate for a ruling before any further
+  proof session: extend the budget for that step, turn the fact into an external input, or decline (at most two
+  rulings per result). Before, the stop was recorded as `BUDGET_EXHAUSTED`, nobody asked the gate, and the driver
+  stopped with "no progress".
+- **The axiom walk no longer fails on compiler auxiliaries.** For a computable `def`, Lean adds compiler auxiliaries
+  (`…._cstage1`) that refer to the core axiom `lcProof`, which no theorem reaches. When the module walk of
+  `pv_audit_mech.py` (item 7) reaches a non-standard axiom, it now walks every declaration on its own and fails only
+  if one of them reaches it. `PVTools.lean` is unchanged.
+- **Only the snapshot block of a gate report is gated.** The gate writes its snapshot between
+  `<!-- PV SNAPSHOT BEGIN -->` and `<!-- PV SNAPSHOT END -->`. Fingerprints quoted elsewhere in the report, and gap
+  definitions anywhere, no longer count as gated declarations: a quoted gap definition made the fingerprint check
+  fail once the gap was proved. Reports without the markers are read as before.
+- **Conditions that become provable later.** Stage 6b of `PIPELINE.md` gains a variant for discharging an external
+  input: once a person marks it with `pv_status.py provable <ID> --why …`, or once the Mathlib module that its search
+  found in the source but not built has been built, `pv_status.py reconnect` lists the results that use it. After the
+  reconnection, the input is recorded as proved in Lean (`proved_in`), the other results that use it are listed for
+  connection, and the summary lists it. `validate` no longer warns that the final audit suggests CONDITIONAL after a
+  reconnection removed the last condition, for predecessor clauses as well.
+- **Library modules in the source but not built.** `scripts/pv_lean.sh module <Module>` says whether a module is
+  built, in the source but not built (with the modules it imports that are not built either), or absent. The
+  drafter and the gate then write `in source, not built: <Module>` in the input's search note, and the coordinator
+  asks the user to build that module; agents never build library modules.
+- **The Lake packages are checked.** A new item 13 of `pv_audit_mech.py` confirms that every package is the git
+  checkout of its `lake-manifest.json` revision with no local changes. The script runs git itself, so the auditor
+  needs no git permission.
+- **Results new in a revision.** `pv_status.py reset <ID> --revision <k> --new` gives them the reason
+  `NEW_IN_REVISION`; the progress table and the "What the revision changed" table show them as new.
+- **A report older than the records is detected.** `/pv-report` ends with `pv_status.py report-stamp`, which records
+  the `RESULTS.json` the report was made from. `validate` warns once the records change after it, and the stamp is
+  refused when the report was updated without compiling the records again.
+- The conditions for each verdict and `PVTools.lean` are unchanged, so earlier records stay valid. The fixes change
+  `PIPELINE.md`, `VERDICTS.md` §4.2 (registering external inputs), the rule cards of the drafter, gate, prover and
+  auditor, and the pv-run, pv-report and pv-revise skills; `install.sh <project> --upgrade` brings them to an existing
+  project. No new permission rule is needed for them.
+- Tests for each fix: `tests/test_mech_offline.py`, and additions to `test_status.py`, `test_drive.py` and (with
+  Lean) `test_lean_integration.py`.
 
 ## v1.4.0 (2026-10-25)
 

@@ -68,8 +68,9 @@
     "consumers": [
       "L09 (step S3)"
     ],
-    "mathlib_search": "#check … / searched names …",
-    "human_check": "what exactly to check"
+    "mathlib_search": "#check … / searched names … (v1.5: write 'in source, not built: <Module>' when scripts/pv_lean.sh module says so)",
+    "human_check": "what exactly to check",
+    "_note": "(v1.5) proved_in, provable and provable_tried are written by pv_status.py (record after a reconnection, provable); do not set them by hand"
   },
   "_example_source_def": {
     "id": "D01",

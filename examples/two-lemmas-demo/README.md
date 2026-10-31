@@ -62,6 +62,8 @@ An independent auditor then reviewed the counterexample ([`results/audits/L02_is
 | Both verdicts | ≈ 22 min | ≈ $9 |
 | Plus the report (compilation and fact-check) | 39 min in total | $13.79 in total |
 
+A second run with kit v1.5.0 on 2026-10-30 (unattended driver with `--report`; models `claude-sonnet-5-5` and `claude-opus-5-5`) gave the same two verdicts, report included, in 17 minutes for $4.05 at list prices. The files in `results/` are from the first run.
+
 Two lemmas take this long because every result passes through separate, independent roles: drafting, gate, proving and final audit, each a fresh agent. That fixed cost is the price of the independent checks. On real papers the proving dominates.
 
 ## Run it yourself

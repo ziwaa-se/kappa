@@ -13,7 +13,7 @@ Paper: [arXiv:2610.35596](https://arxiv.org/abs/2610.35596) · [How to cite](#ci
 | **Issue recorded** | A confirmed problem, located in the paper and classified by whose fault it is: false statement (`ERROR`), a justification that fails, a missing hypothesis, an uncovered case, an ambiguous domain |
 | **Unfinished** | Stopped, with the reason recorded. **Never counted as an error in the paper** |
 
-> **Scope of this version.** The kit **verifies proofs that are already written**. It checks the argument the authors wrote, step by step, and reports exactly where it holds and where it fails. It does **not** repair proofs, search for different proofs, or edit the paper. When it finds a problem, it records the evidence and the minimal change that would remove it; when the authors revise the paper, it re-checks the changed results. A mode that also proposes and verifies corrections is planned; see the [Roadmap](#roadmap).
+> **Scope of this version.** The kit **verifies proofs that are already written**. It checks the argument the authors wrote, step by step, and reports exactly where it holds and where it fails. It does **not** repair proofs, search for different proofs, or edit the paper. When it finds a problem, it records the evidence and the minimal change that would remove it; when the authors revise the paper, it re-checks the changed results. A mode that also proposes and verifies corrections is planned, and version 2 will also run with other language models and entirely on your own machine; see the [Roadmap](#roadmap).
 
 ---
 
@@ -93,7 +93,7 @@ Records are plain files (`RESULTS.json`, Markdown reports, Lean files), so work 
    git clone https://github.com/ziwaa-se/kappa.git
    ```
 
-   (Or download a ZIP: **Code → Download ZIP** on this page, or **Source code (zip)** under the latest [release](https://github.com/ziwaa-se/kappa/releases/latest). Unzip it in `~/proofcheck` and rename the unzipped folder (`kappa-main` or `kappa-1.4.0`) to `kappa`, so that the sentence in step 2 works as written.)
+   (Or download a ZIP: **Code → Download ZIP** on this page, or **Source code (zip)** under the latest [release](https://github.com/ziwaa-se/kappa/releases/latest). Unzip it in `~/proofcheck` and rename the unzipped folder (`kappa-main` or `kappa-1.5.0`) to `kappa`, so that the sentence in step 2 works as written.)
 2. Open `~/proofcheck` in the Claude desktop app or in VS Code, start a **new** Claude chat, and send:
 
    ```
@@ -131,6 +131,14 @@ In `papers/<name>-check/verification/report/`:
 | `AUTHOR_REPORT.md` | Summary table, each verdict, the issues for the authors with exact locations, typos, and what a person still has to check |
 | `FILES_TO_CHECK.md` | For each result: paper location ↔ Lean theorem (file:line) ↔ audit report |
 | `EXTERNAL_TOOLS_WORKSHEET.md` | Every cited or unproved input, with its exact Lean text, sorted by risk, with check boxes |
+| `VERIFICATION_GRAPH.html` | The whole check at a glance, in a browser: every result colored by its verdict, with its dependencies; select one to see its conditions, issues and Lean theorem |
+| `CHECK_SUMMARY.md` | One page to pass on, to co-authors or anyone who did not run the check: what was checked, the verdicts, the issues, the conditions, and what was not checked |
+
+The last two are made from the records alone, without a language model. To share the Lean proofs, `python3 scripts/pv_export.py` packages them as a standalone Lean project that anyone can build with `lake build`.
+
+![Verification graph of the example e2-proportions](docs/verification-graph.png)
+
+*The verification graph of example [e2](examples/e2-proportions/), with Lemma 2.4 selected.* The same example's [one-page summary](examples/e2-proportions/results/verification/report/CHECK_SUMMARY.md) and [graph page](examples/e2-proportions/results/verification/report/VERIFICATION_GRAPH.html) (download it and open it in a browser) were made from that run's records.
 
 **What only a person can do:**
 1. check that the cited results are true;
@@ -168,7 +176,7 @@ A research paper costs far more, and usage limits will pause long runs; `/pv-res
 ```
 kappa/
 ├── CLAUDE_START_HERE.md      guided setup: what a new Claude chat follows
-├── autosetup/                scripts for the guided setup (environment check, shared Lean, new project, ...)
+├── autosetup/                scripts for the guided setup (environment check, shared Lean, new project, arXiv source, ...)
 ├── install.sh                manual install of a paper project (--pinned / --lean-from / --upgrade)
 ├── template/                 what each paper project gets: CLAUDE.md, .claude/agents (8 roles), .claude/skills
 │                             (/pv-setup, /pv-run, /pv-status, /pv-resume, /pv-report, /pv-revise), rules, scripts,
@@ -230,7 +238,14 @@ BibTeX.
 
 ## Roadmap
 
-This version (v1.4.0) **only verifies** the proofs a paper already contains. Planned extensions, **not yet available**:
+This version (v1.5.0) **only verifies** the proofs a paper already contains, and runs on Claude Code. Planned, **not yet available**:
+
+**Version 2**
+
+- **Other language models.** Besides Claude Code, run the kit with other models through their APIs, so that it can be used without a Claude subscription.
+- **Fully local checks.** With a model running on your own machine, run the whole check offline, so that an unpublished manuscript never leaves your computer.
+
+**Extensions**
 
 - **Repair mode.** After an issue is confirmed, agents would propose a correction: a missing hypothesis, a narrower statement, or a different argument for the failing step. They would verify it in Lean within fixed attempt and time limits, then pass it through the same independent gate and final audit. A repair would be reported separately and labeled as such. It would never change the verdict on the paper as written, and never be presented as the authors' proof.
 - **Completing unfinished steps.** An optional, longer proof search for steps stopped by formalization difficulty (`TRANSLATION_BLOCKED`, `BUDGET_EXHAUSTED`), also with limits.

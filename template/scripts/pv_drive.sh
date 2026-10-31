@@ -106,7 +106,8 @@ import json
 d=json.load(open('verification/RESULTS.json'))
 print(' '.join(r['id'] for r in d.get('results',[]) if r.get('verdict')=='UNFINISHED' and r.get('stage') not in ('NOT_STARTED','INVENTORIED','STOPPED')))")
     # --all: a batch session writes its own scope into run_scope; the driver looks at every result.
-    ready=$(python3 scripts/pv_status.py next --all | awk -F'\t' '$1=="READY"||$1=="RECHECK"{print $2}' | tr '\n' ' ')
+    # v1.5: RULING rows (the prover stopped on the infrastructure budget) go to the gate in the same kind of session
+    ready=$(python3 scripts/pv_status.py next --all | awk -F'\t' '$1=="READY"||$1=="RECHECK"||$1=="RULING"{print $2}' | tr '\n' ' ')
     recon=$(python3 scripts/pv_status.py reconnect | grep -v "^no pending" || true)
     ids=$(echo $inflight $ready | tr ' ' '\n' | awk 'NF && !seen[$0]++' | head -n "$BATCH" | tr '\n' ' ')
     # Also take results that wait only on results of this batch (pv-run handles that order within one session).
@@ -135,7 +136,7 @@ print(' '.join(ids))")
     before=$(python3 scripts/pv_drive_status.py progress)
     if [[ -n "${ids// /}" || -n "$recon" ]]; then
       session "$UNATTENDED
-Read .claude/skills/pv-run/SKILL.md and follow it with scope: ${ids:-none}. Also do the reconnections that 'python3 scripts/pv_status.py reconnect' lists. Handle only these results (plus their unfinished predecessors, per the scope rule) and stop when each has a verdict and no pending re-check (no RECHECK row in 'python3 scripts/pv_status.py next'), or is UNFINISHED with its reason recorded. Do not do the second pass and do not run /pv-report: the driver starts those in later sessions." "$budget"
+Read .claude/skills/pv-run/SKILL.md and follow it with scope: ${ids:-none}. Also do the reconnections that 'python3 scripts/pv_status.py reconnect' lists. Handle only these results (plus their unfinished predecessors, per the scope rule) and stop when each has a verdict and no pending re-check (no RECHECK row in 'python3 scripts/pv_status.py next'), or is UNFINISHED with its reason recorded; a RULING row still needs the gate's infrastructure ruling (pv-run §1 step 4) before that. Do not do the second pass and do not run /pv-report: the driver starts those in later sessions." "$budget"
     else
       session "$UNATTENDED
 Read .claude/skills/pv-run/SKILL.md and do the second pass (§1 step 8) for: $second. Then do §6 (finish) of that skill. Do not run /pv-report." "$budget"
@@ -227,7 +228,7 @@ make_report() {
   if [[ -f verification/report/AUTHOR_REPORT.md ]]; then
     dest="verification/report_archive/$(date +%Y%m%d-%H%M%S)"
     mkdir -p "$dest/work"
-    for f in verification/report/*.md; do [[ -f "$f" ]] && mv "$f" "$dest/"; done
+    for f in verification/report/*.md verification/report/*.html verification/report/*.json; do [[ -f "$f" ]] && mv "$f" "$dest/"; done
     for f in verification/report/work/*; do [[ -f "$f" && "$(basename "$f")" != .gitkeep ]] && mv "$f" "$dest/work/"; done
     echo "archived the previous report to $dest/"
   fi
@@ -244,7 +245,11 @@ Read .claude/skills/pv-report/SKILL.md and carry out its steps yourself (the ski
     break
   done
   if report_done; then
-    finish done_report "the report is in verification/report/ (AUTHOR_REPORT.md, EXTERNAL_TOOLS_WORKSHEET.md, FILES_TO_CHECK.md)"
+    # (v1.5) made from the records without a model; rerun here in case the session did not
+    python3 scripts/pv_graph.py > /dev/null 2>&1 || echo "pv_graph.py failed; run it by hand to see why"
+    python3 scripts/pv_summary.py > /dev/null 2>&1 || echo "pv_summary.py failed; run it by hand to see why"
+    [[ -f verification/report/REPORT_STAMP.json ]] || python3 scripts/pv_status.py report-stamp || true
+    finish done_report "the report is in verification/report/ (AUTHOR_REPORT.md, EXTERNAL_TOOLS_WORKSHEET.md, FILES_TO_CHECK.md, CHECK_SUMMARY.md, VERIFICATION_GRAPH.html)"
   fi
   finish report_incomplete "the report session ended without verification/report/AUTHOR_REPORT.md and work/factcheck.md; see $LOGDIR/session_$k.json"
 }

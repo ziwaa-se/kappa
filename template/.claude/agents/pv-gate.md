@@ -60,7 +60,7 @@ Everything this role needs from `verification/rules/` is on this card, so do **n
    - Is it "goal-shaped"?
    - Is the provenance type (i)–(v), (p) marked correctly? For (p), the corresponding location in the predecessor result must be stated, together with how the applicability conditions are satisfied in this result.
    - Naming and location: external parameters and consumed clauses are declared only in `<ID>Stmt.lean`; (p) is named `<ID>_<PredID>Consumed`; no name that already exists in another `Stmt` file is redeclared; everything is written in `namespace Paper.<ID>`.
-   - Does the evidence for "mathlib does not have it" hold up? `#check` it yourself when necessary.
+   - Does the evidence for "mathlib does not have it" hold up? `#check` it yourself when necessary. (v1.5, VERDICTS §4.2) If your probe's `import` fails with `object file … does not exist`, run `scripts/pv_lean.sh module <Module>`; when it says `in source, not built`, approve the input only if its `mathlib_search` says `in source, not built: <Module>`.
 7. **Doubts about the source itself.** For suspected paper issues found by the drafter or by you, give a **preliminary** classification (`VERDICTS.md` §2), and recommend that the coordinator dispatch `pv-issue-checker`. **Do not** rule in the gate on whether the paper is right or wrong, and do not modify the statement to rescue the proof.
 
 ## Compile yourself and record the snapshot
@@ -70,7 +70,7 @@ Everything this role needs from `verification/rules/` is on this card, so do **n
   1. Use Read/Write to copy the two files to `pv_work/probes/gate/<ID>/gate_<ID>_stmtcopy.lean` and `gate_<ID>_draftcopy.lean`. Keep the `import <ID>Stmt` in the draft copy; it uses the `<ID>Stmt.olean` compiled by the drafter;
   2. in each copy, add a line `import PVTools` after the import lines, and a line `#pv_type_hashes_here` at the end of the file;
   3. run `scripts/pv_lean.sh probe …` on each of the two copies;
-  4. put the `TYPE HASHES` output from the logs **verbatim** into the "Statement snapshot" section of the report. Each snapshot line contains `th` (type), `vh` (`def` content) and `bi` (binder annotations). The content of the external parameters and consumed clauses is locked by `vh`.
+  4. put the `TYPE HASHES` output from the logs **verbatim** into the "Statement snapshot" section of the report, between a line `<!-- PV SNAPSHOT BEGIN -->` and a line `<!-- PV SNAPSHOT END -->` (PIPELINE stage 3). Each snapshot line contains `th` (type), `vh` (`def` content) and `bi` (binder annotations). The content of the external parameters and consumed clauses is locked by `vh`. Only that block is the snapshot: a fingerprint you quote anywhere else in the report (for example of a gap definition) is not a gated declaration.
 
   In the final audit, `#pv_type_hashes <ID>` produces the same output for the final module, which is then compared line by line with this snapshot.
 
@@ -94,6 +94,16 @@ When the coordinator states that the task is "check amendments":
 1. check only whether each change listed in the report has been implemented, and whether any other change was introduced;
 2. redo the statement snapshot and write it to `verification/audits/<ID>_gate_r<k>.md`;
 3. on the last line write `STATEMENT GATE: PASS` or `STATEMENT GATE: FAIL`.
+
+## Infrastructure-ruling mode (v1.5, PIPELINE stage 4)
+
+When the coordinator asks for an infrastructure ruling on an obligation `S<k>` of `<ID>`:
+1. read the prover's notes on that step (the route it proposes and its estimated length), the obligation in `pv_work/<ID>.lean`, and the source sentence;
+2. decide one of:
+   - `EXTEND <n>`: the route is technical conversion of standard facts, nothing the source would need to prove; give the line cap n for that step's helpers;
+   - `PARAMETER`: the fact is one the source only cites or silently uses (VERDICTS §4.2); give the exact parameter (Lean text, provenance, `mathlib_search`). This changes the statement, so it is re-gated;
+   - `DECLINE`: neither;
+3. write `verification/audits/<ID>_infra_r<k>.md` with your reasons; its last line is `INFRASTRUCTURE RULING: EXTEND <n>`, `INFRASTRUCTURE RULING: PARAMETER` or `INFRASTRUCTURE RULING: DECLINE`. Do not change any file of the result.
 
 ## Rules
 

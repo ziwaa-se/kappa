@@ -65,6 +65,7 @@ and, when needed, `POLICY.md` (working constraints), the rest of `VERDICTS.md` (
 - `/pv-report`: final report, external-input check worksheet, list of files for human check, plus the fact check.
 - `/pv-revise`: after a new version of the source manuscript, reset only the affected results.
 - **When the user says they checked a condition** (an external input), record exactly what they stated: `python3 scripts/pv_status.py human-check <ID> --by "<who>" --how "<against what>"`. Never infer a check the user did not state. The result stays CONDITIONAL (`VERDICTS.md` §1.2).
+- **When the user says a condition can be proved now** (v1.5; e.g. they found the Mathlib lemma, or built the Mathlib module that its search note calls `in source, not built`), record it: `python3 scripts/pv_status.py provable <ID> --why "<what they said>"`. `pv_status.py reconnect` then lists the results that use it (`PIPELINE.md` stage 6b). Never build library modules yourself.
 - **After a revision**, `python3 scripts/pv_status.py followup` shows each re-checked result's verdict before and after, and the status of its earlier issues.
 - `scripts/pv_drive.sh` (outside Claude Code, in a terminal): runs `/pv-run` unattended in fresh short sessions, which keeps the coordinator's context small. `python3 scripts/pv_usage.py` shows where the tokens went.
 
@@ -82,5 +83,6 @@ pv_work/           Lean workspace (each result in namespace Paper.<ID>): Defs*.l
 verification/      persistent records: RESULTS.json, PAPER_VERIFICATION.md, BLOCKERS.md, AUDIT.md, EXTERNAL_TOOLS.md,
                    DOC_ERRATA.md, INVENTORY.md, RESUME.md, audits/, report/, rules/, snapshots/, source_baseline/
 scripts/           pv_lean.sh (compile), pv_status.py (status, progress table, record keeping), pv_snapshot.py (snapshots and hashes),
-                   pv_audit_mech.py (mechanical audit checks), pv_drive.sh (unattended driver), pv_usage.py (token use)
+                   pv_audit_mech.py (mechanical audit checks), pv_drive.sh (unattended driver), pv_usage.py (token use),
+                   pv_graph.py (verification graph), pv_summary.py (one-page summary), pv_export.py (standalone Lean project)
 ```

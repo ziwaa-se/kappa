@@ -7,7 +7,12 @@ Usage (from the project root):
   python3 scripts/pv_status.py next [--second-pass] [--all]
                                                    results that can start now, and results blocked by a prerequisite
   python3 scripts/pv_status.py reconnect           CONDITIONAL results still using a (p) predecessor clause whose
-                                                   predecessor is now proved (PIPELINE stage 6b)
+                                                   predecessor is now proved, or (v1.5) an external input that can
+                                                   now be discharged (PIPELINE stage 6b)
+  python3 scripts/pv_status.py provable TOOL --why TEXT [--undo]
+                                                   (v1.5) mark an external input as provable in Lean now (e.g. a
+                                                   person found the route), so that reconnect lists its users;
+                                                   --undo after a failed attempt (reconnect stops listing it)
   python3 scripts/pv_status.py tools               external-input registry as a Markdown table
   python3 scripts/pv_status.py paths FILE.md       check that every `path` quoted in a Markdown file exists
   python3 scripts/pv_status.py supersede FILE "reason" [REPLACED_BY]
@@ -21,9 +26,10 @@ Usage (from the project root):
                                                    and header counts, and an AUDIT.md section; then validate
   python3 scripts/pv_status.py add-tool '<JSON>'   (v1.3) register or update one external input (fields of
                                                    _example_tool), then validate
-  python3 scripts/pv_status.py reset ID [ID ...] --revision K
+  python3 scripts/pv_status.py reset ID [ID ...] --revision K [--new]
                                                    (v1.3) cascade-reset results after a revision (/pv-revise), keeping
-                                                   their previous verdict and issues in 'history'
+                                                   their previous verdict and issues in 'history'; (v1.5) --new
+                                                   marks results that are new in revision K (reason NEW_IN_REVISION)
   python3 scripts/pv_status.py followup            (v1.3) what a revision changed: previous verdict and issues of each
                                                    re-checked result, and whether those issues are now resolved
   python3 scripts/pv_status.py human-check TOOL --by NAME --how TEXT
@@ -38,6 +44,9 @@ Usage (from the project root):
                                                    unknown ids and cycles
   python3 scripts/pv_status.py refresh-records     (v1.3.1) regenerate the current-evidence index in AUDIT.md and
                                                    the registry table in EXTERNAL_TOOLS.md from RESULTS.json
+  python3 scripts/pv_status.py report-stamp        (v1.5) at the end of /pv-report: record which RESULTS.json the
+                                                   report was made from; refused when the records changed since the
+                                                   last report but pv-compiler's files in report/work/ did not
                                                    (record, reset and add-tool do this themselves)
   python3 scripts/pv_status.py set-main source/F.tex
                                                    (v1.3.2) record a new name of the main file, after a revision
@@ -78,12 +87,12 @@ STAGES = ["NOT_STARTED", "INVENTORIED", "STATEMENT_DRAFTED", "GATE_PASSED", "PRO
           "PROVED", "FINAL_PASSED", "ISSUE_CHECK", "STOPPED"]
 # Allowed reasons per stage (PIPELINE.md, stage table). Any other combination is an error.
 STAGE_REASONS = {
-    "NOT_STARTED": {"", "WAITING_ON_DEPENDENCY", "SOURCE_CHANGED"},
-    "INVENTORIED": {"", "WAITING_ON_DEPENDENCY", "SOURCE_CHANGED"},
+    "NOT_STARTED": {"", "WAITING_ON_DEPENDENCY", "SOURCE_CHANGED", "NEW_IN_REVISION"},
+    "INVENTORIED": {"", "WAITING_ON_DEPENDENCY", "SOURCE_CHANGED", "NEW_IN_REVISION"},
     "STATEMENT_DRAFTED": {""}, "GATE_PASSED": {""}, "PROVING": {""},
     "PROVED": {"", "AUDIT_PENDING"}, "FINAL_PASSED": {""}, "ISSUE_CHECK": {""},
     "STOPPED": {"GATE_FAILED", "TRANSLATION_BLOCKED", "BUDGET_EXHAUSTED", "AUDIT_FAILED",
-                "ISSUE_RECORDED", "ISSUE_UNCONFIRMED"},
+                "ISSUE_RECORDED", "ISSUE_UNCONFIRMED", "INFRASTRUCTURE_RULING"},
 }
 PROVENANCE = ["i", "ii", "iii", "iv", "v", "p"]
 
@@ -92,6 +101,30 @@ def is_predecessor_clause(t):
     """(p), or (iv) with a predecessor: a clause of another result of the paper, which is reconnected to that
     result's theorem once the result is verified (v1.3.1: also when an issue of the predecessor was resolved)."""
     return t.get("provenance") == "p" or (t.get("provenance") == "iv" and bool(t.get("predecessor")))
+
+
+NOT_BUILT = re.compile(r"in source, not built:\s*`?([A-Za-z0-9_.']+)`?")
+
+
+def mathlib_built(module):
+    """Whether the .olean of a Mathlib module exists in this project's packages."""
+    return (ROOT / ".lake/packages/mathlib/.lake/build/lib/lean" / (module.replace(".", "/") + ".olean")).exists()
+
+
+def discharge_hint(t):
+    """(v1.5) Why an external input that is not a predecessor clause can now be proved and connected (PIPELINE
+    stage 6b, discharging an external input), or None: it is proved in a Closed file already, a person marked it
+    provable, or the Mathlib module its search found in the source but not built has been built since."""
+    if not isinstance(t, dict) or is_predecessor_clause(t):
+        return None
+    if t.get("proved_in"):
+        return f"proved in Lean in {t['proved_in']}"
+    if isinstance(t.get("provable"), dict):
+        return f"marked provable: {t['provable'].get('why', '')}"
+    m = NOT_BUILT.search(str(t.get("mathlib_search", "")))
+    if m and not t.get("provable_tried") and mathlib_built(m.group(1)):
+        return f"Mathlib module {m.group(1)} is now built"
+    return None
 PAPER_CODES = {"ERROR", "PAPER_ARGUMENT_GAP", "PAPER_ASSUMPTION_GAP", "EXPOSITION_GAP", "DOMAIN_CLARIFICATION"}
 EN = {"UNCONDITIONAL": "Verified (unconditional)", "CONDITIONAL": "Verified (conditional)",
       "ISSUE": "Issue recorded", "UNFINISHED": "Unfinished"}
@@ -170,6 +203,29 @@ def blockers():
     return out
 
 
+def blocker_details():
+    """(v1.5) One dict per entry of BLOCKERS.md, in file order: id, result, number, codes (in heading order), open,
+    sentence (the "In one sentence" line). A later section with the same id, a correction, replaces the earlier."""
+    if not BLOCKERS.exists():
+        return []
+    text = re.sub(r"<!--.*?-->", "", BLOCKERS.read_text(errors="replace"), flags=re.S)
+    heads = list(re.finditer(r"^##\s+(B\d+)\b(.*)$", text, flags=re.M))
+    known = PAPER_CODES | {"ENCODING_ERROR", "TRANSLATION_BLOCKED"}
+    out = {}
+    for i, m in enumerate(heads):
+        body = text[m.end():heads[i + 1].start() if i + 1 < len(heads) else len(text)]
+        parts = [p.strip() for p in re.split(r"\s+[—–]+\s+", " " + m.group(2).strip()) if p.strip()]
+        rid, _, number = (parts[0] if parts else "").partition("/")
+        sent = re.search(r"^\s*-\s*\*\*In one sentence\*\*\s*:?\s*(.+)$", body, flags=re.M)
+        out[m.group(1)] = {
+            "id": m.group(1), "result": rid.strip(), "number": number.strip(),
+            "codes": [c for c in re.findall(r"\b[A-Z][A-Z_]{3,}\b", m.group(2)) if c in known],
+            "open": re.search(r"(?<!UN)RESOLVED", m.group(2).upper()) is None,
+            "sentence": sent.group(1).strip() if sent else "",
+        }
+    return list(out.values())
+
+
 def reason_text(r):
     parts = []
     for key, en in [("conditions", "conditions"), ("debts", "debts"), ("unencoded", "not encoded"),
@@ -217,7 +273,8 @@ def table(data):
         hist = r.get("history") if isinstance(r.get("history"), list) else []
         if hist:
             h = hist[-1]
-            extra = f"(before revision {h.get('revision')}: {names.get(h.get('verdict'), h.get('verdict'))}) " + (extra or "")
+            before = "new" if h.get("new") else names.get(h.get("verdict"), h.get("verdict"))
+            extra = f"(before revision {h.get('revision')}: {before}) " + (extra or "")
         what = " ".join(x for x in [r.get("kind", ""), r.get("title", "")] if x)
         stage = r.get("stage")
         if isinstance(r.get("recheck"), dict):
@@ -355,6 +412,8 @@ def validate(data):
             if not is_pass(fv):
                 errs.append(f"{rid}: evidence.final must end with 'FINAL AUDIT: PASS' (found {fv})")
             sv = verdict_line(ev.get("final"), "SUGGESTED VERDICT:")
+            if "Closed" in lm_file and is_pass(verdict_line(ev.get("reconnect"), "RECONNECT AUDIT:")):
+                sv = verdict_line(ev.get("reconnect"), "SUGGESTED VERDICT:")   # v1.5: the reconnection decides
             if sv and sv.split()[0] != v:
                 warns.append(f"{rid}: recorded verdict {v} but the final audit suggests {sv}")
             if not lm:
@@ -404,6 +463,9 @@ def validate(data):
             if not confirmed:
                 errs.append(f"{rid}: ISSUE needs evidence.issues with a paper-side 'ISSUE VERDICT:' and a matching "
                             f"_audit.md ending 'COUNTEREXAMPLE VALID' or 'REVIEW: CONFIRMED'")
+        if st == "STOPPED" and reason == "INFRASTRUCTURE_RULING" and len(rulings(rid)) >= MAX_RULINGS:
+            warns.append(f"{rid}: still waiting for an infrastructure ruling after {MAX_RULINGS} rulings "
+                         f"({', '.join(rulings(rid))}); record BUDGET_EXHAUSTED instead")
         if v == "UNFINISHED" and st not in ("NOT_STARTED", "INVENTORIED") and not (reason or r.get("partial")):
             warns.append(f"{rid}: UNFINISHED after work started; record 'reason' and 'partial'")
         if v == "CONDITIONAL":
@@ -413,6 +475,8 @@ def validate(data):
                     pred = byid.get(t.get("predecessor"), {})
                     if pred.get("stage") == "FINAL_PASSED" and pred.get("verdict") in ("UNCONDITIONAL", "CONDITIONAL"):
                         warns.append(f"{rid}: predecessor clause {c} can now be reconnected to {pred.get('id')} (stage 6b)")
+                elif discharge_hint(t):
+                    warns.append(f"{rid}: external input {c} can now be discharged ({discharge_hint(t)}; stage 6b)")
         # v1.3.1 checks
         if v in ("UNCONDITIONAL", "CONDITIONAL") and st == "FINAL_PASSED":
             stated = audit_conditions(r)
@@ -469,8 +533,17 @@ def validate(data):
                 "unconditionally, b verified conditionally, c with recorded issues, d unfinished')")
         elif [int(x) for x in m.groups()] != want:
             errs.append(f"PAPER_VERIFICATION.md header counts {list(map(int, m.groups()))} != RESULTS.json {want}")
+    if REPORT_STAMP.exists() and (ROOT / "verification/report/AUTHOR_REPORT.md").exists():
+        try:
+            stamp = json.loads(REPORT_STAMP.read_text())
+        except Exception:
+            stamp = {}
+        if stamp.get("results_sha256") and stamp["results_sha256"] != sha_of(STATE):
+            warns.append(f"the report in verification/report/ was made from older records (stamp of {stamp.get('date')}); "
+                         f"run /pv-report again, starting with pv-compiler")
     st, det = source_state(data)
-    if st == "CHANGED" and not any(isinstance(r, dict) and r.get("reason") == "SOURCE_CHANGED" for r in res):
+    if st == "CHANGED" and not any(isinstance(r, dict) and r.get("reason") in ("SOURCE_CHANGED", "NEW_IN_REVISION")
+                                   for r in res):
         warns.append(f"source/ differs from verification/source_baseline/ ({len(det)} files): for a new version of the "
                      f"same paper run /pv-revise; a different paper needs a new project (pv_status.py source-check)")
     elif st == "DIFFERENT_PAPER":
@@ -493,7 +566,7 @@ def next_ready(data, second_pass=False, use_all=False):
         for d in r.get("depends_on", []) if isinstance(r.get("depends_on"), list) else []:
             if d in dependents:
                 dependents[d] += 1
-    ready, blocked = [], []
+    ready, blocked, rulings_due = [], [], []
     for r in res:
         if scope and r["id"] not in scope:
             continue
@@ -503,6 +576,12 @@ def next_ready(data, second_pass=False, use_all=False):
             if not (r.get("stage") == "STOPPED" and r.get("reason") in
                     ("TRANSLATION_BLOCKED", "BUDGET_EXHAUSTED", "AUDIT_FAILED") and int(r.get("round", 1)) < 2):
                 continue
+        elif r.get("stage") == "STOPPED" and r.get("reason") == "INFRASTRUCTURE_RULING":
+            # v1.5: the prover stopped on the infrastructure budget; the gate rules before any further proof session
+            done = rulings(r["id"])
+            if len(done) < MAX_RULINGS:
+                rulings_due.append(r)
+            continue
         elif r.get("stage") not in ("NOT_STARTED", "INVENTORIED"):
             continue
         # A result can start once every prerequisite's statement is fixed (its gate passed): the prerequisite's exact
@@ -511,6 +590,10 @@ def next_ready(data, second_pass=False, use_all=False):
         waiting = [d for d in deps if d in byid and not byid[d].get("statement_fixed")]
         (blocked if waiting else ready).append((r, waiting))
     ready.sort(key=lambda x: (-dependents[x[0]["id"]], str(x[0].get("pdf_number", ""))))
+    for r in rulings_due:
+        print(f"RULING\t{r['id']}\t{r.get('pdf_number')}\tthe prover stopped on the infrastructure budget: dispatch "
+              f"pv-gate in infrastructure-ruling mode (PIPELINE stage 4; ruling {len(rulings(r['id'])) + 1} of at most "
+              f"{MAX_RULINGS})")
     for r, _ in ready:
         print(f"READY\t{r['id']}\t{r.get('pdf_number')}\tstage={r.get('stage')}\tdependents={dependents[r['id']]}")
     for r, waiting in blocked:
@@ -543,8 +626,21 @@ def next_ready(data, second_pass=False, use_all=False):
             rechecks += 1
         else:
             print(f"BLOCKED\t{r['id']}\t{r.get('pdf_number')}\tre-check waits until {', '.join(ups)} is proved again")
-    if not ready and not blocked and not rechecks:
+    if not ready and not blocked and not rechecks and not rulings_due:
         print("nothing to start (all decided or in progress)")
+
+
+MAX_RULINGS = 2
+
+
+def rulings(rid):
+    """(v1.5) rid's infrastructure-ruling reports that carry a verdict line (verification/audits/<ID>_infra*.md)."""
+    out = []
+    for p in sorted((ROOT / "verification" / "audits").glob(f"{rid}_infra*.md")):
+        rel = str(p.relative_to(ROOT))
+        if verdict_line(rel, "INFRASTRUCTURE RULING:"):
+            out.append(rel)
+    return out
 
 
 def reconnect(data):
@@ -561,6 +657,10 @@ def reconnect(data):
                 if pred.get("stage") == "FINAL_PASSED" and pred.get("verdict") in ("UNCONDITIONAL", "CONDITIONAL"):
                     print(f"{r['id']}\tuses {c}\tpredecessor {pred['id']} is {pred['verdict']}: reconnect (stage 6b)")
                     found = True
+            elif discharge_hint(t):
+                what = "connect it" if t.get("proved_in") else "prove it and connect it"
+                print(f"{r['id']}\tuses {c}\t{discharge_hint(t)}: {what} (stage 6b, discharging an external input)")
+                found = True
     if not found:
         print("no pending reconnections")
 
@@ -573,6 +673,12 @@ def tool_status(data, t):
         notes.append(str(t["status"]))
     elif not users:
         notes.append("not a condition of any result")
+    m = NOT_BUILT.search(str(t.get("mathlib_search", "")))
+    if users and m and not mathlib_built(m.group(1)):
+        notes.append(f"in the Mathlib source but not built: {m.group(1)} (once it is built, it can be proved and "
+                     f"connected)")
+    if users and discharge_hint(t):
+        notes.append(f"can be discharged now: {discharge_hint(t)}")
     if t.get("possible_duplicate_of"):
         notes.append(f"possibly the same fact as {t['possible_duplicate_of']}: check once for both")
     return "; ".join(notes) or "condition of " + ", ".join(users)
@@ -643,7 +749,7 @@ def supersede(src, reason, replaced_by=""):
 # issue codes, summaries) is still passed in by the coordinator.
 
 VERDICT_PREFIXES = ["STATEMENT GATE:", "FINAL AUDIT:", "SUGGESTED VERDICT:", "ISSUE VERDICT:", "THREATENS CONCLUSION:",
-                    "COUNTEREXAMPLE", "REVIEW:", "RECONNECT AUDIT:", "MECH CHECKS:"]
+                    "COUNTEREXAMPLE", "REVIEW:", "RECONNECT AUDIT:", "MECH CHECKS:", "INFRASTRUCTURE RULING:"]
 CHECK_EN = {"UNCONDITIONAL": "Verified unconditionally", "CONDITIONAL": "Verified conditionally",
             "ISSUE": "Recorded issue", "UNFINISHED": "Unfinished"}
 AUDITS = ROOT / "verification" / "audits"
@@ -798,7 +904,10 @@ def gate_fingerprints(rid, path):
     if not isinstance(path, str) or not exists(path):
         return None
     text = (ROOT / path.split(":")[0]).read_text(errors="replace")
-    fps = {m.group(1): m.groups()[1:] for m in FP.finditer(text) if m.group(1).startswith(f"Paper.{rid}.")}
+    # v1.5: the snapshot block when the report has one (prose may quote other fingerprints); never a <X>_Gap line
+    blocks = re.findall(r"<!--\s*PV SNAPSHOT BEGIN\s*-->(.*?)<!--\s*PV SNAPSHOT END\s*-->", text, flags=re.S)
+    fps = {m.group(1): m.groups()[1:] for m in FP.finditer("\n".join(blocks) if blocks else text)
+           if m.group(1).startswith(f"Paper.{rid}.") and not m.group(1).endswith("_Gap")}
     return fps or None
 
 
@@ -1037,6 +1146,14 @@ def record(rid, argv):
         if t and is_predecessor_clause(t) and r["evidence"].get("reconnect") and not still:
             t["status"] = f"reconnected in {r['evidence']['reconnect']} ({now()}); no longer a condition"
             print(f"(p) clause {c}: marked as reconnected")
+        elif t and not is_predecessor_clause(t) and r["evidence"].get("reconnect") and "Closed" in r.get("lean_main", ""):
+            # v1.5: an external input proved in the Closed file and connected (stage 6b, discharging an input)
+            t["proved_in"] = r["lean_main"].split()[0].split(":")[0]
+            t.pop("provable", None)
+            t["status"] = (f"proved in Lean in {t['proved_in']} and connected for {rid} in {r['evidence']['reconnect']} "
+                           f"({now()})" + (f"; still a condition of {', '.join(still)} until connected there" if still
+                                           else "; no longer a condition"))
+            print(f"external input {c}: marked as proved in {t['proved_in']}")
     if a.recheck_passed:
         rep = a.evidence_recheck or latest_report(rid, "recheck", "RECHECK:")
         if not rep or not is_pass(verdict_line(rep, "RECHECK:")):
@@ -1045,7 +1162,7 @@ def record(rid, argv):
         r.pop("recheck", None)
         notes.append(f"re-check after an unchanged upstream statement passed: {rep}")
     # PENDING #7: the first gate pass after a reset decides whether the direct dependents must be reset too
-    if a.statement_fixed == "true" and not was_fixed and r.get("history"):
+    if a.statement_fixed == "true" and not was_fixed and r.get("history") and not r["history"][-1].get("new"):
         for line in cascade_after_gate(data, rid, r["evidence"].get("gate") or latest_report(rid, "gate", "STATEMENT GATE:")):
             print(line)
             notes.append(line)
@@ -1168,6 +1285,70 @@ def human_check(tool_id, argv):
     return validate(load())
 
 
+def provable(tool_id, argv):
+    """(v1.5) Mark an external input as provable in Lean now, so that `reconnect` lists the results that use it
+    (PIPELINE stage 6b, discharging an external input); --undo records a failed attempt and stops the listing."""
+    import argparse
+    ap = argparse.ArgumentParser(prog=f"pv_status.py provable {tool_id}")
+    ap.add_argument("--why", default="", help="why it can be proved now (e.g. the Mathlib lemma that gives it)")
+    ap.add_argument("--undo", action="store_true", help="the attempt failed: remove the mark and record why")
+    a = ap.parse_args(argv)
+    data = load()
+    t = next((x for x in data.get("external_tools", []) if isinstance(x, dict) and x.get("id") == tool_id), None)
+    if t is None:
+        sys.exit(f"unknown external input {tool_id}; see python3 scripts/pv_status.py tools")
+    if is_predecessor_clause(t):
+        sys.exit(f"{tool_id} is a predecessor clause: it is reconnected to its predecessor (stage 6b), not marked")
+    if a.undo:
+        t.pop("provable", None)
+        t["provable_tried"] = {"date": now(), "why": a.why}
+    else:
+        if not a.why:
+            sys.exit("give --why: what makes it provable now")
+        t["provable"] = {"date": now(), "why": a.why}
+        t.pop("provable_tried", None)
+    STATE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    print(f"{'removed the provable mark of' if a.undo else 'marked as provable:'} {tool_id}")
+    reconnect(data)
+    return validate(load())
+
+
+REPORT_STAMP = ROOT / "verification" / "report" / "REPORT_STAMP.json"
+COMPILER_FILES = ("consistency_check.md", "author_notes.md", "external_tools.md")
+
+
+def sha_of(f):
+    return hashlib.sha256(f.read_bytes()).hexdigest() if f.exists() else None
+
+
+def report_stamp():
+    """(v1.5) Record the sha256 of RESULTS.json and of pv-compiler's work files for the report just made. Refused
+    (exit 1) when a file of pv-compiler is missing, or when the records changed since the previous stamp while a file
+    of pv-compiler is byte-identical to the one stamped then: the report was updated without compiling it again."""
+    work = ROOT / "verification" / "report" / "work"
+    now_sha = sha_of(STATE)
+    cur = {n: sha_of(work / n) for n in COMPILER_FILES}
+    missing = [n for n, h in cur.items() if h is None]
+    stale = []
+    try:
+        old = json.loads(REPORT_STAMP.read_text())
+    except Exception:
+        old = {}
+    if old and old.get("results_sha256") != now_sha:
+        stale = [n for n, h in cur.items() if h and h == (old.get("work") or {}).get(n)]
+    if missing or stale:
+        print("refused: " + "; ".join(
+            ([f"missing in verification/report/work/: {', '.join(missing)}"] if missing else []) +
+            ([f"RESULTS.json changed since the report of {old.get('date')}, but these files of pv-compiler are the "
+              f"same as then: {', '.join('verification/report/work/' + n for n in stale)}"] if stale else [])) +
+              ". Run pv-compiler again (/pv-report §2) and redo the report from there.")
+        return 1
+    REPORT_STAMP.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_STAMP.write_text(json.dumps({"date": now(), "results_sha256": now_sha, "work": cur}, indent=2) + "\n")
+    print(f"report stamped: made from RESULTS.json {now_sha[:16]}…")
+    return 0
+
+
 def reset(ids, argv):
     """Reset results after a change of the source or of a gated statement (PIPELINE 'Cascade reset'), keeping the
     previous state in the result's 'history' so that the next report can show what the revision changed."""
@@ -1181,12 +1362,29 @@ def reset(ids, argv):
     ap.add_argument("--cascade-now", action="store_true",
                     help="reset the direct dependents at once, without waiting for the re-gate to show whether the "
                          "statement changed")
+    ap.add_argument("--new", action="store_true",
+                    help="(v1.5) the results are new in this revision (registered by /pv-revise): mark them, nothing "
+                         "is archived or cascaded")
     a = ap.parse_args(argv)
     data = load()
     byid = {r.get("id"): r for r in data.get("results", []) if isinstance(r, dict)}
     unknown = [i for i in ids if i not in byid]
     if unknown:
         sys.exit(f"unknown result ids {unknown}")
+    if a.new:
+        started = [i for i in ids if byid[i].get("stage") not in ("NOT_STARTED", "INVENTORIED") or byid[i].get("history")]
+        if started:
+            sys.exit(f"--new is for results registered in this revision and not started yet; not: {started}")
+        for i in ids:
+            r = byid[i]
+            r["reason"] = "NEW_IN_REVISION"
+            r["history"] = [{"revision": str(a.revision), "date": now(), "new": True, "verdict": None,
+                             "note": f"new in revision {a.revision}"}]
+            print(f"{i}: marked as new in revision {a.revision}")
+        STATE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+        set_header(data)
+        refresh_records(data)
+        return validate(load())
     for line in do_reset(data, ids, a.revision, a.reason, move_files=not a.keep_files, cascade_now=a.cascade_now):
         print(line)
     STATE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
@@ -1377,6 +1575,10 @@ def followup(data):
     print("|---|---|---|---|---|---|")
     for r in rows:
         h = r["history"][-1]
+        if h.get("new"):
+            print(f"| {cell(r.get('pdf_number'))} | {r['id']} | new (revision {cell(h.get('revision'))}) | "
+                  f"{CHECK_EN.get(r.get('verdict'), r.get('verdict'))} | — | — |")
+            continue
         issues = as_list(h.get("issues"))
         st = []
         for b in issues:
@@ -1550,11 +1752,15 @@ def main():
         if len(a) < 2:
             sys.exit('usage: pv_status.py human-check TOOL_ID --by "name" --how "what was checked against what" [--undo]')
         sys.exit(human_check(a[1], a[2:]))
+    if cmd == "provable":
+        if len(a) < 2:
+            sys.exit('usage: pv_status.py provable TOOL_ID --why "what makes it provable now" [--undo]')
+        sys.exit(provable(a[1], a[2:]))
     if cmd == "reset":
         rest = a[1:]
         k = next((i for i, x in enumerate(rest) if x.startswith("--")), len(rest))
         if k == 0:
-            sys.exit("usage: pv_status.py reset ID [ID ...] --revision K [--reason SOURCE_CHANGED|'']")
+            sys.exit("usage: pv_status.py reset ID [ID ...] --revision K [--reason SOURCE_CHANGED|''] [--new]")
         sys.exit(reset(rest[:k], rest[k:]))
     if cmd == "add-tool":
         if len(a) < 2:
@@ -1582,6 +1788,8 @@ def main():
     if cmd == "followup":
         followup(data)
         return
+    if cmd == "report-stamp":
+        sys.exit(report_stamp())
     if cmd == "refresh-records":
         refresh_records(data)
         print("refreshed the current-evidence index in verification/AUDIT.md and the registry in verification/EXTERNAL_TOOLS.md")

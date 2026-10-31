@@ -4,7 +4,8 @@ ready shared environment (autosetup/lean_env.sh), e.g.
     PV_TEST_LEAN_ENV=~/proofcheck/lean-env python3 -m unittest test_lean_integration
 
 They compile small files, so they take a few minutes. They cover the mechanical audit (pv_audit_mech.py), including
-the conditions traced from the gated theorems (PENDING v1.3.1 #16, #24) and the writer checks (#19, #26)."""
+the conditions traced from the gated theorems (PENDING v1.3.1 #16, #24) and the writer checks (#19, #26), and (v1.5)
+the walk past compiler auxiliaries, the snapshot block of a gate report and the package check."""
 import json
 import os
 import re
@@ -94,6 +95,37 @@ class MechanicalAudit(KitTestCase):
         self.assertIn("Run by: pv-auditor (agent aud12345", rep)
         self.assertRegex(rep, r"\| 12 \| last writer of `pv_work/P01.lean` \| PASS \| pv-prover")
         self.assertTrue(rep.rstrip().endswith("MECH CHECKS: PASS (2 manual checks listed above)"), rep[-400:])
+
+    def mech_rows(self):
+        reps = sorted((self.pr.root / "verification/audits").glob("P01_mech*.md"), key=lambda f: f.stat().st_mtime)
+        rep = reps[-1].read_text()
+        return {int(m.group(1)): m.group(2) for m in re.finditer(r"^\| (\d+) \| [^|]+ \| ([A-Z ]+) \|", rep, flags=re.M)}, rep
+
+    def test_compiler_auxiliaries_and_quoted_gap_lines_do_not_fail(self):     # v1.5
+        # a computable private def with a proof inside: its compiler auxiliary `_cstage1` refers to lcProof
+        self.pr.write("pv_work/P01.lean", PROOF.replace("theorem P01_main",
+                      "private def firstIdx (n : Nat) : Fin (n + 1) := ⟨0, by omega⟩\n\n"
+                      "theorem idx_ok : (firstIdx 1).val = 0 := rfl\n\ntheorem P01_main"))
+        b = self.pr.script("pv_lean.sh", "build", "P01")
+        self.assertEqual(b.returncode, 0, b.out)
+        gate = self.pr.read("verification/audits/P01_gate.md").replace("```\n", "<!-- PV SNAPSHOT BEGIN -->\n```\n", 1)
+        gate = gate.replace("\n```\n\nSTATEMENT GATE", "\n```\n<!-- PV SNAPSHOT END -->\n\nA gap file had "
+                            "`Paper.P01.P01_S1_Gap|def|th=1|vh=2|bi=`; the step is proved now.\n\nSTATEMENT GATE")
+        self.pr.write("verification/audits/P01_gate.md", gate)
+        p = self.pr.script("pv_audit_mech.py", "P01")
+        rows, rep = self.mech_rows()
+        self.assertEqual(p.returncode, 0, p.out + rep)
+        self.assertEqual((rows[4], rows[6], rows[7], rows[13]), ("PASS", "PASS", "PASS", "PASS"), rep)
+        self.assertIn("lcProof is reached only from internal names", rep)
+        # a real axiom in the module still fails, also when walked declaration by declaration
+        self.pr.write("pv_work/P01.lean", PROOF.replace("theorem P01_main",
+                      "axiom extra : (1 : Nat) = 1\n\ntheorem uses : (1 : Nat) = 1 := extra\n\ntheorem P01_main"))
+        self.assertEqual(self.pr.script("pv_lean.sh", "build", "P01").returncode, 0)
+        p = self.pr.script("pv_audit_mech.py", "P01")
+        rows, rep = self.mech_rows()
+        self.assertEqual(p.returncode, 1, rep)
+        self.assertEqual((rows[6], rows[7]), ("FAIL", "FAIL"), rep)
+        self.assertIn("`Paper.P01.uses` ['Paper.P01.extra']", rep)
 
     def test_offline_replay_confirms_a_recorded_verdict(self):
         self.log_writes({"role": "pv-prover", "agent_id": "abc12345", "path": "pv_work/P01.lean", "time": "t1"})
