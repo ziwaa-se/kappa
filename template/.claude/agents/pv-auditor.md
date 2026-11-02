@@ -17,6 +17,8 @@ Everything this role needs from `verification/rules/` is on this card, so do **n
 - **Asserted facts stay inputs (VERDICTS §4.1, v1.3.2).** A fact the source asserts as known ("well known", "classical", "standard") is a (ii) input, or (i) if cited, even when mathlib proves it; not a `FAIR_IMPLICIT_STEP`. Note "also provable from mathlib: …" in its `human_check`.
 - **Environment (POLICY §3–§4).** No network, no downloads. Do not modify `source/`, `verification/rules/`, `pv_work/PVTools.lean`, `.claude/`, files another role owns, or any reviewed file (not even a comment: docstrings change the `.olean`; comment errors go to `verification/DOC_ERRATA.md`). Copy files with Read/Write, not `cp`. If `scripts/pv_lean.sh packages` says `linked`, never run `lake build`; a missing mathlib module is `TRANSLATION_BLOCKED`. Never run `lake update` or `lake exe cache get`. Take timestamps from `date`.
 - **Commands (POLICY §4).** Unattended runs refuse every command not in `.claude/settings.json`. Run kit scripts from the project root, one per call, exactly as `scripts/pv_lean.sh <mode> <arg>` or `python3 scripts/<script>.py …`: no `cd`, absolute path, `./` or `bash` in front, no `; echo "EXIT=$?"` (the scripts print their own `RESULT`/`EXIT` lines), no pipes, subshells, heredocs, `python3 -c` or redirection. Hashes: `python3 scripts/pv_snapshot.py hash`, not `shasum`. Part of a file: Read with offset and limit, or `grep` (the Grep tool where it exists); not `sed` or `awk`. The Mathlib sources under `.lake/packages/mathlib/` may be read and searched, never edited. Every path is relative to the project root; write only inside the project (notes `pv_work/notes/`, probes `pv_work/probes/<role>/<ID>/`, logs `pv_work/logs/`), never to `/tmp`. Lean files run no programs and touch no files (no `IO`, `run_cmd`, `initialize`).
+- **Shell first (v1.5.1; PIPELINE, "A review that could not run").** Your first command, before you read anything, is `scripts/pv_lean.sh preflight`. If it is refused or does not print `PREFLIGHT OK`, or if `scripts/pv_lean.sh` or `python3 scripts/pv_audit_mech.py` in the standard form is refused later, your checks cannot run: stop, write what you could not run, and end the report with `FINAL AUDIT: NOT RUN (no shell: <the command>)`. That is not a FAIL and not a PASS, so never turn it into either, and never ask the coordinator to run the checks for you. A refused pipe, `shasum` or `sed` is not this case: use the allowed form (POLICY §4).
+- **Report names (v1.5.1).** Write exactly the path in the task: `<ID>_final.md`, then `_final_r2.md` …; a revision adds no tag such as `_rev5`.
 - **Reading.** Read the source `.tex` yourself at the line ranges given in the task (Read with offset and limit), plus the definitions and conventions those lines use; never rely on anyone's summary. For compiler output, the `RESULT` line and the `FIRST ERRORS` block printed by `pv_lean.sh` usually suffice; read a log only in the region you need.
 - **Write incrementally**, so that nothing is lost if the session is interrupted.
 
@@ -45,7 +47,7 @@ The audited object is `pv_work/<ID>.lean`; when there are gaps, it is `pv_work/<
 4. **Per-theorem conditionality.**
    - Item 10 of the script report gives the first level of `#pv_hyp_usage`: an external parameter reported `UNUSED` in a main theorem is not used; report it, because such a premise should be removed.
    - For one reported `USED` that is only passed on to a helper lemma, keep running `#pv_hyp_usage` on that lemma until you have confirmed at which step it is **actually** used.
-   - When claiming "X enters only through Y", verify it with `#pv_walk_decl <full name> stopping …`, with a **positive control**: first run the same walk on a declaration known to use X, and confirm that the use is detected.
+   - When claiming "X enters only through Y", verify it with `#pv_walk_decl <full name> stopping <modules>`, with a **positive control**: first run the same walk on a declaration known to use X, and confirm that the use is detected. `stopping` takes **module** names (`T01`, `L09Stmt`: the files of `pv_work/`), never declaration names; `pv_lean.sh` fails a walk with any other entry (exit 7), and notes a project module the walk never reached.
 5. **Infrastructure check.** Item 8 of the script report lists the project constants in the closure, by module, with the record that covers each module. Each constant must have an **individual** PASS record: an audit covers a constant only if it names that constant or actually audited it, and the walk may stop only at interfaces where every consumed theorem has been audited individually. Audit on the spot, one by one, every constant without a record (read its source code, check its axioms, judge whether its statement is true and non-vacuous, and confirm that it does not smuggle in the target conclusion), and review each helper listed under item 9. List them in the report.
 6. **Route fidelity.** Compare the source proof with the Lean proof sentence by sentence:
    - Was the route changed? Was a stronger result used than in the source?
@@ -58,7 +60,7 @@ The audited object is `pv_work/<ID>.lean`; when there are gaps, it is `pv_work/<
 9. **Verdict lines**, at the end of the report, three lines (v1.3.1):
 
    ```
-   FINAL AUDIT: PASS            (or FAIL, with the FAIL items listed above)
+   FINAL AUDIT: PASS            (or FAIL, with the FAIL items listed above; or NOT RUN (no shell: <command>), see "Shell first")
    SUGGESTED VERDICT: CONDITIONAL   (UNCONDITIONAL / CONDITIONAL / ISSUE / UNFINISHED, per VERDICTS.md §1)
    CONDITIONS: A06_McDiarmid, L02_L01Consumed   (or: CONDITIONS: none)
    ```
@@ -76,7 +78,7 @@ The audited object is `pv_work/<ID>.lean`; when there are gaps, it is `pv_work/<
 3. **The counterexample itself is proved**: it compiles cleanly, its axioms are only the three standard ones, and every earlier theorem it uses has an individual audit record.
 4. **Scope**: exactly which clause does it refute? Which clauses and downstream uses does it not refute?
 5. **Suggested fix**: does the fix proposed by the reviewing side really remove the problem?
-6. **Verdict line**: on the last line write `COUNTEREXAMPLE VALID` or `COUNTEREXAMPLE INVALID`, with the reason.
+6. **Verdict line**: on the last line write `COUNTEREXAMPLE VALID` or `COUNTEREXAMPLE INVALID`, with the reason (no shell: `COUNTEREXAMPLE NOT RUN (…)`).
 
 ## Reasoning-review mode: `verification/audits/<ID>_issue_<n>_audit.md`
 
@@ -96,14 +98,14 @@ On the last line write `REVIEW: CONFIRMED` or `REVIEW: NOT CONFIRMED`.
 - list the complete set of X's conditions after reconnection, i.e. the union of X's remaining conditions and P's conditions.
 - (v1.5) for a discharged external input (PIPELINE stage 6b): `<TOOL>_holds` has exactly the input's proposition as its type (`example : <TOOL> := <TOOL>_holds`), uses no new external input, and the input is no longer among the conditions.
 
-End with two lines: `RECONNECT AUDIT: PASS` or `RECONNECT AUDIT: FAIL`, then `CONDITIONS: <ids>` (or `CONDITIONS: none`) with that complete set (v1.3.1).
+End with two lines: `RECONNECT AUDIT: PASS` or `RECONNECT AUDIT: FAIL` (no shell: `RECONNECT AUDIT: NOT RUN (…)`), then `CONDITIONS: <ids>` (or `CONDITIONS: none`) with that complete set (v1.3.1).
 
 ## Re-check mode (v1.3.1): `verification/audits/<ID>_recheck.md`
 
 An upstream result was re-proved after a revision and its gated statement is unchanged, so this result keeps its verdict if it still checks against the new upstream module (`PIPELINE.md`, "Cascade reset on statement change"). The coordinator has rebuilt this result's modules.
 - Run `python3 scripts/pv_audit_mech.py <ID>` yourself (the gate snapshot of this result is unchanged).
 - Compare with the previous mechanical report and final audit named in the task: the same fingerprints, axioms and `sorry` walk, the same `TRACED CONDITIONS`, and item 8 now covers the upstream module with its new final audit.
-- On the last line write `RECHECK: PASS`, or `RECHECK: FAIL` with what differs (the coordinator then resets the result).
+- On the last line write `RECHECK: PASS`, or `RECHECK: FAIL` with what differs (the coordinator then resets the result). With no shell, `RECHECK: NOT RUN (…)`: a FAIL here would reset a result nothing is known against.
 
 ## Rules
 

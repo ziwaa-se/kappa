@@ -30,7 +30,7 @@ import T01
 import PVTools
 #pv_axioms T01                    -- axioms of every theorem/definition in module T01; prints ALL STANDARD if all are standard
 #pv_walk T01                      -- full transitive constant walk from module T01: axioms in the closure, sorryAx, constant count per module
-#pv_walk T01 stopping L09 L10     -- modules L09, L10 are recorded but not entered when the walk reaches them (for "only via audited interfaces" judgments)
+#pv_walk T01 stopping L09 L10     -- modules L09, L10 are recorded but not entered when the walk reaches them (for "only via audited interfaces" judgments). MODULE names only: a declaration name stops nothing, and pv_lean.sh fails the walk with exit 7 (v1.5.1)
 #pv_walk_decl Paper.T01.main     -- walk starting from a single declaration only (stopping … may also be added)
 #pv_hyp_usage Paper.T01.main     -- whether each premise of this theorem is used by the proof term (USED / UNUSED)
 #pv_type_hashes T01               -- one line per declaration: `name|kind|th=type hash|vh=def content hash|bi=binder annotations`
@@ -51,6 +51,7 @@ import PVTools
 - **Namespaces**: each result's files are written in `namespace Paper.<ID>`, and definitions used in the statement are declared only once, in `<ID>Stmt.lean` (`PIPELINE.md`, "Namespace and name-clash rules").
 - **Claims of the form "only via some interface" must be confirmed with a walk, plus a positive control.**
   - When a `stopping` walk is used to judge "X is used only via Y", first run the same walk on a declaration known to use X, and confirm that it is detected.
+  - `stopping` takes module names (v1.5.1). `pv_lean.sh` fails a walk whose entry is not a module (exit 7), because such an entry stops nothing, and it notes a project module the walk never reached.
   - A module given to `stopping` has its constants listed but not expanded, so any `sorryAx` inside it is invisible. You may stop there only if that module itself has passed independent review.
 - **Do not use grep to judge sorry or axioms.** A byte grep of an `.olean` gives false positives, because docstrings are stored in the olean; and some shells' `grep` aliases skip binary files.
 

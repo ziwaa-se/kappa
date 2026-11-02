@@ -10,6 +10,39 @@ Not yet available; see the README's [Roadmap](README.md#roadmap). This version o
 - **Completing unfinished steps:** an optional, longer proof search for steps stopped by formalization difficulty.
 - **Closing conditions automatically** when a cited result is available in Mathlib.
 
+## v1.5.1 (2026-11-01)
+
+A bug-fix release. The conditions for each verdict and `PVTools.lean` are unchanged, so earlier records stay valid.
+
+- **A review without a shell is not a failed review.** Claude Code can refuse a subagent the shell even when the rules
+  allow its commands. The auditor then had no way to say so: it wrote FAIL, and a clean result could end as
+  `AUDIT_FAILED`. Now:
+  - The gate and the auditor start with `scripts/pv_lean.sh preflight`, which compiles a trivial file. If their checks
+    cannot run, the report ends `NOT RUN (no shell: <command>)`, not FAIL. This costs one command, not a whole audit.
+  - Such a review changes no record and is never used as evidence. `pv_status.py next` lists it as `NOT_RUN`.
+  - `record` refuses `AUDIT_FAILED` and `GATE_FAILED` for it, and also refuses `AUDIT_FAILED` when `pv_audit_mech.py`
+    wrote no report for the failed audit.
+  - The driver checks before the first session that `settings.json` allows the commands a review needs. It gives a
+    review without a shell one fresh session, then stops with exit status 7. Running it again starts the review again.
+- **Report names and evidence.**
+  - `record` now takes the latest gate and final report since the last reset. Before, a path stored earlier won: a
+    passing `_final_r2.md` was ignored while the failed `_final.md` was stored, and the records became invalid.
+  - A report older than the last reset is no longer picked up, for example after `reset --keep-files`.
+  - `<ID>_final.md`, then `_final_r2.md` … is the only naming rule, also in a later revision. `record` refuses a newer
+    report named otherwise (such as `_rev5`), before anything changes, unless it is given with `--evidence-final` or
+    `--evidence-gate`.
+  - `validate` warns about evidence older than the reset.
+- **Walks that stopped nowhere.** `#pv_walk … stopping` takes module names; a declaration name matched nothing, and
+  the walk silently ran on. `pv_lean.sh` now fails such a walk (exit status 7) and notes a project module the walk
+  never reached. This reads the compiler's output, so it also works in existing projects with their locked
+  `PVTools.lean`. The auditor's rule card shows the expected form.
+- **A new title is not a new paper.** `source-check` compares the text and the labels, without the LaTeX commands and
+  the preamble. A new title over the same paper gives a note ("title changed, same paper"), also when the main file
+  was renamed, and `pv_status.py set-title` records it. A new title over another text is still reported as a
+  different paper.
+- For an existing project: `install.sh <project> --upgrade`. No new permission rules are needed.
+- Tests for each of these; the walk check and the preflight also on real Lean files.
+
 ## v1.5.0 (2026-10-30)
 
 Thank you to everyone who has tried the kit and sent us feedback since its release. This version takes up the first

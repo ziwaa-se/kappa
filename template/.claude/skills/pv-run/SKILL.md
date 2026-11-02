@@ -33,7 +33,7 @@ Repeat the following steps until every result in scope has a verdict, or is UNFI
 
 1. **Pick work.**
    1. First run `python3 scripts/pv_status.py reconnect`; if anything needs reconnection, do that first (stage 6b).
-   2. Then run `python3 scripts/pv_status.py next`: `READY` rows are results that can start; `BLOCKED` rows state which predecessor blocks them; `RECHECK` rows (v1.3.1) are verified results whose upstream was re-proved with an unchanged statement; `RULING` rows (v1.5) wait for the gate's infrastructure ruling (step 4).
+   2. Then run `python3 scripts/pv_status.py next`: `READY` rows are results that can start; `BLOCKED` rows state which predecessor blocks them; `RECHECK` rows (v1.3.1) are verified results whose upstream was re-proved with an unchanged statement; `RULING` rows (v1.5) wait for the gate's infrastructure ruling (step 4); `NOT_RUN` rows (v1.5.1) are reviews that had no shell, to be started again (step 4).
    3. **A `RECHECK` row** (`PIPELINE.md`, "Cascade reset on statement change", step 3): rebuild the result's modules with `scripts/pv_lean.sh build <module>` in dependency order (its `Stmt`, then the files of `lean_main` and of any `Closed` file), then dispatch pv-auditor in re-check mode (template in §2). After `RECHECK: PASS`, run `python3 scripts/pv_status.py record <ID> --recheck-passed`; after `RECHECK: FAIL`, reset the result with `pv_status.py reset <ID> --revision <k>`.
 2. **Parallelism.** **No more than 3** subagents may run at the same time in total; issue rulings and reviews count toward this. Each Lean file may have only one writer at a time. **In an unattended (headless) session, never end your turn while subagents you started are still running**: wait for them, because they are stopped when the session ends. **Wait through their completion notifications** (v1.3.1): do not set timers, `sleep` commands, scheduled wake-ups or monitors to wait for them. Such a timer keeps firing after the agents have returned, and every wake-up re-reads the whole context. If one was started anyway, cancel it as soon as the agents are back.
 3. **Before starting a subagent**, add a row to the "Running subagents" table in `RESUME.md`: role, target, files it should produce, start time. Delete the row after the subagent returns.
@@ -56,6 +56,8 @@ Repeat the following steps until every result in scope has a verdict, or is UNFI
    - Proof problem: return the FAIL items to pv-prover; this counts as one proof session.
    - Statement problem: run `python3 scripts/pv_status.py reset <ID> --revision enc<n> --reason ''`, hand it to pv-drafter for changes, have pv-gate review it again, then record the pass with `record <ID> --stage GATE_PASSED --statement-fixed true`; the "Cascade reset on statement change" of `PIPELINE.md` then decides for the dependents.
    - If the second final audit still FAILs: set `STOPPED` + `AUDIT_FAILED`.
+
+   **When a review ends `NOT RUN` (v1.5.1, `PIPELINE.md`, "A review that could not run"):** its agent had no shell, which says nothing about the result. Change no record: keep the stage, start no proof session, do not count it as one of the two sessions, and do not run its checks yourself (the review must be independent). `record` refuses `AUDIT_FAILED` and `GATE_FAILED` for it. Write it in `RESUME.md` and go on with the other results. Unattended, end the session when they are done: the driver starts one fresh session, in which you dispatch the review again (next number, e.g. `_final_r2.md`); if it has no shell again the driver stops with exit status 7. Interactive: tell the user at once (`python3 scripts/pv_settings.py check`), and dispatch it again when they have fixed the permissions.
 5. **Suspected issues.** When any role reports a suspected paper issue:
    1. set the result to `stage: ISSUE_CHECK` and dispatch pv-issue-checker;
    2. decide the next step from the "Handling suspected issues" table of `PIPELINE.md`, based on `ISSUE VERDICT:` and on the verdict line of the review;
@@ -98,7 +100,7 @@ Amendment mode: `Make the "Required changes" in verification/audits/<ID>_gate<�
 Review the statement of <ID>: pv_work/<ID>Stmt.lean and pv_work/<ID>Draft.lean (draft notes pv_work/notes/<ID>_draft_notes.md).
 Source: statement <file:line>; proof <file:line>; related definitions <file:line>. Read the source yourself.
 Focus: <TFAs or doubts raised by the drafter>.
-Output: verification/audits/<ID>_gate.md (the k-th time, write _gate_rk.md), containing the snapshots of both files. Do not modify the draft. No network, no downloads.
+Output: verification/audits/<ID>_gate.md (the k-th time, write _gate_rk.md; never a revision tag such as _rev5), containing the snapshots of both files. Do not modify the draft. No network, no downloads.
 ```
 Amendment-check mode: `Check the amendments to <ID> made according to <previous gate report>, looking only at the changed parts; redo the snapshot and write it to <ID>_gate_r<k>.md.`
 Infrastructure-ruling mode (v1.5): `Infrastructure ruling on <ID> obligation S<k> (PIPELINE stage 4): the prover's notes pv_work/notes/<ID>_prover_notes.md, section <…>; proof file pv_work/<ID>.lean; source <file:line-line>. Output: verification/audits/<ID>_infra_r<k>.md, last line INFRASTRUCTURE RULING: EXTEND <n> | PARAMETER | DECLINE. No network, no downloads.`
@@ -117,7 +119,7 @@ Reconnection mode: `Reconnect predecessors <P…> for X: write pv_work/<X>Closed
 ```
 Final audit of <ID>: <pv_work/<ID>.lean or <ID>ModGaps.lean> (notes pv_work/notes/<ID>_prover_notes.md; gate snapshot in <gate report>; DEFS snapshot in verification/audits/DEFS_gate*.md).
 Source <file:line-line>. Infrastructure that already has individual audit records: <report paths>; audit the rest one by one.
-Output: verification/audits/<ID>_final.md (the k-th time, write _final_rk.md). Do not modify the audited files. No network, no downloads.
+Output: verification/audits/<ID>_final.md (the k-th time, write _final_rk.md; never a revision tag such as _rev5). Do not modify the audited files. No network, no downloads.
 ```
 Re-check mode (v1.3.1): `Re-check of <ID> after the unchanged upstream <P…> was re-proved: its modules are rebuilt. Run python3 scripts/pv_audit_mech.py <ID>; compare with the previous mechanical report <path> and the final audit <path>. Output: verification/audits/<ID>_recheck.md, last line RECHECK: PASS or RECHECK: FAIL. No network, no downloads.`
 
@@ -146,7 +148,7 @@ python3 scripts/pv_status.py record <ID> --verdict <V> --stage <S> [--reason <R>
 python3 scripts/pv_status.py add-tool '<JSON object with the fields of _example_tool>'    # each external input, once
 ```
 
-The judgements (verdict, conditions, codes, summaries) are yours, as below; the scripts only write, count and look up paths.
+The judgements (verdict, conditions, codes, summaries) are yours, as below; the scripts only write, count and look up paths. (v1.5.1) `record` takes the latest gate and final report since the last reset, so normally you give no paths; it refuses when a newer report breaks the naming rule, and `validate` warns about evidence older than the reset.
 
 **After a revision** (the result has a `history` entry, see `/pv-revise`): if the re-run gives it a verified verdict and the earlier issue is gone in the new statement and proof, add `--resolve <B…>` to `record`. The script marks those issues `RESOLVED`, citing the new final audit, and refuses if the final audit is still the one from before the revision. If the problem is still there, keep the issue open (update its line numbers) and record ISSUE as usual. Edit files by hand only for what the scripts do not cover (`BLOCKERS.md`, `EXTERNAL_TOOLS.md` prose, `RESUME.md`).
 

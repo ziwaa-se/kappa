@@ -1,6 +1,7 @@
 """The unattended driver (scripts/pv_drive.sh) and its decisions (scripts/pv_drive_status.py), end to end against a
 scripted stand-in for `claude`. Covers PENDING v1.3.1 #1 (auto-resume), #3 (exit status), #4 (reconnection counts as
-progress), #5 (report mode), #2 (refused kit commands) and #12 (per-result session budget)."""
+progress), #5 (report mode), #2 (refused kit commands) and #12 (per-result session budget); v1.5.1: a review without
+a shell."""
 import importlib.util
 import json
 import unittest
@@ -14,6 +15,7 @@ ds = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ds)
 
 LIMIT = "You've hit your session limit · resets 3:45pm"
+NO_SHELL = "Nothing could run.\n\nFINAL AUDIT: NOT RUN (no shell: scripts/pv_lean.sh preflight)\n"
 
 
 def passes(rid, verdict="UNCONDITIONAL", conditions=""):
@@ -249,6 +251,74 @@ class Driver(KitTestCase):
         p, st, _ = self.drive(pr, [passes("L01")], PV_CLAUDE_DIR=str(claude_dir))
         self.assertEqual(p.returncode, 7, p.out)
         self.assertEqual(st["reason"], "permissions")
+
+    def denied_auditor(self, pr, session=1):
+        """A subagent transcript: the auditor's first command was refused."""
+        claude_dir = self.tmp / "claude-home"
+        sub = claude_dir / "projects" / ds.encode(pr.root) / f"fake-session-{session}" / "subagents"
+        sub.mkdir(parents=True)
+        lines = [{"message": {"content": [{"type": "tool_use", "id": "t1", "name": "Bash",
+                                           "input": {"command": "scripts/pv_lean.sh preflight"}}]}},
+                 {"message": {"content": [{"type": "tool_result", "tool_use_id": "t1",
+                                           "content": "Permission to use Bash has been denied."}]}}]
+        (sub / "agent-a1.jsonl").write_text("\n".join(json.dumps(l) for l in lines) + "\n")
+        return claude_dir
+
+    def clean_result(self):
+        return Project(self.tmp, results=[result("L01", stage="PROVED", reason="AUDIT_PENDING", statement_fixed=True)])
+
+    def test_an_auditor_without_a_shell_gets_one_fresh_session(self):      # v1.5.1
+        pr = self.clean_result()
+        claude_dir = self.denied_auditor(pr)
+        ok = passes("L01")
+        ok["files"]["verification/audits/L01_final_r2.md"] = ok["files"].pop("verification/audits/L01_final.md")
+        p, st, fc = self.drive(pr, [{"files": {"verification/audits/L01_final.md": NO_SHELL}, "result": "no shell"}, ok],
+                               PV_CLAUDE_DIR=str(claude_dir))
+        self.assertEqual(st["reason"], "done", p.out)
+        self.assertEqual(len(fc.calls()), 2)
+        self.assertIn("one fresh session tries again", p.out)
+        self.assertEqual(pr.result("L01")["verdict"], "UNCONDITIONAL")
+        self.assertEqual(pr.result("L01")["evidence"]["final"], "verification/audits/L01_final_r2.md")
+
+    def test_no_shell_twice_stops_with_the_permission_problem(self):       # v1.5.1
+        pr = self.clean_result()
+        give_up = "python3 scripts/pv_status.py record L01 --verdict UNFINISHED --stage STOPPED --reason AUDIT_FAILED"
+        steps = [{"files": {"verification/audits/L01_final.md": NO_SHELL}, "run": [give_up]},
+                 {"files": {"verification/audits/L01_final_r2.md": NO_SHELL}, "run": [give_up]},
+                 {"result": "must not run"}]
+        p, st, fc = self.drive(pr, steps)
+        self.assertEqual(p.returncode, 7, p.out)
+        self.assertEqual(st["reason"], "permissions")
+        self.assertEqual(len(fc.calls()), 2)
+        self.assertIn("the review of L01 could not run in two sessions", self.last_line(p))
+        r = pr.result("L01")
+        self.assertEqual((r["stage"], r["reason"], r["verdict"]), ("PROVED", "AUDIT_PENDING", "UNFINISHED"))
+        # the permissions fixed: the next run starts the review again and it passes
+        (self.tmp / "scenario.json.count").unlink()
+        ok = passes("L01")
+        ok["files"]["verification/audits/L01_final_r3.md"] = ok["files"].pop("verification/audits/L01_final.md")
+        p, st, _ = self.drive(pr, [ok])
+        self.assertEqual(st["reason"], "done", p.out)
+        self.assertEqual(pr.result("L01")["evidence"]["final"], "verification/audits/L01_final_r3.md")
+
+    def test_rules_a_review_needs_are_checked_before_any_session(self):    # v1.5.1
+        pr = Project(self.tmp, results=[result("L01")])
+        d = json.loads(pr.read(".claude/settings.json"))
+        d["permissions"]["allow"] = [r for r in d["permissions"]["allow"] if "pv_audit_mech" not in r]
+        pr.write(".claude/settings.json", json.dumps(d))
+        p, st, fc = self.drive(pr, [passes("L01")])
+        self.assertEqual(p.returncode, 7, p.out)
+        self.assertEqual(fc.calls(), [])
+        self.assertIn("`python3 scripts/pv_audit_mech.py T01` is not allowed", self.last_line(p))
+        # a broader rule is enough; a deny rule is not
+        d["permissions"]["allow"].append("Bash(python3 scripts/*)")
+        pr.write(".claude/settings.json", json.dumps(d))
+        self.assertEqual(pr.script("pv_drive_status.py", "preflight").returncode, 0)
+        d["permissions"]["deny"].append("Bash(scripts/pv_lean.sh *)")
+        pr.write(".claude/settings.json", json.dumps(d))
+        p = pr.script("pv_drive_status.py", "preflight")
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("`scripts/pv_lean.sh preflight` is denied", p.out)
 
     def test_other_denials_are_only_counted(self):
         pr = Project(self.tmp, results=[result("L01")])

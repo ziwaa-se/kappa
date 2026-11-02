@@ -12,7 +12,8 @@ Follow `CLAUDE.md` and `verification/rules/`, especially "Cascade reset on state
 
 1. Run `date`, then take a snapshot: `python3 scripts/pv_snapshot.py save --label before-revision`. The snapshot includes the `.tex` files, so the source text cited by the old audit reports can still be found.
 2. **Compare.** Run `diff -ruN verification/source_baseline source`, and list the added, deleted and modified files and line ranges.
-   **Renamed main file (v1.3.2).** If `python3 scripts/pv_status.py source-check` reports "main file renamed: A -> B" (the new version has a new file name and the same title), run `python3 scripts/pv_status.py set-main B`, compare the old file with the new one (`diff -u verification/source_baseline/<A> source/<B>`), and in step 4 change every `file:line` reference from A to B. A missing main file with a different title is a different paper: stop.
+   **Renamed main file (v1.3.2).** If `python3 scripts/pv_status.py source-check` reports "main file renamed: A -> B" (the new version has a new file name and the same title), run `python3 scripts/pv_status.py set-main B`, compare the old file with the new one (`diff -u verification/source_baseline/<A> source/<B>`), and in step 4 change every `file:line` reference from A to B. A missing main file is a different paper only if the text changed too: `source-check` says which.
+   **Changed title (v1.5.1).** If `source-check` reports "title changed, same paper" (most of the old text or its labels are still there), this is a new version: run `python3 scripts/pv_status.py set-title` and go on. `DIFFERENT_PAPER` means that the title changed and the text is no longer this paper's: stop.
 3. **Find the affected objects.** For each numbered result and each shared definition, decide which case applies:
    - (a) the statement changed;
    - (b) the proof changed;
@@ -29,6 +30,7 @@ Follow `CLAUDE.md` and `verification/rules/`, especially "Cascade reset on state
    - **Do not reset the dependents by hand.** When a reset result passes its gate again, `record <ID> --stage GATE_PASSED --statement-fixed true` compares its new statement with the old one: unchanged, the dependents keep their verdicts and only get a rebuild and a mechanical re-check; changed, they are reset in turn.
    - A shared definition changed: write it as a new file `Defs<k>.lean` and gate it again; reset the results that use it (case (c)).
    - Only (d), (e): the verdict is kept.
+   - **Report names (v1.5.1).** `reset` clears the result's stored evidence and archives its reports under `verification/audits/rev<k>/`, so the new reports start again at `<ID>_gate.md` and `<ID>_final.md`. Never put the revision in a report's name (`_rev5`): `record` refuses such a report unless it is given with `--evidence-final`, and the mechanical audit cannot find it.
 6. **Records.** For the issues in `BLOCKERS.md` related to the changes:
    - **Do not mark an issue resolved now.** A changed sentence is not yet a verified one. An issue is resolved only when the re-run gives the result a verified verdict with a new final audit; `/pv-run` then records it with `record --resolve <B…>`.
    - Issues of results that were not reset: update their line numbers only.

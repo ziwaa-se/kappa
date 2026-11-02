@@ -13,10 +13,13 @@
 #                                               mathlib modules are compiled (linked: never run `lake build`)
 #   scripts/pv_lean.sh module <Mathlib.X.Y>    (v1.5) is a library module built, in the source but not built (and
 #                                               how many of its imports are unbuilt), or not in any package
+#   scripts/pv_lean.sh preflight               (v1.5.1) a review's first command: can this session run the kit's
+#                                               scripts and compile a trivial file? Exit 6 if Lean cannot
 #
 # Every compile writes a numbered log pv_work/logs/<name>_<k>.log whose last line is "EXIT=<code>", and prints one
 # RESULT line with the same code. Exit codes: the compiler's own code; 3 for a refused build; 5 for a file that uses
-# IO, run_cmd or initialize (refused before compiling: POLICY §4, Lean files run no programs and touch no files). Build modules in
+# IO, run_cmd or initialize (refused before compiling: POLICY §4, Lean files run no programs and touch no files);
+# 7 (v1.5.1) for a walk whose `stopping` entry is not a module, so that it stopped nowhere. Build modules in
 # dependency order; after rebuilding a module, rebuild every pv_work module that imports it. Name probes
 # <role>_<ID>_<what>.lean (e.g. auditor_T01_walk.lean) so log names never collide (macOS is case-insensitive).
 set -uo pipefail
@@ -28,7 +31,7 @@ mkdir -p "$LOGS"
 
 mode="${1:-}"
 target="${2:-}"
-usage() { sed -n '2,22p' "$0"; exit 2; }
+usage() { sed -n '2,25p' "$0"; exit 2; }
 # sha256 of a file on macOS (shasum) and Linux (sha256sum), with a python3 fallback.
 sha256() {
   if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1
@@ -47,7 +50,57 @@ io_guard() {
   fi
 }
 
+# v1.5.1: `stopping` takes module names (PVTools compares it with the module of each constant). Any other name matches
+# nothing, and the walk runs on as if there were no stop. Reads the walks in a compile log, as Lean itself parsed them.
+# Prints one line per entry that is no module, and a note for a project module that the walk never reached.
+stopping_guard() {
+  python3 - "$ROOT" "$1" <<'PYEOF'
+import re, sys
+from pathlib import Path
+root, log = Path(sys.argv[1]), Path(sys.argv[2])
+pk = root / ".lake" / "packages"
+pkgs = sorted(pk.glob("*")) if pk.is_dir() else []
+def project(m):
+    return (root / "pv_work" / (m.replace(".", "/") + ".lean")).is_file()
+def module(m):
+    rel = m.replace(".", "/") + ".lean"
+    return m.split(".")[0] in ("Init", "Lean", "Std", "Lake") or project(m) or any((d / rel).is_file() for d in pkgs)
+stops, title, reached = [], "", set()
+def close():
+    for m in stops:
+        if project(m) and m not in reached:
+            print(f"NOTE {title}: the walk never reached module {m}, so this stop changed nothing")
+for line in log.read_text(errors="replace").splitlines():
+    w = re.search(r"WALK (.*?) stopping \[(.*?)\]: ", line)
+    if w:
+        close()
+        title, stops, reached = w.group(1), [x.strip().replace("«", "").replace("»", "") for x in w.group(2).split(",") if x.strip()], set()
+        for m in stops:
+            if not module(m):
+                print(f"STOPPING ERROR {title}: {m} is not a module, so the walk did not stop there. Give module names, "
+                      f"as in `#pv_walk_decl Paper.T01.main stopping L09 L09Stmt` (L09 is pv_work/L09.lean)")
+    r = re.match(r"MODULE\|(.*?)\|\d+ \(stopped\)", line.strip())
+    if r:
+        reached.add(r.group(1))
+close()
+PYEOF
+}
+
 [[ -n "$mode" ]] || usage
+
+if [[ "$mode" == "preflight" ]]; then
+  # v1.5.1: if this very command is refused, the session has no shell; the reviewer then ends with NOT RUN, not FAIL
+  dir="$WORK/probes/preflight"; mkdir -p "$dir"
+  printf 'import PVTools\nexample : 1 + 1 = 2 := rfl\n' > "$dir/pv_preflight.lean"
+  cd "$ROOT" || exit 2
+  out=$(LEAN_PATH="$WORK:${LEAN_PATH:-}" lake env lean "$dir/pv_preflight.lean" 2>&1); ec=$?
+  if [[ $ec -eq 0 ]]; then
+    echo "PREFLIGHT OK: this session runs the kit's scripts, and Lean compiles a file that imports PVTools"
+    exit 0
+  fi
+  echo "PREFLIGHT FAILED exit=$ec: Lean could not compile a trivial file: $(echo "$out" | head -3 | tr '\n' ' ' | cut -c1-300)"
+  exit 6
+fi
 
 if [[ "$mode" == "packages" ]]; then
   if [[ -L "$ROOT/.lake/packages" ]]; then kind="linked -> $(readlink "$ROOT/.lake/packages")"; else kind="copied"; fi
@@ -147,6 +200,11 @@ fi
 errors=$(grep -c ": error" "$log" || true)
 sorries=$(grep -c "declaration uses 'sorry'" "$log" || true)
 nonstd=$(grep -c "NONSTANDARD|" "$log" || true)
+stop_lines=$(stopping_guard "$log")
+if [[ -n "$stop_lines" ]]; then
+  echo "$stop_lines" >> "$log"
+  if [[ $ec -eq 0 ]] && echo "$stop_lines" | grep -q "^STOPPING ERROR"; then ec=7; fi
+fi
 
 olean="none"
 if [[ "$mode" == "build" ]]; then
@@ -167,6 +225,7 @@ tokens=$(grep -nE '(^|[^A-Za-z_.])(admit|native_decide)([^A-Za-z_]|$)|^[[:space:
 
 echo "RESULT $base mode=$mode exit=$ec errors=$errors sorry_warnings=$sorries nonstandard_axiom_lines=$nonstd log=${log#$ROOT/} olean=${olean#$ROOT/}"
 [[ -n "$tokens" ]] && echo "CHECK-TOKENS (verify these are only in comments): $tokens"
+[[ -n "$stop_lines" ]] && echo "$stop_lines"
 # v1.3: print the first errors (position, message, goal) so that the log rarely has to be read in full.
 if [[ $errors -gt 0 ]]; then
   echo "FIRST ERRORS (up to ${PV_MAX_ERRORS:-3}, ${PV_MAX_ERROR_LINES:-30} lines each; full log: ${log#$ROOT/}):"

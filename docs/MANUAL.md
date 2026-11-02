@@ -1,4 +1,4 @@
-# KAPPA v1.5.0: reference manual
+# KAPPA v1.5.1: reference manual
 
 > **Start with** [`GUIDE_EN.md`](GUIDE_EN.md), the complete workflow on one page. It covers setup, including the guided setup with [`CLAUDE_START_HERE.md`](../CLAUDE_START_HERE.md), the prompts to send, what you get, re-checking after corrections, recording conditions you checked, and upgrading. This manual is the detailed reference.
 
@@ -257,12 +257,14 @@ cd ~/proofcheck/papers/mypaper-check && scripts/pv_drive.sh --setup source/main.
   | 4 | `no_progress`: a session changed no record | read the last session's JSON and `RESUME.md` |
   | 5 | `validate_failed` | read `pv_work/logs/drive/validate.txt` |
   | 6 | `max_sessions` | run the driver again |
-  | 7 | `permissions`: kit commands in their standard form were refused | trust the folder once (step 4) and run again |
+  | 7 | `permissions`: `settings.json` lacks a rule that a review needs, kit commands in their standard form were refused, or a review had no shell in two sessions | trust the folder once (step 4), check `python3 scripts/pv_settings.py check`, and run again; a review that could not run starts again |
   | 8 | `report_incomplete` | look at the report session's JSON; `--report-only` retries |
   | 9 | `max_restarts` | many usage-limit waits; run again later |
   | 1 | `setup_failed` | read the setup session's JSON |
 
 - After each session the driver also counts the permission denials in that session's transcripts (coordinator and subagents) and prints them; `python3 scripts/pv_drive_status.py denials pv_work/logs/drive/session_<k>.json` lists the commands.
+
+- **A review without a shell (v1.5.1).** The gate and the auditor rest on compiles and scripts their own agent runs, and Claude Code has refused such an agent the shell even though the rules allowed it. So their first command is `scripts/pv_lean.sh preflight`. If they cannot run their checks, their report ends `FINAL AUDIT: NOT RUN (no shell: …)` (or `STATEMENT GATE: NOT RUN …`), not FAIL. The result keeps its stage, no proof session follows, and `record` refuses `AUDIT_FAILED` and `GATE_FAILED` for it. The driver gives it one fresh session, and stops with exit status 7 if it has no shell again; running the driver again starts the review again. Before the first session the driver also checks that `settings.json` allows these commands.
 
 ### Operations notes for long runs (v1.3.1)
 
@@ -326,6 +328,8 @@ Put the corrected LaTeX (and the new PDF and `.aux`) into `source/`, replacing t
 - **What is reset.** Only the results whose statement, proof or used definitions changed. A definition counts as changed only if its own lines changed: each shared definition has an ID and an exact line range (`source_defs`), each result lists the definitions it uses (`uses_defs`), and `python3 scripts/pv_status.py defs-changed` compares them between the baseline and `source/`. If the new version renames the main file but keeps its title, `source-check` reports "main file renamed" (since v1.3.2) and `/pv-revise` records the new name with `pv_status.py set-main`.
 - **What happens to the results that depend on them** (`PIPELINE.md`, "Cascade reset on statement change"). They are marked "re-check pending" and keep their verdicts for the moment. When a reset result passes its gate again, the kit compares the fingerprints of its new statement with the old ones. If they are identical, its dependents are only rebuilt and get a mechanical re-check (`RECHECK` rows of `pv_status.py next`; report `<ID>_recheck.md`); if they differ, the dependents are reset in turn, one level at a time. Since v1.3.2 a definition that the new statement file no longer contains does not count as a change when the dependents' Lean files never mention it (an auxiliary of a rewritten proof). Before v1.3.1 every result that imported a changed one was reset, and so, transitively, were results whose inputs had not changed at all.
 - **Old files.** `reset` moves the old proof files and review reports of a reset result to `pv_work/superseded/rev<k>/` and `verification/audits/rev<k>/`, so that the current files are the only ones in place; its history points to the archived copies.
+- **Report names (v1.5.1).** New reports start again at `<ID>_gate.md` and `<ID>_final.md`; a revision adds no tag such as `_rev5` to the name. `record` always takes the latest report since the reset. It refuses when a newer report breaks this rule (give that report with `--evidence-final` if it is the right one), and `validate` warns about evidence older than the reset.
+- **A new title (v1.5.1).** A new title over mostly the same text, or the same labels with a good part of the text, is a new version: `source-check` says "title changed, same paper", and `python3 scripts/pv_status.py set-title` records the new title. A new title over another text is still reported as a different paper.
 - **"Is this passage unchanged?"** `/pv-revise` makes `source/` the new baseline at its last step. Reviewers who need to confirm that some text did not change compare against the previous manuscript, which `reset` records in each result's history (`baseline_before`, e.g. `verification/source_baseline_v1/`).
 - An earlier issue is marked resolved only when the re-check gives the result a verified verdict with a new final audit.
 - `python3 scripts/pv_status.py followup` and the next `/pv-report` show each re-checked result before and after. Results that are new in the revision are registered with `reset <ID> --revision <k> --new` (v1.5) and shown as new.

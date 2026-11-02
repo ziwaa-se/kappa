@@ -127,6 +127,18 @@ class MechanicalAudit(KitTestCase):
         self.assertEqual((rows[6], rows[7]), ("FAIL", "FAIL"), rep)
         self.assertIn("`Paper.P01.uses` ['Paper.P01.extra']", rep)
 
+    def test_preflight_and_stopping_entries(self):                            # v1.5.1
+        p = self.pr.script("pv_lean.sh", "preflight")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertIn("PREFLIGHT OK", p.out)
+        for name, stop, code in (("mod", "P01Stmt", 0), ("decl", "Paper.P01.Tool", 7)):
+            f = f"pv_work/probes/auditor/P01/auditor_P01_{name}.lean"
+            self.pr.write(f, f"import P01\nimport PVTools\n#pv_walk_decl Paper.P01.P01_main stopping {stop}\n")
+            p = self.pr.script("pv_lean.sh", "probe", f)
+            self.assertEqual(p.returncode, code, p.out)
+            self.assertEqual("STOPPING ERROR" in p.out, code == 7, p.out)
+        self.assertIn("Paper.P01.Tool is not a module", p.out)
+
     def test_offline_replay_confirms_a_recorded_verdict(self):
         self.log_writes({"role": "pv-prover", "agent_id": "abc12345", "path": "pv_work/P01.lean", "time": "t1"})
         self.assertEqual(self.pr.script("pv_audit_mech.py", "P01").returncode, 0)

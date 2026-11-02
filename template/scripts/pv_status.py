@@ -22,7 +22,9 @@ Usage (from the project root):
   python3 scripts/pv_status.py record ID --verdict V --stage S [--reason R] [--conditions a,b] [--lean-main ...]
                                     [--summary-en ...] [--row ...] [--audit-note ...] [...]
                                                    (v1.3) write the entry of ID in RESULTS.json (evidence paths are
-                                                   filled in from the latest reports), its PAPER_VERIFICATION.md row
+                                                   filled in from the latest reports since the last reset; a review
+                                                   that ended NOT RUN is never evidence, and never AUDIT_FAILED or
+                                                   GATE_FAILED: v1.5.1), its PAPER_VERIFICATION.md row
                                                    and header counts, and an AUDIT.md section; then validate
   python3 scripts/pv_status.py add-tool '<JSON>'   (v1.3) register or update one external input (fields of
                                                    _example_tool), then validate
@@ -36,7 +38,8 @@ Usage (from the project root):
                                                    (v1.3) record that a person checked an external input; the results
                                                    using it stay CONDITIONAL and are listed as "checked by a person"
   python3 scripts/pv_status.py source-check        (v1.3) is source/ still the paper this project was set up
-                                                   for? SAME / CHANGED (new version: /pv-revise) / DIFFERENT_PAPER
+                                                   for? SAME / CHANGED (new version: /pv-revise) / DIFFERENT_PAPER;
+                                                   (v1.5.1) a new title over the same text is CHANGED
   python3 scripts/pv_status.py init-checklist [--force]
                                                    (v1.3) one "Unfinished" row per result and the header counts
   python3 scripts/pv_status.py set-deps ID [DEP ...]
@@ -51,6 +54,11 @@ Usage (from the project root):
   python3 scripts/pv_status.py set-main source/F.tex
                                                    (v1.3.2) record a new name of the main file, after a revision
                                                    renamed it (source-check reports "main file renamed")
+  python3 scripts/pv_status.py set-title
+                                                   (v1.5.1) record the paper's new title, after a revision changed
+                                                   it (source-check reports "title changed")
+  python3 scripts/pv_status.py not-run             (v1.5.1) the reviews still in flight whose report ends NOT RUN:
+                                                   the reviewer had no shell (the driver stops on them)
   python3 scripts/pv_status.py defs-changed        (v1.3.1) for each shared definition in source_defs: is its text
                                                    in source/ still the text of the baseline? Lists the results
                                                    that use each changed definition (/pv-revise, case (c))
@@ -184,6 +192,11 @@ def verdict_line(path, prefix):
 
 def is_pass(v):
     return bool(v) and re.match(r"PASS(?![A-Z_])", v) is not None
+
+
+def not_run(v):
+    """(v1.5.1) A verdict line 'NOT RUN (…)': the reviewer could not run its checks, which is not a FAIL."""
+    return bool(v) and v.startswith("NOT RUN")
 
 
 def blockers():
@@ -372,11 +385,15 @@ def validate(data):
         for key in ("gate", "final", "reconnect"):
             if key in ev and ev[key] and not isinstance(ev[key], str):
                 errs.append(f"{rid}: evidence.{key} must be one path string (the latest report)")
+        since = last_reset(r)
         for key, p in evidence_paths(ev):
             if not exists(p):
                 errs.append(f"{rid}: evidence[{key}] missing on disk: {p}")
             elif "verification/audits/" in p and not Path(p.split(":")[0]).name.startswith(f"{rid}_"):
                 errs.append(f"{rid}: evidence[{key}] {p} is not one of {rid}'s reports")
+            elif since and "verification/audits/" in p and (ROOT / p.split(":")[0]).stat().st_mtime < since:
+                warns.append(f"{rid}: evidence[{key}] {p} is older than the last reset of {rid} "
+                             f"({r['history'][-1].get('date')}); it does not review the current files")
         lm = r.get("lean_main", "")
         if not isinstance(lm, str):
             errs.append(f"{rid}: lean_main must be a string")
@@ -541,6 +558,9 @@ def validate(data):
         if stamp.get("results_sha256") and stamp["results_sha256"] != sha_of(STATE):
             warns.append(f"the report in verification/report/ was made from older records (stamp of {stamp.get('date')}); "
                          f"run /pv-report again, starting with pv-compiler")
+    for rid, kind, rep in not_run_reviews(data):
+        warns.append(f"{rid}: the {kind} review could not run ({verdict_line(rep, REVIEW_LINES[kind])}, {rep}); it is not "
+                     f"a failure: run it again once the shell works")
     st, det = source_state(data)
     if st == "CHANGED" and not any(isinstance(r, dict) and r.get("reason") in ("SOURCE_CHANGED", "NEW_IN_REVISION")
                                    for r in res):
@@ -590,6 +610,11 @@ def next_ready(data, second_pass=False, use_all=False):
         waiting = [d for d in deps if d in byid and not byid[d].get("statement_fixed")]
         (blocked if waiting else ready).append((r, waiting))
     ready.sort(key=lambda x: (-dependents[x[0]["id"]], str(x[0].get("pdf_number", ""))))
+    if not second_pass:
+        for rid, kind, rep in not_run_reviews(data):
+            if rid in byid and (not scope or rid in scope):
+                print(f"NOT_RUN\t{rid}\t{byid[rid].get('pdf_number')}\tthe {kind} review had no shell ({rep}): start it "
+                      f"again; this is not a failed review (PIPELINE, 'A review that could not run')")
     for r in rulings_due:
         print(f"RULING\t{r['id']}\t{r.get('pdf_number')}\tthe prover stopped on the infrastructure budget: dispatch "
               f"pv-gate in infrastructure-ruling mode (PIPELINE stage 4; ruling {len(rulings(r['id'])) + 1} of at most "
@@ -749,7 +774,8 @@ def supersede(src, reason, replaced_by=""):
 # issue codes, summaries) is still passed in by the coordinator.
 
 VERDICT_PREFIXES = ["STATEMENT GATE:", "FINAL AUDIT:", "SUGGESTED VERDICT:", "ISSUE VERDICT:", "THREATENS CONCLUSION:",
-                    "COUNTEREXAMPLE", "REVIEW:", "RECONNECT AUDIT:", "MECH CHECKS:", "INFRASTRUCTURE RULING:"]
+                    "COUNTEREXAMPLE", "REVIEW:", "RECONNECT AUDIT:", "RECHECK:", "MECH CHECKS:", "INFRASTRUCTURE RULING:"]
+REVIEW_LINES = {"gate": "STATEMENT GATE:", "final": "FINAL AUDIT:", "reconnect": "RECONNECT AUDIT:", "recheck": "RECHECK:"}
 CHECK_EN = {"UNCONDITIONAL": "Verified unconditionally", "CONDITIONAL": "Verified conditionally",
             "ISSUE": "Recorded issue", "UNFINISHED": "Unfinished"}
 AUDITS = ROOT / "verification" / "audits"
@@ -764,14 +790,85 @@ def report_rank(p):
     return int(m.group(1)) if m else 1
 
 
-def latest_report(rid, kind, pass_prefix=None):
-    """Latest verification/audits/<rid>_<kind>[_r<k>].md; with pass_prefix, the latest whose verdict is PASS."""
-    cands = [p for p in AUDITS.glob(f"{rid}_{kind}*.md") if re.fullmatch(rf"{re.escape(rid)}_{kind}(?:_r\d+)?\.md", p.name)]
-    for p in sorted(cands, key=report_rank, reverse=True):
+def reports_of(rid, kind, since=None):
+    """verification/audits/<rid>_<kind>[_r<k>].md, the one naming rule (PIPELINE "Files and naming"), oldest first;
+    with since (v1.5.1), only those written after that time."""
+    cands = [p for p in AUDITS.glob(f"{rid}_{kind}*.md") if re.fullmatch(rf"{re.escape(rid)}_{kind}(?:_r\d+)?\.md", p.name)
+             and (since is None or p.stat().st_mtime >= since)]
+    return sorted(cands, key=report_rank)
+
+
+def latest_report(rid, kind, pass_prefix=None, since=None):
+    """Latest report of rid; with pass_prefix, the latest whose verdict is PASS. A review that could not run
+    (NOT RUN, v1.5.1) is never evidence."""
+    for p in reversed(reports_of(rid, kind, since)):
         rel = str(p.relative_to(ROOT))
+        if not_run(verdict_line(rel, REVIEW_LINES.get(kind, ""))):
+            continue
         if pass_prefix is None or is_pass(verdict_line(rel, pass_prefix)):
             return rel
     return ""
+
+
+def last_reset(r):
+    """(v1.5.1) When r was last reset, in seconds (to the minute, as `date` in its history), or None."""
+    hist = r.get("history") if isinstance(r.get("history"), list) else []
+    try:
+        return datetime.strptime(hist[-1]["date"], "%Y-%m-%d %H:%M").timestamp()
+    except (IndexError, KeyError, TypeError, ValueError):
+        return None
+
+
+def newer_report(found, stored):
+    """(v1.5.1) The report to record: what is on disk now, unless the path already stored is newer (one given with
+    --evidence-final, say); a stored path must not hide a later audit."""
+    if not found or not stored or found == stored or not exists(stored):
+        return found or stored
+    return stored if (ROOT / stored.split(":")[0]).stat().st_mtime > (ROOT / found).stat().st_mtime else found
+
+
+def unnamed_reports(rid, kind, than):
+    """(v1.5.1) Reports of rid that break the naming rule (e.g. <ID>_final_rev5.md) and are newer than the report
+    `than` that would be recorded: `latest_report` cannot see them, so recording now would keep older evidence."""
+    limit = (ROOT / than.split(":")[0]).stat().st_mtime if than and exists(than) else 0
+    named = {p.name for p in reports_of(rid, kind)}
+    return sorted(str(p.relative_to(ROOT)) for p in AUDITS.glob(f"{rid}_{kind}*.md")
+                  if p.name not in named and p.stat().st_mtime > limit)
+
+
+def review_not_run(r, kind):
+    """(v1.5.1) Why the latest <kind> report of r says nothing about the result, or "": it ends NOT RUN, or it is a
+    failed final audit although the mechanical script has not run since the report before it."""
+    rid = r["id"]
+    cands = reports_of(rid, kind, last_reset(r))
+    if not cands:
+        return ""
+    v = verdict_line(str(cands[-1].relative_to(ROOT)), REVIEW_LINES[kind])
+    if not_run(v):
+        return v
+    if kind == "final" and v and not is_pass(v):
+        mech = [p.stat().st_mtime for p in AUDITS.glob(f"{rid}_mech*.md")]
+        before = cands[-2].stat().st_mtime if len(cands) > 1 else 0
+        if not mech or max(mech) < before:
+            return f"{cands[-1].name} ends {v.split('(')[0].strip()}, but pv_audit_mech.py wrote no report for it"
+    return ""
+
+
+def not_run_reviews(data):
+    """(v1.5.1) [(id, kind, report)] of the reviews to run again: the latest report of a review still in flight
+    ends NOT RUN. The rest of the record is untouched, so the next session starts the review again."""
+    out = []
+    for r in data.get("results", []):
+        if not isinstance(r, dict) or not r.get("id"):
+            continue
+        working = r.get("verdict") == "UNFINISHED" and r.get("stage") not in ("NOT_STARTED", "INVENTORIED", "STOPPED")
+        for kind, prefix in REVIEW_LINES.items():
+            if (kind in ("gate", "final") and not working) or (kind == "recheck" and not r.get("recheck")):
+                continue
+            cands = reports_of(r["id"], kind, last_reset(r))
+            if cands and not_run(verdict_line(str(cands[-1].relative_to(ROOT)), prefix)):
+                out.append((r["id"], kind, str(cands[-1].relative_to(ROOT))))
+    return out
 
 
 def outputs(rid):
@@ -1092,6 +1189,12 @@ def record(rid, argv):
     r = byid[rid]
     was_fixed = r.get("statement_fixed") is True
     old_conds = list(as_list(r.get("conditions")))
+    if a.reason in ("AUDIT_FAILED", "GATE_FAILED"):
+        why = review_not_run(r, "final" if a.reason == "AUDIT_FAILED" else "gate")
+        if why:
+            sys.exit(f"refused: {why}. A review that could not run its checks is not a failed review: keep the stage, "
+                     f"do not start a proof session, and run the review again once the shell works (PIPELINE, "
+                     f"'A review that could not run').")
     if a.lean_main and (a.verdict or r.get("verdict")) in ("UNCONDITIONAL", "CONDITIONAL"):
         e, w = lean_main_check(a.lean_main)    # v1.3.3: refuse a pointer to a theorem that does not exist
         if e:
@@ -1112,8 +1215,16 @@ def record(rid, argv):
         if val is not None:
             r[k.replace("-", "_")] = [x.strip() for x in val.split(",") if x.strip()]
     ev = r.get("evidence") if isinstance(r.get("evidence"), dict) else {}
-    ev["gate"] = a.evidence_gate or ev.get("gate") or latest_report(rid, "gate", "STATEMENT GATE:")
-    ev["final"] = a.evidence_final or ev.get("final") or latest_report(rid, "final")
+    # v1.5.1: the latest report since the last reset, whatever an earlier record stored
+    since = last_reset(r)
+    ev["gate"] = a.evidence_gate or newer_report(latest_report(rid, "gate", "STATEMENT GATE:", since), ev.get("gate"))
+    ev["final"] = a.evidence_final or newer_report(latest_report(rid, "final", since=since), ev.get("final"))
+    for kind, given, flag in (("gate", a.evidence_gate, "--evidence-gate"), ("final", a.evidence_final, "--evidence-final")):
+        stray = [] if given else unnamed_reports(rid, kind, ev.get(kind))
+        if stray:
+            sys.exit(f"refused: {stray[-1]} does not follow the naming rule ({rid}_{kind}.md, then {rid}_{kind}_r2.md …; "
+                     f"a revision adds no tag: PIPELINE, 'Files and naming'), so it would not be recorded. Write it "
+                     f"under the right name, or give it with {flag} {stray[-1]}.")
     if a.evidence_reconnect is not None:
         ev["reconnect"] = a.evidence_reconnect
     if a.evidence_issues is not None:
@@ -1605,16 +1716,74 @@ def title_of(tex):
     return re.sub(r"\s+", " ", m.group(1)).strip() if m else ""
 
 
+def body_text(d, files):
+    """The running text of the .tex files of a folder, without comments, preambles and macro definitions (two papers
+    from one template share those)."""
+    out = []
+    for k in sorted(files):
+        if not k.endswith(".tex"):
+            continue
+        t = re.sub(r"(?<!\\)%.*", "", (d / k).read_text(errors="replace"))
+        t = t.split("\\begin{document}", 1)[-1]
+        out.append(re.sub(r"^\s*\\(?:(?:re)?newcommand|def|DeclareMathOperator|usepackage|title)\b.*$", "", t, flags=re.M))
+    return "\n".join(out)
+
+
+def same_paper(old_files, new_files):
+    """(v1.5.1) Is the new text a version of the old one, whatever its title? Returns (yes or no, why): most of the
+    old text is still there, or most of its labels are and a good part of the text."""
+    base, src = ROOT / "verification" / "source_baseline", ROOT / "source"
+    old, new = body_text(base, old_files), body_text(src, new_files)
+
+    def phrases(t):     # of the words: two papers from one template share their LaTeX commands, and often labels
+        w = re.findall(r"[a-z0-9]+", re.sub(r"\\[a-zA-Z]+\*?(?:\{[^{}]*\})?", " ", t).lower())
+        return {" ".join(w[i:i + 5]) for i in range(len(w) - 4)}
+    a, b = phrases(old), phrases(new)
+    text = len(a & b) / len(a) if a else 0.0
+    la = set(re.findall(r"\\label\{([^}]*)\}", old))
+    kept = len(la & set(re.findall(r"\\label\{([^}]*)\}", new)))
+    labels = kept / len(la) if len(la) >= 3 else 0.0
+    return text >= 0.5 or (labels >= 0.8 and text >= 0.2), f"{text:.0%} of the text and {kept} of {len(la)} labels are kept"
+
+
 def renamed_main(rel, base_files, src_files):
     """(v1.3.2) The new name of the main file when the baseline's main file is gone from source/: the one new .tex
-    file with a \\documentclass and the same title. None if there is no such file or more than one."""
+    file with a \\documentclass and the same title, or (v1.5.1) the only such file when the text is still the same
+    paper's. None if there is no such file or more than one."""
     base, src = ROOT / "verification" / "source_baseline", ROOT / "source"
     t_old = title_of(base / rel)
     if not t_old:
         return None
-    cands = [k for k in src_files if k.endswith(".tex") and k not in base_files
-             and "\\documentclass" in (src / k).read_text(errors="replace") and title_of(src / k) == t_old]
+    mains = [k for k in src_files if k.endswith(".tex") and k not in base_files
+             and "\\documentclass" in (src / k).read_text(errors="replace")]
+    cands = [k for k in mains if title_of(src / k) == t_old]
+    if not cands and len(mains) == 1 and same_paper(base_files, src_files)[0]:
+        cands = mains
     return cands[0] if len(cands) == 1 else None
+
+
+def set_title():
+    """(v1.5.1) Record the paper's new title, after a revision changed it."""
+    data = load()
+    paper = data.setdefault("paper", {})
+    main = paper.get("main_tex", "")
+    new = title_of(ROOT / main) if main else ""
+    if not new:
+        sys.exit(f"refused: no \\title in {main or 'paper.main_tex (not set)'}")
+    old = paper.get("title", "")
+    if old == new:
+        print(f"title unchanged: {new}")
+        return 0
+    previous = paper.setdefault("previous_titles", [])
+    if old and old not in previous:
+        previous.append(old)
+    paper["title"] = new
+    STATE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    with (ROOT / "verification" / "AUDIT.md").open("a") as fh:
+        fh.write(f"\n## title changed — {now()} (pv_status.py set-title)\n- before: {old}\n- now: {new}\n")
+    print(f"title: {old or '(none)'} -> {new}")
+    set_header(load())
+    return validate(load())
 
 
 def set_main(path):
@@ -1639,7 +1808,8 @@ def set_main(path):
 
 def source_state(data=None):
     """Compare source/ with verification/source_baseline/. Returns (status, details):
-    NO_BASELINE, SAME, CHANGED (a new version of the same paper?) or DIFFERENT_PAPER (title changed or main file gone)."""
+    NO_BASELINE, SAME, CHANGED (a new version of the same paper?) or DIFFERENT_PAPER (main file gone, or a new title
+    over a text that is no longer this paper's)."""
     src, base = ROOT / "source", ROOT / "verification" / "source_baseline"
     if not base.is_dir():
         return "NO_BASELINE", []
@@ -1655,12 +1825,18 @@ def source_state(data=None):
     if rel and rel in a and rel not in b:
         new_rel = renamed_main(rel, a, b)
         if new_rel:
-            return "CHANGED", [f"main file renamed: source/{rel} -> source/{new_rel} (same title); "
+            t_old, t_new = title_of(base / rel), title_of(src / new_rel)
+            note = "same title" if t_old == t_new else f"new title: {t_new}"
+            return "CHANGED", [f"main file renamed: source/{rel} -> source/{new_rel} ({note}); "
                                f"run 'pv_status.py set-main source/{new_rel}' during /pv-revise"] + changed
         return "DIFFERENT_PAPER", [f"the main file {main} is no longer in source/"] + changed[:10]
     t_old, t_new = title_of(base / rel) if rel else "", title_of(src / rel) if rel else ""
     if t_old and t_new and t_old != t_new:
-        return "DIFFERENT_PAPER", [f"title was: {t_old}", f"title is now: {t_new}"] + changed[:10]
+        same, why = same_paper(a, b)
+        if same:
+            return "CHANGED", [f"title changed, same paper ({why}): {t_old!r} -> {t_new!r}; run 'pv_status.py set-title' "
+                               f"during /pv-revise"] + changed
+        return "DIFFERENT_PAPER", [f"title was: {t_old}", f"title is now: {t_new}", why] + changed[:10]
     return "CHANGED", changed
 
 
@@ -1770,6 +1946,8 @@ def main():
         if len(a) < 2:
             sys.exit("usage: pv_status.py set-main source/<file>.tex")
         sys.exit(set_main(a[1]))
+    if cmd == "set-title":
+        sys.exit(set_title())
     if cmd == "set-deps":
         if len(a) < 2:
             sys.exit("usage: pv_status.py set-deps ID [DEP ...]")
@@ -1785,6 +1963,9 @@ def main():
     data = load()
     if cmd == "source-check":
         sys.exit(source_check(data))
+    if cmd == "not-run":
+        print(" ".join(sorted({rid for rid, _, _ in not_run_reviews(data)})))
+        return
     if cmd == "followup":
         followup(data)
         return

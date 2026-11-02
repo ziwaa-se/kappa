@@ -14,6 +14,9 @@ Used by scripts/pv_drive.sh; can also be run by hand from the project root:
         permission denials in that session's transcripts (coordinator and subagents). Prints
         DENIALS <n> STANDARD_FORM_DENIED <m>, then the most frequent denied commands. m > 0 means that commands in
         the kit's standard form were refused, i.e. the permission rules did not apply
+  python3 scripts/pv_drive_status.py preflight
+        (v1.5.1) before the first session: does .claude/settings.json allow the commands every review needs? Prints what
+        is missing or denied; exit 1 if anything is
   python3 scripts/pv_drive_status.py write --reason R --session K [--wait S] [--reset-at T] [--message M] [--restarts N]
         write pv_work/logs/drive_status.json, the driver's machine-readable exit status
   python3 scripts/pv_drive_status.py show
@@ -26,6 +29,7 @@ Status reasons (drive_status.json "reason", and the driver's exit code):
 Environment: PV_RESUME_MARGIN_S (default 300) is added after a parsed reset time; PV_RESUME_FALLBACK_S (default 1800)
 is the wait when no reset time can be read.
 """
+import fnmatch
 import json
 import os
 import re
@@ -242,6 +246,28 @@ def denials(session_json, claude_dir=None):
     return len(seen), std, top
 
 
+REVIEW_COMMANDS = ["scripts/pv_lean.sh preflight", "python3 scripts/pv_audit_mech.py T01", "python3 scripts/pv_status.py validate"]
+
+
+def rule_covers(rule, cmd):
+    if rule == "Bash":
+        return True
+    m = re.fullmatch(r"Bash\((.*)\)", rule)
+    return bool(m) and fnmatch.fnmatchcase(cmd, m.group(1).replace(":*", " *"))
+
+
+def preflight():
+    """(v1.5.1) The allow rules without which a gate or a final audit cannot run its checks. This reads the rules; the
+    reviewer's own first command (scripts/pv_lean.sh preflight) shows whether they reached its session."""
+    try:
+        perms = json.loads((ROOT / ".claude" / "settings.json").read_text()).get("permissions", {})
+    except Exception as e:
+        return [f".claude/settings.json cannot be read ({e})"]
+    allow, deny = perms.get("allow", []), perms.get("deny", [])
+    return ([f"`{c}` is not allowed" for c in REVIEW_COMMANDS if not any(rule_covers(r, c) for r in allow)] +
+            [f"`{c}` is denied" for c in REVIEW_COMMANDS if any(rule_covers(r, c) for r in deny)])
+
+
 def write(argv):
     import argparse
     ap = argparse.ArgumentParser(prog="pv_drive_status.py write")
@@ -284,6 +310,10 @@ def main():
         for k, v in top:
             print(f"  {v:3d}  {k}")
         return 0
+    if cmd == "preflight":
+        bad = preflight()
+        print("; ".join(bad))
+        return 1 if bad else 0
     if cmd == "write":
         return write(a[1:])
     if cmd == "show":

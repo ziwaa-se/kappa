@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# pv_drive.sh — run /pv-run unattended in short, fresh coordinator sessions (kit v1.3.1).
+# pv_drive.sh — run /pv-run unattended in short, fresh coordinator sessions (kit v1.3.1; v1.5.1: reviews without a shell).
 #
 # Why: one long coordinator session re-reads its whole, ever-growing history on every step. Here each batch of at
 # most PV_BATCH ready results gets a NEW headless session; all state passes through RESULTS.json and RESUME.md,
@@ -22,7 +22,9 @@
 #   PV_SETUP_PROMPT optional text put before the setup prompt
 # Exit status: written to pv_work/logs/drive_status.json (reason, session, reset time) and returned as the exit code:
 #   0 done · 3 usage limit (without --auto-resume) · 4 no progress · 5 validate not VALID · 6 --max-sessions reached ·
-#   7 kit commands were refused (permission rules not applied) · 8 report incomplete · 9 too many usage-limit waits ·
+#   7 kit commands were refused (permission rules not applied), or a review had no shell twice (its report ends NOT
+#   RUN; the result keeps its stage, so the next run starts the review again) · 8 report incomplete ·
+#   9 too many usage-limit waits ·
 #   1 the setup registered no results. The last line of the output always names the reason.
 # Requirements: the `claude` command, and .claude/settings.json (copy it from settings.example.json after reading
 # the kit's docs/MANUAL.md, section 2, step 4). The same file is passed with --settings, because headless sessions
@@ -48,7 +50,7 @@ main() {
       --auto-resume) auto=1; shift ;;
       --report) report=1; shift ;;
       --report-only) report_only=1; shift ;;
-      *) sed -n '2,32p' "$0"; exit 2 ;;
+      *) sed -n '2,34p' "$0"; exit 2 ;;
     esac
   done
   command -v claude >/dev/null || { echo "the 'claude' command is not installed"; exit 2; }
@@ -64,9 +66,13 @@ main() {
   # Continue the numbering of earlier sessions (the driver may be re-run after an interruption).
   k=$(ls "$LOGDIR"/session_*.json 2>/dev/null | sed 's/.*session_\([0-9]*\)\.json/\1/' | sort -n | tail -1)
   k=${k:-0}
-  worked=0; restarts=0; trust_noted=0; before=""; resumed=0
+  worked=0; restarts=0; trust_noted=0; before=""; resumed=0; not_run=""; not_run_seen=0
   kind=ok; wait_s=0; reset_at=-; msg=-
   status running "started"
+  # v1.5.1: a gate or a final audit needs these commands; find out before any session is paid for
+  local missing
+  missing=$(python3 scripts/pv_drive_status.py preflight) || \
+    finish permissions "a review cannot run its checks with this .claude/settings.json: $missing. Compare it with settings.example.json (python3 scripts/pv_settings.py check), then run the driver again"
 
   UNATTENDED="You are running unattended: no user is available to answer questions, so never wait for one; make the most faithful choice, record it in verification/RESUME.md, and continue. No internet, no downloads."
   [[ -f verification/REVISION_BRIEF.md ]] && UNATTENDED="$UNATTENDED Read verification/REVISION_BRIEF.md before anything else."
@@ -143,6 +149,7 @@ Read .claude/skills/pv-run/SKILL.md and do the second pass (§1 step 8) for: $se
     fi
     after_session || continue          # usage limit: the driver slept until the reset; plan the step again
     worked=$((worked + 1))
+    [[ -z "$not_run" ]] || continue    # v1.5.1: a review without a shell gets one fresh session; it changed no record
     if [[ "$(python3 scripts/pv_drive_status.py progress)" == "$before" ]]; then
       finish no_progress "the last session changed no result; stopping so that nothing loops. See $LOGDIR/session_$k.json and verification/RESUME.md"
     fi
@@ -181,8 +188,20 @@ after_session() {
   line=$(python3 scripts/pv_drive_status.py denials "$out" | head -1)
   n=$(echo "$line" | awk '{print $2}'); std=$(echo "$line" | awk '{print $4}')
   [[ "${n:-0}" -gt 0 ]] && echo "  permission denials in session $k: $n (details: python3 scripts/pv_drive_status.py denials $out)"
-  if [[ "${std:-0}" -gt 0 ]]; then
-    finish permissions "session $k: $std kit commands in their standard form were refused, so the permission rules did not apply. Open this folder once in Claude Code interactively, accept the trust dialog, then run the driver again"
+  # v1.5.1: a review that had no shell says nothing about the proof. Such refusals have also come and gone between
+  # sessions with the same rules, so one fresh session tries again before the driver stops; the result keeps its stage.
+  not_run=$(python3 scripts/pv_status.py not-run 2>/dev/null || true)
+  if [[ -n "$not_run" ]]; then
+    not_run_seen=$((not_run_seen + 1))
+    if [[ $not_run_seen -ge 2 ]]; then
+      finish permissions "the review of $not_run could not run in two sessions: its agent had no shell, and its report ends NOT RUN. This is a permission problem, not a failed review, and the stage is unchanged. Open this folder once in Claude Code interactively, accept the trust dialog, check python3 scripts/pv_settings.py check, then run the driver again: the review starts again"
+    fi
+    echo "  the review of $not_run had no shell (NOT RUN): no record changed; one fresh session tries again"
+  else
+    not_run_seen=0
+    if [[ "${std:-0}" -gt 0 ]]; then
+      finish permissions "session $k: $std kit commands in their standard form were refused, so the permission rules did not apply. Open this folder once in Claude Code interactively, accept the trust dialog, then run the driver again"
+    fi
   fi
   [[ "$kind" == "budget" ]] && echo "  the session reached its budget cap (\$$BUDGET or the result's session_budget_usd)"
   case "$kind" in

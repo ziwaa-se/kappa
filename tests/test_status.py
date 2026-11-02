@@ -1,8 +1,10 @@
 """Record keeping and revisions in scripts/pv_status.py: PENDING v1.3.1 #6 and #7 (one-level cascade decided by the
 gate snapshots), #8 (reset archives old files; set-deps), #10 (reconnected (p) clauses), #11 (duplicate inputs),
 #21 (generated evidence index, stale fields), #22 (previous manuscript recorded), #23 (definitions by ID),
-#24 (conditions taken from the audit's CONDITIONS line)."""
+#24 (conditions taken from the audit's CONDITIONS line); v1.5.1: reviews that could not run, one naming rule for
+reports and no evidence older than a reset, a changed title."""
 import json
+import os
 import shutil
 
 from helpers import KitTestCase, Project, result, tool
@@ -243,6 +245,223 @@ class RenamedMain(KitTestCase):
 
     def test_other_title_is_a_different_paper(self):
         self.pr.write("source/paper_v3.tex", self.old.replace("Valid inference", "Another paper"))
+        self.assertIn("DIFFERENT PAPER", self.pr.status("source-check").out)
+
+
+FAIL_NO_SHELL = "No check could run.\n\nFINAL AUDIT: FAIL (Bash denied)\nSUGGESTED VERDICT: UNFINISHED\nCONDITIONS: none\n"
+NOT_RUN = "Nothing was checked.\n\nFINAL AUDIT: NOT RUN (no shell: scripts/pv_lean.sh preflight)\n"
+FINAL_PASS = "FINAL AUDIT: PASS\nSUGGESTED VERDICT: UNCONDITIONAL\nCONDITIONS: none\n"
+FINAL_FAIL = "FINAL AUDIT: FAIL (step 3 differs)\nSUGGESTED VERDICT: UNFINISHED\nCONDITIONS: none\n"
+
+
+class ReviewNotRun(KitTestCase):
+    """v1.5.1: a reviewer without a shell did not fail the result."""
+
+    def setUp(self):
+        super().setUp()
+        self.pr = Project(self.tmp, results=[result("L01", stage="PROVED", reason="AUDIT_PENDING", statement_fixed=True)])
+        self.pr.write("verification/audits/L01_gate.md", "STATEMENT GATE: PASS\n")
+
+    def stop(self):
+        return self.pr.status("record", "L01", "--verdict", "UNFINISHED", "--stage", "STOPPED", "--reason", "AUDIT_FAILED")
+
+    def test_not_run_keeps_the_stage_and_is_listed(self):
+        self.pr.write("verification/audits/L01_final.md", NOT_RUN)
+        p = self.stop()
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("is not a failed review", p.out)
+        self.assertEqual((self.pr.result("L01")["stage"], self.pr.result("L01")["reason"]), ("PROVED", "AUDIT_PENDING"))
+        self.assertEqual(self.pr.status("not-run").out.strip(), "L01")
+        nx = self.pr.status("next").out
+        self.assertIn("NOT_RUN\tL01", nx)
+        self.assertNotIn("READY\tL01", nx)
+        v = self.pr.status("validate")
+        self.assertEqual(v.returncode, 0, v.out)
+        self.assertIn("the final review could not run", v.out)
+        self.assertIn("FINAL AUDIT: NOT RUN", self.pr.status("outputs", "L01").out)
+
+    def test_not_run_is_never_evidence(self):
+        self.pr.write("verification/audits/L01_final.md", NOT_RUN)
+        self.pr.status("record", "L01", "--stage", "PROVED", "--reason", "AUDIT_PENDING")
+        self.assertNotIn("final", self.pr.result("L01")["evidence"])
+        # the audit runs again under the next number, and is then what counts
+        self.pr.write("verification/audits/L01_final_r2.md", FINAL_PASS)
+        self.pr.write("pv_work/L01.lean", "namespace Paper.L01\ntheorem main : True := trivial\nend Paper.L01\n")
+        self.assertEqual(self.pr.status("not-run").out.strip(), "")
+        p = self.pr.status("record", "L01", "--verdict", "UNCONDITIONAL", "--stage", "FINAL_PASSED",
+                           "--lean-main", "pv_work/L01.lean:2 Paper.L01.main")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertEqual(self.pr.result("L01")["evidence"]["final"], "verification/audits/L01_final_r2.md")
+
+    def test_a_failed_audit_that_ran_no_script_is_refused(self):
+        self.pr.write("verification/audits/L01_mech.md", "MECH CHECKS: PASS\n")
+        self.pr.write("verification/audits/L01_final.md", FAIL_NO_SHELL)
+        old = (self.pr.root / "verification/audits/L01_mech.md").stat().st_mtime - 100
+        os.utime(str(self.pr.root / "verification/audits/L01_mech.md"), (old, old))
+        self.pr.write("verification/audits/L01_final_r2.md", FAIL_NO_SHELL)
+        p = self.stop()
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("pv_audit_mech.py wrote no report for it", p.out)
+        self.assertEqual(self.pr.result("L01")["stage"], "PROVED")
+
+    def test_a_real_failure_is_still_recorded(self):
+        self.pr.write("verification/audits/L01_final.md", FINAL_FAIL)
+        self.pr.write("verification/audits/L01_final_r2.md", FINAL_FAIL)
+        self.pr.write("verification/audits/L01_mech_r2.md", "MECH CHECKS: FAIL (item 4)\n")
+        p = self.stop()
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertEqual((self.pr.result("L01")["stage"], self.pr.result("L01")["reason"]), ("STOPPED", "AUDIT_FAILED"))
+        self.assertEqual(self.pr.status("not-run").out.strip(), "")
+
+    def test_a_gate_without_a_shell_is_not_gate_failed(self):
+        pr = Project(self.tmp, results=[result("L02", stage="STATEMENT_DRAFTED")], name="gate")
+        pr.write("verification/audits/L02_gate.md", "STATEMENT GATE: NOT RUN (no shell: scripts/pv_lean.sh preflight)\n")
+        p = pr.status("record", "L02", "--stage", "STOPPED", "--reason", "GATE_FAILED")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertEqual(pr.result("L02")["stage"], "STATEMENT_DRAFTED")
+        self.assertEqual(pr.status("not-run").out.strip(), "L02")
+        # a report older than the review that passed does not count
+        pr.write("verification/audits/L02_gate_r2.md", "STATEMENT GATE: PASS\n")
+        self.assertEqual(pr.status("not-run").out.strip(), "")
+
+
+class ReportNames(KitTestCase):
+    """v1.5.1: one naming rule for reports; the evidence is the latest report since the last reset."""
+
+    MAIN = "namespace Paper.L01\ntheorem main : True := trivial\nend Paper.L01\n"
+
+    def setUp(self):
+        super().setUp()
+        self.pr = Project(self.tmp, results=[result("L01")])
+
+    def age(self, rel, days=1):
+        f = self.pr.root / rel
+        t = f.stat().st_mtime - days * 86400
+        os.utime(str(f), (t, t))
+
+    def verified(self, *extra):
+        self.pr.write("pv_work/L01.lean", self.MAIN)
+        return self.pr.status("record", "L01", "--verdict", "UNCONDITIONAL", "--stage", "FINAL_PASSED",
+                              "--statement-fixed", "true", "--lean-main", "pv_work/L01.lean:2 Paper.L01.main", *extra)
+
+    def test_reset_clears_the_evidence_and_new_reports_are_found(self):
+        self.pr.make_passed("L01")
+        self.assertEqual(self.pr.status("reset", "L01", "--revision", "5").returncode, 0)
+        self.assertEqual(self.pr.result("L01")["evidence"], {})
+        self.pr.write("verification/audits/L01_gate.md", "STATEMENT GATE: PASS\n")
+        self.pr.write("verification/audits/L01_final.md", FINAL_PASS)
+        p = self.verified()
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertEqual(self.pr.result("L01")["evidence"]["final"], "verification/audits/L01_final.md")
+
+    def test_a_report_named_for_the_revision_is_refused_before_anything_changes(self):
+        self.pr.make_passed("L01")
+        self.pr.status("reset", "L01", "--revision", "5")
+        self.pr.write("verification/audits/L01_gate.md", "STATEMENT GATE: PASS\n")
+        self.pr.write("verification/audits/L01_final_rev5.md", FINAL_PASS)
+        before = self.pr.result("L01")
+        p = self.verified()
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("verification/audits/L01_final_rev5.md does not follow the naming rule", p.out)
+        self.assertEqual(self.pr.result("L01"), before)
+        # given by name it is recorded, and an older standard report does not replace it later
+        p = self.verified("--evidence-final", "verification/audits/L01_final_rev5.md")
+        self.assertEqual(p.returncode, 0, p.out)
+        p = self.pr.status("record", "L01", "--summary-en", "still verified")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertEqual(self.pr.result("L01")["evidence"]["final"], "verification/audits/L01_final_rev5.md")
+
+    def test_a_report_older_than_the_reset_is_never_taken(self):
+        self.pr.make_passed("L01")
+        self.age("verification/audits/L01_gate.md")
+        self.age("verification/audits/L01_final.md")
+        self.pr.status("reset", "L01", "--revision", "5", "--keep-files")
+        self.assertEqual(self.pr.result("L01")["evidence"], {})
+        p = self.pr.status("record", "L01", "--stage", "PROVING")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertEqual(self.pr.result("L01")["evidence"], {})
+        # the one that is new is taken, under the next number
+        self.pr.write("verification/audits/L01_gate_r2.md", "STATEMENT GATE: PASS\n")
+        self.pr.write("verification/audits/L01_final_r2.md", FINAL_PASS)
+        p = self.verified()
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertEqual(self.pr.result("L01")["evidence"]["final"], "verification/audits/L01_final_r2.md")
+        self.assertNotIn("older than the last reset", p.out)
+
+    def test_evidence_older_than_the_reset_is_flagged(self):
+        self.pr.make_passed("L01")
+        self.age("verification/audits/L01_final.md")
+        self.pr.status("reset", "L01", "--revision", "5", "--keep-files")
+        self.pr.write("verification/audits/L01_gate_r2.md", "STATEMENT GATE: PASS\n")
+        p = self.verified("--evidence-final", "verification/audits/L01_final.md")
+        self.assertIn("is older than the last reset of L01", p.out)
+
+    def test_a_later_audit_replaces_the_stored_one_without_a_reset(self):
+        self.pr.write("verification/audits/L01_gate.md", "STATEMENT GATE: PASS\n")
+        self.pr.write("verification/audits/L01_final.md", FINAL_FAIL)
+        self.pr.status("record", "L01", "--stage", "PROVING", "--statement-fixed", "true")
+        self.assertEqual(self.pr.result("L01")["evidence"]["final"], "verification/audits/L01_final.md")
+        self.pr.write("verification/audits/L01_final_r2.md", FINAL_PASS)
+        p = self.verified()
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertEqual(self.pr.result("L01")["evidence"]["final"], "verification/audits/L01_final_r2.md")
+
+
+def paper(title, sentence="For every sample of size $n$ the bound below holds with high probability under Assumption 1."):
+    lemmas = "\n".join(f"\\begin{{lemma}}\\label{{lem:{i}}} {sentence} Case {i}.\\end{{lemma}}" for i in range(5))
+    return f"\\documentclass{{article}}\n\\newcommand{{\\E}}{{\\mathbb E}}\n\\title{{{title}}}\n\\begin{{document}}\n{lemmas}\n\\end{{document}}\n"
+
+
+class TitleChange(KitTestCase):
+    """v1.5.1: a new title over the same text is a new version, not a different paper."""
+
+    def setUp(self):
+        super().setUp()
+        self.pr = Project(self.tmp, results=[result("L01")])
+        d = self.pr.state()
+        d["paper"].update(main_tex="source/main.tex", title="Old title")
+        self.pr.write_state(d)
+        self.pr.write("source/main.tex", paper("Old title"))
+        self.assertEqual(self.pr.script("pv_snapshot.py", "baseline").returncode, 0)
+
+    def test_only_the_title_changes(self):
+        self.pr.write("source/main.tex", paper("A new title"))
+        p = self.pr.status("source-check")
+        self.assertIn("SOURCE CHANGED", p.out)
+        self.assertIn("title changed, same paper", p.out)
+        self.assertIn("'Old title' -> 'A new title'", p.out)
+        self.assertNotIn("DIFFERENT", self.pr.status("validate").out)
+        p = self.pr.status("set-title")
+        self.assertEqual(p.returncode, 0, p.out)
+        paper_rec = self.pr.state()["paper"]
+        self.assertEqual((paper_rec["title"], paper_rec["previous_titles"]), ("A new title", ["Old title"]))
+        self.assertIn("A new title", self.pr.read("verification/AUDIT.md"))
+
+    def test_new_title_and_main_file_name(self):
+        (self.pr.root / "source/main.tex").unlink()
+        self.pr.write("source/main_v2.tex", paper("A new title"))
+        p = self.pr.status("source-check")
+        self.assertIn("SOURCE CHANGED", p.out)
+        self.assertIn("main file renamed: source/main.tex -> source/main_v2.tex (new title: A new title)", p.out)
+
+    def test_same_labels_with_much_new_text(self):
+        new = paper("A new title").replace("holds with high probability under Assumption 1. Case 0",
+                                           "was rewritten throughout for the journal version of this work. Case 0")
+        self.pr.write("source/main.tex", new.replace("For every sample of size $n$ the bound below",
+                                                     "Whatever the sample size, this new wording of the bound"))
+        self.assertIn("title changed, same paper", self.pr.status("source-check").out)
+
+    def test_new_title_over_another_text_is_a_different_paper(self):
+        other = paper("Another paper", "Graphs with bounded degree admit a colouring found by the greedy method in linear time.")
+        self.pr.write("source/main.tex", other)
+        p = self.pr.status("source-check")
+        self.assertIn("DIFFERENT PAPER", p.out)
+        self.assertIn("0% of the text", p.out)
+        self.assertIn("DIFFERENT", self.pr.status("validate").out)
+
+    def test_another_paper_with_the_same_template_and_labels_is_different(self):
+        other = paper("Another paper", "Graphs with bounded degree admit a colouring found by the greedy method.")
+        self.pr.write("source/main.tex", other.replace("\\end{document}", "\\newcommand{\\F}{1}\n\\end{document}"))
         self.assertIn("DIFFERENT PAPER", self.pr.status("source-check").out)
 
 

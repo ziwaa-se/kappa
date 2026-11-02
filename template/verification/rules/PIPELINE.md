@@ -24,7 +24,7 @@ How the stop reasons differ:
 | `NEW_IN_REVISION` | (v1.5) A result that is new in a revision of the paper (`reset <ID> --revision <k> --new`); allowed at `NOT_STARTED` and `INVENTORIED`, cleared when work starts |
 | `INFRASTRUCTURE_RULING` | (v1.5) The prover stopped an obligation on the infrastructure budget (stage 4) and the gate has not ruled yet; not a final reason |
 | `GATE_FAILED` | The gate gave FAIL twice |
-| `AUDIT_FAILED` | The final audit gave FAIL twice |
+| `AUDIT_FAILED` | The final audit gave FAIL twice (a review that could not run is not a FAIL; see "A review that could not run") |
 | `ISSUE_RECORDED` | A registered paper issue, confirmed by review |
 | `ISSUE_UNCONFIRMED` | Neither of two reviews of the suspected issue confirmed it |
 
@@ -44,6 +44,8 @@ Mapping between verdicts and stages:
 ## Files and naming
 
 Result `T01` is used as the example. The second and later reports get `_r2`, `_r3`; they **do not overwrite** the previous report.
+
+This is the only naming rule, also in a later revision (v1.5.1). `pv_status.py reset` archives a result's reports under `verification/audits/rev<k>/` and clears its stored evidence, so the new reports start again at `T01_gate.md` and `T01_final.md`. A revision adds no tag to the name. `record` records the latest report since the reset; it refuses when a newer report breaks this rule, unless the report is given with `--evidence-final` or `--evidence-gate`, and `validate` warns about evidence older than the reset.
 
 | Output | Path | Writer |
 |---|---|---|
@@ -77,6 +79,15 @@ All Lean files for a result go in `namespace Paper.<ID>`. If a dependent result 
   - When two parallel drafters need **the same new** parameter, the coordinator lets only one of them declare it; the other waits to draft until the first one's gate has passed.
 - A predecessor's consumed clause is named `<ID>_<PredID>Consumed`, carrying the consumer's prefix so that two consumers do not clash. It may use only names from `Defs*.lean` and the predecessor's `<PredID>Stmt.lean`, or fully unfolded content.
 
+## A review that could not run (v1.5.1)
+
+A gate, final audit, reconnection audit, re-check or counterexample review rests on compiles and scripts its own agent runs. Agents have been refused the shell with rules that allowed it, and the same review worked in a later session. So every such review starts with `scripts/pv_lean.sh preflight`. If that, or `pv_lean.sh` or `pv_audit_mech.py` in the standard form later on, is refused, or Lean cannot compile, its report ends `<verdict prefix>: NOT RUN (no shell: <command>)`, for example `FINAL AUDIT: NOT RUN (no shell: scripts/pv_lean.sh preflight)`.
+
+- It says nothing about the result. The stage stays, and it does not count as a session of the role: no proof session follows, and it is never `AUDIT_FAILED` or `GATE_FAILED`. `record` refuses those reasons for it, and also for a failed final audit when `pv_audit_mech.py` wrote no report since the report before it.
+- It is never evidence: `record` skips it when it looks for the latest report.
+- The coordinator does not run the checks in the reviewer's place. `pv_status.py next` lists the review as `NOT_RUN`; it is dispatched again with the next report number.
+- The unattended driver gives it one fresh session, and stops with exit status 7 if it has no shell again. Running the driver again starts the review again.
+
 ## Verdict lines in reports
 
 Every report must contain its verdict line within its **last 5 lines**; the scripts validate against this.
@@ -84,7 +95,7 @@ Every report must contain its verdict line within its **last 5 lines**; the scri
 | Report | Verdict line |
 |---|---|
 | gate | `STATEMENT GATE: PASS`, `STATEMENT GATE: PASS_WITH_AMENDMENTS` or `STATEMENT GATE: FAIL` |
-| final audit | `FINAL AUDIT: PASS` or `FINAL AUDIT: FAIL`, then `SUGGESTED VERDICT: UNCONDITIONAL / CONDITIONAL / ISSUE / UNFINISHED`, then (v1.3.1) `CONDITIONS: <ids of external_tools, comma-separated>` or `CONDITIONS: none`: the parameters the verified theorems really use (item 11 of the mechanical report, confirmed by the auditor). `pv_status.py record` takes the result's conditions from this line |
+| final audit | `FINAL AUDIT: PASS`, `FINAL AUDIT: FAIL` or (v1.5.1) `FINAL AUDIT: NOT RUN (…)`, then `SUGGESTED VERDICT: UNCONDITIONAL / CONDITIONAL / ISSUE / UNFINISHED`, then (v1.3.1) `CONDITIONS: <ids of external_tools, comma-separated>` or `CONDITIONS: none`: the parameters the verified theorems really use (item 11 of the mechanical report, confirmed by the auditor). `pv_status.py record` takes the result's conditions from this line |
 | issue ruling | `ISSUE VERDICT: <classification code>`, followed on the next line by `THREATENS CONCLUSION: yes / no` |
 | counterexample review | `COUNTEREXAMPLE VALID` or `COUNTEREXAMPLE INVALID` |
 | reasoning review | `REVIEW: CONFIRMED` or `REVIEW: NOT CONFIRMED` |

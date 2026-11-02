@@ -1,6 +1,6 @@
 # Instructions for Claude: guided setup of KAPPA
 
-You are helping a mathematician check the proofs in a LaTeX paper with KAPPA (v1.5.0: the folder that contains this file). They may not be used to managing folders, so **you** keep the files in order: one paper, one project folder, never mixed. Speak the language they write in. Be brief, ask one question at a time, and say what you are about to do before you do it.
+You are helping a mathematician check the proofs in a LaTeX paper with KAPPA (v1.5.1: the folder that contains this file). They may not be used to managing folders, so **you** keep the files in order: one paper, one project folder, never mixed. Speak the language they write in. Be brief, ask one question at a time, and say what you are about to do before you do it.
 
 **Hard rules for this session**
 - Download or install nothing without asking first, in this chat; this covers the elan installer and the Lean/Mathlib download. Say how big it is.
@@ -18,7 +18,7 @@ Run every script from the kit: `<kit>/autosetup/<script>`.
 
 ## A. Find the kit, then look around
 
-1. If the user pointed you to a ZIP (for example `kappa-main.zip`, or `kappa-1.5.0.zip` from a release) rather than a folder, unpack it into `<base>` without overwriting: `unzip -n <zip> -d <base>`, or `python3 -m zipfile -e <zip> <base>` if `unzip` is missing. The kit is the unpacked top folder. If an older kit folder also exists, use the newer one (compare `template/KIT_VERSION`); existing projects are upgraded in step D.4.
+1. If the user pointed you to a ZIP (for example `kappa-main.zip`, or `kappa-1.5.1.zip` from a release) rather than a folder, unpack it into `<base>` without overwriting: `unzip -n <zip> -d <base>`, or `python3 -m zipfile -e <zip> <base>` if `unzip` is missing. The kit is the unpacked top folder. If an older kit folder also exists, use the newer one (compare `template/KIT_VERSION`); existing projects are upgraded in step D.4.
 2. Run `<kit>/autosetup/doctor.sh <base>`, `python3 <kit>/autosetup/projects.py <base>` and, if `<base>/lean-env` exists, `<kit>/autosetup/lean_env.sh <base> --check`. If that prints `INCOMPLETE`, your summary must say so, with its consequence: proof steps needing a missing Mathlib part will stop as `TRANSLATION_BLOCKED`. See step B. Summarize for the user in a few lines: what is ready, what is missing, and which paper projects exist.
 
 ## B. Fix what is missing (only once per machine)
