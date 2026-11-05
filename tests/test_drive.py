@@ -1,7 +1,7 @@
 """The unattended driver (scripts/pv_drive.sh) and its decisions (scripts/pv_drive_status.py), end to end against a
 scripted stand-in for `claude`. Covers PENDING v1.3.1 #1 (auto-resume), #3 (exit status), #4 (reconnection counts as
 progress), #5 (report mode), #2 (refused kit commands) and #12 (per-result session budget); v1.5.1: a review without
-a shell."""
+a shell; v1.5.2: the session cap, a new pass after a reset, a failed attempt to prove an input."""
 import importlib.util
 import json
 import unittest
@@ -343,6 +343,64 @@ class Driver(KitTestCase):
     def test_the_driver_is_read_completely_before_it_runs(self):         # PENDING #18.1
         text = (KIT / "template/scripts/pv_drive.sh").read_text().rstrip().splitlines()
         self.assertEqual(text[-1], 'main "$@"; exit $?')
+
+    def test_the_cap_counts_this_run_not_the_session_numbers(self):      # v1.5.2
+        pr = Project(self.tmp, results=[result(f"L0{i}") for i in range(1, 5)])
+        for i in range(1, 40):
+            pr.write(f"pv_work/logs/drive/session_{i}.json", '{"result": "an earlier session", "is_error": false}\n')
+        steps = [passes("L01"), {"is_error": True, "result": LIMIT}, passes("L02"), passes("L03"), passes("L04")]
+        p, st, fc = self.drive(pr, steps, "--auto-resume", "--max-sessions", "75", PV_BATCH="1")
+        self.assertEqual(st["reason"], "done", p.out)
+        self.assertEqual(len(fc.calls()), 5)
+        self.assertTrue((pr.root / "pv_work/logs/drive/session_44.json").exists())
+
+    def test_the_cap_is_named_when_it_ends_the_run(self):                # v1.5.2
+        pr = Project(self.tmp, results=[result("L01"), result("L02"), result("L03")])
+        for i in range(1, 40):
+            pr.write(f"pv_work/logs/drive/session_{i}.json", '{"result": "an earlier session", "is_error": false}\n')
+        p, st, fc = self.drive(pr, [passes("L01"), passes("L02")], "--max-sessions", "2", PV_BATCH="1")
+        self.assertEqual(p.returncode, 6, p.out)
+        self.assertEqual(st["reason"], "max_sessions")
+        self.assertEqual(len(fc.calls()), 2)
+        self.assertEqual(self.last_line(p), "DRIVER STOPPED: max_sessions — --max-sessions 2 reached; run the driver again "
+                                            "to continue")
+
+    def stopped(self, pr, rid):
+        pr.write(f"verification/audits/{rid}_gate.md", "STATEMENT GATE: PASS\n")
+        p = pr.status("record", rid, "--verdict", "UNFINISHED", "--stage", "STOPPED", "--reason", "BUDGET_EXHAUSTED",
+                      "--statement-fixed", "true", "--partial", "S3 open")
+        self.assertEqual(p.returncode, 0, p.out)
+
+    def test_a_reset_result_is_not_left_without_its_second_pass(self):   # v1.5.2
+        pr = Project(self.tmp, results=[result("T1")])
+        pr.make_passed("T1")
+        d = pr.state()
+        d["results"][0]["round"] = 2
+        pr.write_state(d)
+        pr.status("reset", "T1", "--revision", "7")
+        self.stopped(pr, "T1")
+        p, st, fc = self.drive(pr, [passes("T1")])
+        self.assertEqual(st["reason"], "done", p.out)
+        self.assertEqual(len(fc.calls()), 1)
+        self.assertIn("do the second pass (§1 step 8) for: T1", fc.prompts()[0])
+        self.assertEqual(pr.result("T1")["verdict"], "UNCONDITIONAL")
+
+    def test_the_log_says_why_a_stopped_result_got_no_second_pass(self):  # v1.5.2
+        pr = Project(self.tmp, results=[result("T1", round=2)])
+        self.stopped(pr, "T1")
+        p, st, fc = self.drive(pr, [])
+        self.assertEqual(st["reason"], "done", p.out)
+        self.assertEqual(len(fc.calls()), 0)
+        self.assertIn("  T1: its second pass is used (round 2), so it stays BUDGET_EXHAUSTED", p.out)
+
+    def test_a_failed_attempt_to_prove_an_input_is_progress(self):       # v1.5.2
+        pr = Project(self.tmp, results=[result("L01")], tools=[tool("T1", "ii", consumers=["L01"])])
+        pr.make_passed("L01", verdict="CONDITIONAL", conditions=["T1"])
+        pr.status("provable", "T1", "--why", "a short route")
+        step = {"run": ["python3 scripts/pv_status.py provable T1 --undo --why 'the route needs more'"]}
+        p, st, fc = self.drive(pr, [step])
+        self.assertEqual(st["reason"], "done", p.out)
+        self.assertEqual(len(fc.calls()), 1)
 
 
 if __name__ == "__main__":

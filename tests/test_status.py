@@ -2,10 +2,13 @@
 gate snapshots), #8 (reset archives old files; set-deps), #10 (reconnected (p) clauses), #11 (duplicate inputs),
 #21 (generated evidence index, stale fields), #22 (previous manuscript recorded), #23 (definitions by ID),
 #24 (conditions taken from the audit's CONDITIONS line); v1.5.1: reviews that could not run, one naming rule for
-reports and no evidence older than a reset, a changed title."""
+reports and no evidence older than a reset, a changed title; v1.5.2: which report counts, a snapshot after the verdict,
+a new pass after a reset, helper limits, inputs a gate marks as cheap to prove."""
+import importlib.util
 import json
 import os
 import shutil
+import sys
 
 from helpers import KitTestCase, Project, result, tool
 
@@ -576,8 +579,7 @@ class DischargedInput(KitTestCase):                                        # v1.
         self.assertIn("no longer a condition", self.pr.status("tools").out)
         self.assertIn("no pending reconnections", self.pr.status("reconnect").out)
         self.assertEqual(self.pr.script("pv_summary.py").returncode, 0)
-        self.assertIn("Proved in Lean after their results were verified, and connected (v1.5): `Ext1`",
-                      self.pr.read("verification/report/CHECK_SUMMARY.md"))
+        self.assertIn("- `Ext1` (in `pv_work/Y1Closed_r1.lean`). ", self.pr.read("verification/report/CHECK_SUMMARY.md"))
 
     def test_last_predecessor_reconnection_gives_no_warning(self):
         pr = Project(self.tmp, results=[result("L01"), result("L02", depends_on=["L01"])],
@@ -631,3 +633,325 @@ class ReportStamp(KitTestCase):                                            # v1.
             pr.write(f"verification/report/work/{n}", f"{n} compiled again\n")
         self.assertEqual(pr.status("report-stamp").returncode, 0)
         self.assertNotIn("older records", pr.status("validate").out)
+
+
+def status_module(pr):
+    """pv_status.py of this project, for the functions that have no command of their own."""
+    sys.modules.pop("pv_status", None)
+    spec = importlib.util.spec_from_file_location("pv_status", str(pr.root / "scripts/pv_status.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class ReportThatCounts(KitTestCase):
+    """v1.5.2: the same answer for `record` and the mechanical audit; an older passing report never stands in."""
+
+    MAIN = "namespace Paper.L01\ntheorem main : True := trivial\nend Paper.L01\n"
+    PASS = "STATEMENT GATE: PASS\n"
+
+    def setUp(self):
+        super().setUp()
+        self.pr = Project(self.tmp, results=[result("L01")])
+        self.pr.write("verification/audits/L01_gate.md", self.PASS)
+        self.S = status_module(self.pr)
+
+    def later(self, rel, text):
+        f = self.pr.write(rel, text)
+        t = f.stat().st_mtime + 60
+        os.utime(str(f), (t, t))
+
+    def current(self, since=None):
+        return self.S.current_report("L01", "gate", "STATEMENT GATE:", since)
+
+    def test_the_latest_passing_report_counts(self):
+        self.later("verification/audits/L01_gate_r2.md", self.PASS)
+        self.assertEqual(self.current(), ("verification/audits/L01_gate_r2.md", ""))
+
+    def test_a_newer_report_under_another_name_stops_the_older_one(self):
+        self.later("verification/audits/L01_gate_rev5_r2.md", self.PASS)
+        rep, why = self.current()
+        self.assertEqual(rep, "")
+        self.assertIn("L01_gate_rev5_r2.md is newer than verification/audits/L01_gate.md", why)
+
+    def test_an_older_report_under_another_name_is_left_alone(self):
+        self.pr.write("verification/audits/L01_gate_rev4.md", self.PASS)
+        f = self.pr.root / "verification/audits/L01_gate_rev4.md"
+        t = f.stat().st_mtime - 3600
+        os.utime(str(f), (t, t))
+        self.assertEqual(self.current(), ("verification/audits/L01_gate.md", ""))
+
+    def test_a_latest_report_that_does_not_pass_is_not_replaced_by_an_older_one(self):
+        self.pr.write("verification/audits/L01_gate_r2.md", "STATEMENT GATE: FAIL\n")
+        rep, why = self.current()
+        self.assertEqual(rep, "")
+        self.assertIn("the latest report verification/audits/L01_gate_r2.md does not end with", why)
+
+    def test_a_review_that_could_not_run_is_passed_over(self):
+        self.pr.write("verification/audits/L01_gate_r2.md", "STATEMENT GATE: NOT RUN (no shell: x)\n")
+        self.assertEqual(self.current(), ("verification/audits/L01_gate.md", ""))
+
+    def test_a_report_older_than_the_reset_does_not_count(self):
+        since = (self.pr.root / "verification/audits/L01_gate.md").stat().st_mtime + 30
+        self.assertEqual(self.current(since), ("", ""))
+
+    def test_record_refuses_a_verdict_on_an_older_gate_pass(self):
+        self.pr.write("verification/audits/L01_final.md", "FINAL AUDIT: PASS\nSUGGESTED VERDICT: UNCONDITIONAL\nCONDITIONS: none\n")
+        self.pr.write("pv_work/L01.lean", self.MAIN)
+        self.later("verification/audits/L01_gate_r2.md", "STATEMENT GATE: FAIL\n")
+        args = ["record", "L01", "--verdict", "UNCONDITIONAL", "--stage", "FINAL_PASSED", "--statement-fixed", "true",
+                "--lean-main", "pv_work/L01.lean:2 Paper.L01.main"]
+        before = self.pr.result("L01")
+        p = self.pr.status(*args)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("refused: the latest gate report verification/audits/L01_gate_r2.md", p.out)
+        self.assertEqual(self.pr.result("L01"), before)
+        p = self.pr.status(*args, "--evidence-gate", "verification/audits/L01_gate.md")
+        self.assertEqual(p.returncode, 0, p.out)
+
+
+class SnapshotAfterTheVerdict(KitTestCase):
+    """v1.5.2: the verdict is read outside the snapshot block, which may come after it."""
+
+    SNAP = ("\n<!-- PV SNAPSHOT BEGIN -->\n```\nPaper.G1.main|thm|th=1|vh=-|bi=\nPaper.G1.S1|thm|th=2|vh=-|bi=\n"
+            "Paper.G1.S2|thm|th=3|vh=-|bi=\nPaper.G1.S3|thm|th=4|vh=-|bi=\n```\n<!-- PV SNAPSHOT END -->\nEXIT=0\n")
+
+    def setUp(self):
+        super().setUp()
+        self.pr = Project(self.tmp, results=[result("G1")])
+
+    def test_validate_stays_valid_and_the_verdict_is_found(self):
+        self.pr.make_passed("G1")
+        self.pr.write("verification/audits/G1_gate.md", "# Gate\n\nSTATEMENT GATE: PASS\n" + self.SNAP)
+        p = self.pr.status("validate")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertIn("VALID", p.out)
+        S = status_module(self.pr)
+        self.assertEqual(S.verdict_line("verification/audits/G1_gate.md", "STATEMENT GATE:"), "PASS")
+        self.assertEqual(S.latest_report("G1", "gate", "STATEMENT GATE:"), "verification/audits/G1_gate.md")
+        self.assertEqual(sorted(S.gate_fingerprints("G1", "verification/audits/G1_gate.md")),
+                         ["Paper.G1.S1", "Paper.G1.S2", "Paper.G1.S3", "Paper.G1.main"])
+
+    def test_it_replaces_the_older_report(self):
+        self.pr.write("verification/audits/G1_gate.md", "STATEMENT GATE: PASS\n")
+        self.pr.write("verification/audits/G1_gate_r2.md", "STATEMENT GATE: PASS\n" + self.SNAP)
+        S = status_module(self.pr)
+        self.assertEqual(S.current_report("G1", "gate", "STATEMENT GATE:"), ("verification/audits/G1_gate_r2.md", ""))
+
+    def test_no_verdict_is_read_from_inside_the_block(self):
+        self.pr.write("verification/audits/G1_gate.md", "<!-- PV SNAPSHOT BEGIN -->\nSTATEMENT GATE: PASS\n<!-- PV SNAPSHOT END -->\n")
+        self.assertIsNone(status_module(self.pr).verdict_line("verification/audits/G1_gate.md", "STATEMENT GATE:"))
+
+    def test_a_long_tail_without_markers_is_reported_as_such(self):
+        self.pr.make_passed("G1")
+        plain = self.SNAP.replace("<!-- PV SNAPSHOT BEGIN -->\n", "").replace("<!-- PV SNAPSHOT END -->\n", "")
+        self.pr.write("verification/audits/G1_gate.md", "STATEMENT GATE: PASS\n" + plain)
+        p = self.pr.status("validate")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("(found None; the verdict is read from the last 5 lines outside the snapshot block)", p.out)
+
+
+class NewPassAfterReset(KitTestCase):
+    """v1.5.2: a reset starts a new pass, and next --second-pass says why it leaves a stopped result out."""
+
+    def stop(self, pr, rid):
+        pr.write(f"verification/audits/{rid}_gate.md", "STATEMENT GATE: PASS\n")
+        p = pr.status("record", rid, "--verdict", "UNFINISHED", "--stage", "STOPPED", "--reason", "BUDGET_EXHAUSTED",
+                      "--statement-fixed", "true", "--partial", "S3 open")
+        self.assertEqual(p.returncode, 0, p.out)
+
+    def test_a_reset_result_gets_its_second_pass(self):
+        pr = Project(self.tmp, results=[result("T1", round=2)])
+        pr.make_passed("T1")
+        self.assertEqual(pr.status("reset", "T1", "--revision", "7").returncode, 0)
+        r = pr.result("T1")
+        self.assertEqual(r["round"], 1)
+        self.assertEqual(r["history"][-1]["round"], 2)
+        self.stop(pr, "T1")
+        self.assertRegex(pr.status("next", "--second-pass", "--all").out, r"(?m)^READY\tT1\t")
+
+    def test_a_used_second_pass_is_listed_with_the_reason(self):
+        pr = Project(self.tmp, results=[result("T1", round=2), result("P1")])
+        self.stop(pr, "T1")
+        self.stop(pr, "P1")
+        out = pr.status("next", "--second-pass", "--all").out
+        self.assertRegex(out, r"(?m)^READY\tP1\t")
+        self.assertRegex(out, r"(?m)^SKIPPED\tT1\tT1\tits second pass is used \(round 2\), so it stays BUDGET_EXHAUSTED")
+        self.assertNotRegex(out, r"(?m)^READY\tT1\t")
+
+
+class HelperLimits(KitTestCase):
+    """v1.5.2: a limit the gate sets on helper code is counted; an overrun goes to the gate, not to the final audit."""
+
+    @staticmethod
+    def helper(name, lines, uses=""):
+        body = "".join(f"  have h{i} : True := trivial\n" for i in range(lines - 2))
+        return f"private theorem {name} : True := by\n{body}  {('exact ' + uses) if uses else 'trivial'}\n\n"
+
+    def setUp(self):
+        super().setUp()
+        self.pr = Project(self.tmp, results=[result("P1")])
+
+    def write(self, gate="", proof=None):
+        self.pr.write("verification/audits/P1_gate.md", gate + "STATEMENT GATE: PASS\n")
+        self.pr.write("pv_work/P1.lean", proof if proof is not None else (
+            "namespace Paper.P1\n\n" + self.helper("big", 20)
+            + "theorem P1_S1 : True := by\n  have := big\n  trivial\n\ntheorem P1_S2 : True := trivial\n\nend Paper.P1\n"))
+
+    def test_an_overrun_is_named(self):
+        self.write("HELPER LIMIT: S1 10\nHELPER LIMIT: S2 10\n")
+        p = self.pr.status("helper-lines", "P1")
+        self.assertEqual(p.returncode, 1, p.out)
+        self.assertIn("OVER\tS1\t20 helper lines\tlimit 10 (verification/audits/P1_gate.md)", p.out)
+        self.assertIn("OK\tS2\t0 helper lines\tlimit 10", p.out)
+
+    def test_record_and_validate_say_so_without_being_asked(self):
+        self.write("HELPER LIMIT: S1 10\n")
+        p = self.pr.status("record", "P1", "--stage", "PROVED", "--reason", "AUDIT_PENDING", "--statement-fixed", "true")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertIn("WARN P1: S1 has 20 helper lines, over the limit of 10 set in verification/audits/P1_gate.md", p.out)
+        self.pr.write("verification/audits/P1_final.md", "FINAL AUDIT: PASS\nSUGGESTED VERDICT: UNCONDITIONAL\nCONDITIONS: none\n")
+        p = self.pr.status("record", "P1", "--verdict", "UNCONDITIONAL", "--stage", "FINAL_PASSED",
+                           "--lean-main", "pv_work/P1.lean:25 Paper.P1.P1_S1")
+        self.assertEqual(p.returncode, 0, p.out)      # a warning, not a refusal: the rule asks for a ruling
+        self.assertIn("WARN P1: S1 has 20 helper lines", self.pr.status("validate").out)
+        self.pr.write("verification/audits/P1_infra_r1.md", "HELPER LIMIT: S1 25\nINFRASTRUCTURE RULING: EXTEND 25\n")
+        self.assertNotIn("helper lines", self.pr.status("validate").out)
+
+    def test_within_the_limit(self):
+        self.write("**HELPER LIMIT: S1 20**\n")
+        p = self.pr.status("helper-lines", "P1")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertIn("OK\tS1\t20 helper lines\tlimit 20", p.out)
+
+    def test_no_limit(self):
+        self.write()
+        p = self.pr.status("helper-lines", "P1")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertIn("no helper limit recorded for P1", p.out)
+
+    def test_a_later_ruling_replaces_the_limit(self):
+        self.write("HELPER LIMIT: S1 10\n")
+        self.pr.write("verification/audits/P1_infra_r1.md", "HELPER LIMIT: S1 30\nINFRASTRUCTURE RULING: EXTEND 30\n")
+        p = self.pr.status("helper-lines", "P1")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertIn("OK\tS1\t20 helper lines\tlimit 30 (verification/audits/P1_infra_r1.md)", p.out)
+
+    def test_a_ruling_that_names_no_obligation_is_noted(self):
+        self.write()
+        self.pr.write("verification/audits/P1_infra_r1.md", "INFRASTRUCTURE RULING: EXTEND 30\n")
+        self.assertIn("has no HELPER LIMIT line naming the obligation", self.pr.status("helper-lines", "P1").out)
+
+    def test_helpers_of_helpers_count_and_comments_do_not(self):
+        proof = ("namespace Paper.P1\n\n" + self.helper("inner", 5) + "/- a comment\nof two lines -/\n"
+                 + "-- another\n" + self.helper("outer", 4, "inner") + self.helper("other", 9)
+                 + "theorem P1_S1 : True := by\n  exact outer\n\nend Paper.P1\n")
+        self.write("HELPER LIMIT: S1 8\n", proof)
+        self.assertIn("OVER\tS1\t9 helper lines", self.pr.status("helper-lines", "P1").out)
+
+    def test_another_obligation_is_not_a_helper(self):
+        proof = ("namespace Paper.P1\n\n" + self.helper("big", 12) + "theorem P1_S1 : True := by\n  have := big\n  trivial\n\n"
+                 "theorem P1_S2 : True := by\n  exact P1_S1\n\nend Paper.P1\n")
+        self.write("HELPER LIMIT: S2 5\n", proof)
+        p = self.pr.status("helper-lines", "P1")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertIn("OK\tS2\t0 helper lines", p.out)
+
+    def test_a_limit_on_a_gap_or_on_nothing(self):
+        self.write("HELPER LIMIT: S1 10\nHELPER LIMIT: S9 10\n",
+                   "namespace Paper.P1\n\ndef P1_S1_Gap : Prop := True\n\nend Paper.P1\n")
+        out = self.pr.status("helper-lines", "P1").out
+        self.assertIn("GAP\tS1\t", out)
+        self.assertIn("MISSING\tS9\t", out)
+
+    def test_a_limit_inside_the_snapshot_block_is_not_read(self):
+        self.write("<!-- PV SNAPSHOT BEGIN -->\nHELPER LIMIT: S1 1\n<!-- PV SNAPSHOT END -->\n")
+        self.assertIn("no helper limit recorded", self.pr.status("helper-lines", "P1").out)
+
+
+class GateMarksAnInput(KitTestCase):
+    """v1.5.2: a gate that finds an input cheap to prove says so in a line of its report; `next`, `reconnect` and the
+    tables list it until it is proved or an attempt failed, and the report keeps a sentence about it."""
+
+    LINE = "DISCHARGEABLE: Ext1 from the project's lemma X0_bound, about 60 lines\n"
+    ROUTE = "from the project's lemma X0_bound, about 60 lines"
+
+    def setUp(self):
+        super().setUp()
+        self.ext = tool("Ext1", "ii", lean="pv_work/X1Stmt.lean:3 Paper.X1.UniformBound", consumers=["X1 (S1)"])
+        self.pr = Project(self.tmp, results=[result("X1")], tools=[self.ext])
+
+    def ext_now(self):
+        return next(x for x in self.pr.state()["external_tools"] if x["id"] == "Ext1")
+
+    def gate(self, line=None):
+        self.pr.write("verification/audits/X1_gate.md", (line or self.LINE) + "STATEMENT GATE: PASS\n")
+        p = self.pr.status("record", "X1", "--stage", "GATE_PASSED", "--statement-fixed", "true")
+        self.assertEqual(p.returncode, 0, p.out)
+        return p
+
+    def verify(self):
+        self.pr.write("verification/audits/X1_final.md", "FINAL AUDIT: PASS\nSUGGESTED VERDICT: CONDITIONAL\nCONDITIONS: Ext1\n")
+        self.pr.write("pv_work/X1.lean", "namespace Paper.X1\ntheorem main : True := trivial\nend Paper.X1\n")
+        p = self.pr.status("record", "X1", "--verdict", "CONDITIONAL", "--stage", "FINAL_PASSED",
+                           "--lean-main", "pv_work/X1.lean:2 Paper.X1.main")
+        self.assertEqual(p.returncode, 0, p.out)
+
+    def test_it_is_listed_until_it_is_proved(self):
+        p = self.gate()
+        self.assertIn("external input Ext1: marked as provable by verification/audits/X1_gate.md", p.out)
+        self.assertEqual(self.ext_now()["provable"]["why"], self.ROUTE)
+        out = self.pr.status("next", "--all").out
+        self.assertRegex(out, r"(?m)^DISCHARGE\tExt1\tX1\tmarked provable by verification/audits/X1_gate.md: from the")
+        self.assertIn("no pending reconnections", self.pr.status("reconnect").out)      # not verified yet
+        self.verify()
+        self.assertIn(f"X1\tuses Ext1\tmarked provable: {self.ROUTE}: prove it and connect it", self.pr.status("reconnect").out)
+        self.assertIn(f"can be discharged now: marked provable: {self.ROUTE}", self.pr.status("tools").out)
+        # proved in a Closed file: not listed any more, and the report says what happened
+        self.pr.write("pv_work/X1Closed_r1.lean", "namespace Paper.X1\ntheorem main_closed : True := trivial\nend Paper.X1\n")
+        self.pr.write("verification/audits/X1_reconnect_r1.md", "RECONNECT AUDIT: PASS\nCONDITIONS: none\n")
+        p = self.pr.status("record", "X1", "--verdict", "UNCONDITIONAL", "--stage", "FINAL_PASSED", "--conditions", "",
+                           "--evidence-reconnect", "verification/audits/X1_reconnect_r1.md",
+                           "--lean-main", "pv_work/X1Closed_r1.lean:2 Paper.X1.main_closed")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertNotIn("DISCHARGE", self.pr.status("next", "--all").out)
+        self.assertIn("no pending reconnections", self.pr.status("reconnect").out)
+        sentence = "The paper asserts this fact without proof; it was proved in Lean for this check."
+        self.assertIn(sentence, self.pr.status("tools").out)
+        self.assertEqual(self.pr.script("pv_summary.py").returncode, 0)
+        self.assertIn(sentence, self.pr.read("verification/report/CHECK_SUMMARY.md"))
+
+    def test_the_input_can_be_registered_after_the_gate(self):
+        d = self.pr.state()
+        d["external_tools"] = []
+        self.pr.write_state(d)
+        self.gate()
+        self.assertNotIn("DISCHARGE", self.pr.status("next", "--all").out)
+        t = {k: self.ext[k] for k in ("id", "lean", "meaning", "provenance", "source_loc", "consumers", "human_check")}
+        p = self.pr.status("add-tool", json.dumps(t))
+        self.assertIn("external input Ext1: marked as provable", p.out)
+
+    def test_the_gate_may_use_the_lean_name(self):
+        self.gate("**DISCHARGEABLE: `UniformBound` by the lemma**\n")
+        self.assertEqual(self.ext_now()["provable"]["why"], "by the lemma")
+
+    def test_a_failed_attempt_stops_the_listing_for_good(self):
+        self.gate()
+        self.verify()
+        p = self.pr.status("provable", "Ext1", "--undo", "--why", "the route needs more than the lemma")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertNotIn("DISCHARGE", self.pr.status("next", "--all").out)
+        self.assertIn("no pending reconnections", self.pr.status("reconnect").out)
+        self.assertEqual(self.pr.status("record", "X1", "--summary-en", "again").returncode, 0)
+        self.assertNotIn("provable", self.ext_now())
+
+    def test_a_predecessor_clause_is_not_marked(self):
+        d = self.pr.state()
+        d["external_tools"] = [tool("Ext1", "p", predecessor="X1")]
+        self.pr.write_state(d)
+        self.gate()
+        self.assertNotIn("provable", self.ext_now())
+
+    def test_a_line_inside_the_snapshot_block_does_not_mark(self):
+        self.gate("<!-- PV SNAPSHOT BEGIN -->\n" + self.LINE + "<!-- PV SNAPSHOT END -->\n")
+        self.assertNotIn("provable", self.ext_now())

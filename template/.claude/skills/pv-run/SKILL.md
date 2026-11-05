@@ -33,7 +33,7 @@ Repeat the following steps until every result in scope has a verdict, or is UNFI
 
 1. **Pick work.**
    1. First run `python3 scripts/pv_status.py reconnect`; if anything needs reconnection, do that first (stage 6b).
-   2. Then run `python3 scripts/pv_status.py next`: `READY` rows are results that can start; `BLOCKED` rows state which predecessor blocks them; `RECHECK` rows (v1.3.1) are verified results whose upstream was re-proved with an unchanged statement; `RULING` rows (v1.5) wait for the gate's infrastructure ruling (step 4); `NOT_RUN` rows (v1.5.1) are reviews that had no shell, to be started again (step 4).
+   2. Then run `python3 scripts/pv_status.py next`: `READY` rows are results that can start; `BLOCKED` rows state which predecessor blocks them; `RECHECK` rows (v1.3.1) are verified results whose upstream was re-proved with an unchanged statement; `RULING` rows (v1.5) wait for the gate's infrastructure ruling (step 4); `NOT_RUN` rows (v1.5.1) are reviews that had no shell, to be started again (step 4); `DISCHARGE` rows (v1.5.2) are inputs a gate found cheap to prove, proved through `reconnect` once the results that use them are verified.
    3. **A `RECHECK` row** (`PIPELINE.md`, "Cascade reset on statement change", step 3): rebuild the result's modules with `scripts/pv_lean.sh build <module>` in dependency order (its `Stmt`, then the files of `lean_main` and of any `Closed` file), then dispatch pv-auditor in re-check mode (template in §2). After `RECHECK: PASS`, run `python3 scripts/pv_status.py record <ID> --recheck-passed`; after `RECHECK: FAIL`, reset the result with `pv_status.py reset <ID> --revision <k>`.
 2. **Parallelism.** **No more than 3** subagents may run at the same time in total; issue rulings and reviews count toward this. Each Lean file may have only one writer at a time. **In an unattended (headless) session, never end your turn while subagents you started are still running**: wait for them, because they are stopped when the session ends. **Wait through their completion notifications** (v1.3.1): do not set timers, `sleep` commands, scheduled wake-ups or monitors to wait for them. Such a timer keeps firing after the agents have returned, and every wake-up re-reads the whole context. If one was started anyway, cancel it as soon as the agents are back.
 3. **Before starting a subagent**, add a row to the "Running subagents" table in `RESUME.md`: role, target, files it should produce, start time. Delete the row after the subagent returns.
@@ -45,14 +45,18 @@ Repeat the following steps until every result in scope has a verdict, or is UNFI
       PASS_WITH_AMENDMENTS   → pv-drafter (amendment mode) → pv-gate (amendment check, writes _gate_r2.md)
       PASS                   → record it: python3 scripts/pv_status.py record <ID> --stage GATE_PASSED --statement-fixed true
                                (v1.3.1; after a reset this also decides the cascade), then run build <ID>Stmt
-                             → pv-prover → pv-auditor (final audit) → record
+                             → pv-prover → (v1.5.2) python3 scripts/pv_status.py helper-lines <ID>
+                             → pv-auditor (final audit) → record
    ```
 
    **Prover sessions and models (v1.3).** The first proof session runs on the model in the pv-prover definition (sonnet). If it reports `BUDGET_EXHAUSTED` for any obligation, start the second proof session at once with `model: "opus"` in the `Agent` call, for the stuck obligations only, and give it the first session's notes. `TRANSLATION_BLOCKED` does not escalate: a stronger model cannot supply a missing library module. The second proof session of a pass, including one after a final-audit FAIL, always runs with `model: "opus"`. Record the models used with `--models-used`.
 
    **Infrastructure rulings (v1.5, `PIPELINE.md` stage 4).** If the prover reports `INFRASTRUCTURE_RULING` for an obligation, record `STOPPED` + `INFRASTRUCTURE_RULING` (`next` then lists the result as `RULING`), and dispatch pv-gate in infrastructure-ruling mode (template in §2) before any further proof session. Then: `EXTEND <n>` → one proof session with that cap; `PARAMETER` → as for a statement problem below; `DECLINE` → record `BUDGET_EXHAUSTED`.
 
+   **Helper limits (v1.5.2, `PIPELINE.md` stage 4).** Run `python3 scripts/pv_status.py helper-lines <ID>` before the final audit. For an `OVER` row, dispatch pv-gate in infrastructure-ruling mode on that obligation first, and do not go on to the audit without its ruling: `EXTEND <n>` with n at least the count → the final audit, with no further proof session; `EXTEND <n>` with a smaller n → one proof session; `PARAMETER` → as for a statement problem below; `DECLINE` → record `BUDGET_EXHAUSTED`.
+
    **When the final audit FAILs:**
+   - Only the item `helper limit: gate ruling needed`: get the ruling as above, then a new final audit. Nothing is wrong with the proof, so this is neither a proof session nor `AUDIT_FAILED`.
    - Proof problem: return the FAIL items to pv-prover; this counts as one proof session.
    - Statement problem: run `python3 scripts/pv_status.py reset <ID> --revision enc<n> --reason ''`, hand it to pv-drafter for changes, have pv-gate review it again, then record the pass with `record <ID> --stage GATE_PASSED --statement-fixed true`; the "Cascade reset on statement change" of `PIPELINE.md` then decides for the dependents.
    - If the second final audit still FAILs: set `STOPPED` + `AUDIT_FAILED`.
@@ -73,7 +77,7 @@ Repeat the following steps until every result in scope has a verdict, or is UNFI
 7. Update the records per §3, take a snapshot, and report per §4.
 8. **End of a pass.**
    - For results still blocked by a predecessor, set `reason: WAITING_ON_DEPENDENCY`.
-   - Then run `python3 scripts/pv_status.py next --second-pass`, give each listed result 1 proof session, and set its `round` to 2.
+   - Then run `python3 scripts/pv_status.py next --second-pass`, give each `READY` result 1 proof session, and set its `round` to 2. A `SKIPPED` row (v1.5.2) has used its second pass: tell the user, with its reason.
    - Results still not finished after the second pass stay UNFINISHED, with the reason recorded.
 
 ## 2. Task description templates
@@ -107,7 +111,7 @@ Infrastructure-ruling mode (v1.5): `Infrastructure ruling on <ID> obligation S<k
 
 **pv-prover:**
 ```
-Prove <ID>. Last gate report: verification/audits/<ID>_gate<…>.md (last line is PASS).
+Prove <ID>. Last gate report: verification/audits/<ID>_gate<…>.md (last line is PASS). Helper limits: <its HELPER LIMIT lines and any EXTEND ruling, or none>.
 Source proof <file:line-line>. Proof session <1|2> of this pass; overall pass <1|2>.
 Outputs: pv_work/<ID>.lean (and .olean); if any obligation stops, also pv_work/<ID>ModGaps.lean; notes pv_work/notes/<ID>_prover_notes.md.
 No network, no downloads.

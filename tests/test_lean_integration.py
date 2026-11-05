@@ -5,7 +5,8 @@ ready shared environment (autosetup/lean_env.sh), e.g.
 
 They compile small files, so they take a few minutes. They cover the mechanical audit (pv_audit_mech.py), including
 the conditions traced from the gated theorems (PENDING v1.3.1 #16, #24) and the writer checks (#19, #26), and (v1.5)
-the walk past compiler auxiliaries, the snapshot block of a gate report and the package check."""
+the walk past compiler auxiliaries, the snapshot block of a gate report and the package check; (v1.5.2) which gate report
+counts, and helper limits."""
 import json
 import os
 import re
@@ -159,6 +160,91 @@ class MechanicalAudit(KitTestCase):
         self.assertEqual(p.returncode, 1, rep)
         self.assertIn("MECH CHECKS: FAIL (writer)", rep)
         self.assertIn("Run by: not recorded", rep)
+
+    # v1.5.2: which gate report counts
+    def gate_files(self):
+        """The fingerprints of the file as it is, and the same with another main theorem (a later statement)."""
+        good = re.search(r"```\n(.*?)\n```", self.pr.read("verification/audits/P01_gate.md"), flags=re.S).group(1)
+        other = re.sub(r"(P01_main\|thm\|th=)\d+", r"\g<1>12345", good)
+        self.assertNotEqual(good, other)
+        (self.pr.root / "verification/audits/P01_gate.md").unlink()
+        return good, other
+
+    @staticmethod
+    def report(fps):
+        return f"# Gate P01\n\n<!-- PV SNAPSHOT BEGIN -->\n```\n{fps}\n```\n<!-- PV SNAPSHOT END -->\n\nSTATEMENT GATE: PASS\n"
+
+    def later(self, rel, text):
+        f = self.pr.write(rel, text)
+        t = f.stat().st_mtime + 60
+        os.utime(str(f), (t, t))
+
+    def row4(self):
+        reps = sorted((self.pr.root / "verification/audits").glob("P01_mech*.md"), key=lambda f: f.stat().st_mtime)
+        text = reps[-1].read_text()
+        return next(l for l in text.splitlines() if l.startswith("| 4 |")), text
+
+    def test_a_newer_gate_under_another_name_is_not_passed_over(self):
+        good, other = self.gate_files()
+        # the Lean file matches the older report: without the rule this was a clean PASS against a superseded snapshot
+        self.pr.write("verification/audits/P01_gate_r3.md", self.report(good))
+        self.later("verification/audits/P01_gate_rev5_r2.md", self.report(other))
+        p = self.pr.script("pv_audit_mech.py", "P01")
+        row, text = self.row4()
+        self.assertEqual(p.returncode, 1, text)
+        self.assertIn("MECH CHECKS: FAIL (statement)", text)
+        self.assertIn("P01_gate_rev5_r2.md is newer than verification/audits/P01_gate_r3.md", row)
+        # given by name it decides, and the report says that it is not the latest under the rule
+        p = self.pr.script("pv_audit_mech.py", "P01", "--gate", "verification/audits/P01_gate_r3.md")
+        row, text = self.row4()
+        self.assertEqual(p.returncode, 0, text)
+        self.assertIn("vs `verification/audits/P01_gate_r3.md`", row)
+        self.assertIn("`--gate verification/audits/P01_gate_r3.md` was given, but", text)
+
+    def test_a_gate_with_its_snapshot_after_the_verdict_is_used(self):
+        good, other = self.gate_files()
+        self.pr.write("verification/audits/P01_gate.md", self.report(good))
+        tail = "# Gate\n\nSTATEMENT GATE: PASS\n\n<!-- PV SNAPSHOT BEGIN -->\n```\n" + other + "\n```\n<!-- PV SNAPSHOT END -->\nEXIT=0\n"
+        self.pr.write("verification/audits/P01_gate_r2.md", tail)
+        p = self.pr.script("pv_audit_mech.py", "P01")
+        row, text = self.row4()
+        self.assertEqual(p.returncode, 1, text)        # it is compared, and it differs; r1 does not stand in
+        self.assertIn("vs `verification/audits/P01_gate_r2.md`", row)
+        self.assertIn("changed", row)
+
+    def test_a_helper_overrun_is_a_manual_item(self):
+        helper = "private theorem padded : True := by\n" + "".join(f"  have h{i} : True := trivial\n" for i in range(18)) + "  trivial\n\n"
+        proof = PROOF.replace("namespace Paper.P01\n\n", "namespace Paper.P01\n\n" + helper, 1).replace("  intro x\n", "  have := padded\n  intro x\n")
+        self.pr.write("pv_work/P01.lean", proof)
+        b = self.pr.script("pv_lean.sh", "build", "P01")
+        self.assertEqual(b.returncode, 0, b.out)
+        gate = self.pr.read("verification/audits/P01_gate.md")
+        self.pr.write("verification/audits/P01_gate.md", gate.replace("STATEMENT GATE: PASS", "HELPER LIMIT: main 10\n\nSTATEMENT GATE: PASS"))
+        self.assertEqual(self.pr.status("helper-lines", "P01").returncode, 1)
+        p = self.pr.script("pv_audit_mech.py", "P01")
+        rep = self.pr.read("verification/audits/P01_mech.md")
+        self.assertEqual(p.returncode, 0, rep)         # a manual item, not a FAIL
+        self.assertRegex(rep, r"\| 9 \| helper limits \| MANUAL \| `main`: 20 of 10 \|")
+        self.assertIn("`main`: 20 helper lines, over the limit of 10 set in `verification/audits/P01_gate.md`", rep)
+        self.assertRegex(rep, r"MECH CHECKS: PASS \(\d+ manual checks listed above\)")
+
+    def test_the_record_of_a_module_follows_the_same_rule(self):
+        self.pr.write("pv_work/P02.lean", "import P01\n\nnamespace Paper.P02\n\ntheorem P02_main (hT : Paper.P01.Tool) "
+                      "(hU : Paper.P01.Unused) : Paper.P01.P01Conclusion :=\n  Paper.P01.P01_main hT hU\n\nend Paper.P02\n")
+        b = self.pr.script("pv_lean.sh", "build", "P02")
+        self.assertEqual(b.returncode, 0, b.out)
+        d = self.pr.state()
+        d["results"].append(result("P02", depends_on=["P01"]))
+        self.pr.write_state(d)
+        self.pr.write("verification/audits/P01_final.md", "FINAL AUDIT: PASS\n")
+        self.pr.script("pv_audit_mech.py", "P02", "--skip-statement")
+        rep = self.pr.read("verification/audits/P02_mech.md")
+        self.assertRegex(rep, r"\| `P01` \| \d+ \| `verification/audits/P01_final.md` \|")
+        self.later("verification/audits/P01_final_rev5.md", "FINAL AUDIT: PASS\n")
+        self.pr.script("pv_audit_mech.py", "P02", "--skip-statement")
+        rep = self.pr.read("verification/audits/P02_mech_r2.md")
+        self.assertRegex(rep, r"\| `P01` \| \d+ \| \*\*NO RECORD")
+        self.assertIn("module `P01` reached without an audit record (verification/audits/P01_final_rev5.md is newer", rep)
 
 
 if __name__ == "__main__":

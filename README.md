@@ -238,7 +238,7 @@ BibTeX.
 
 ## Roadmap
 
-This version (v1.5.1) **only verifies** the proofs a paper already contains, and runs on Claude Code. Planned, **not yet available**:
+This version (v1.5.2) **only verifies** the proofs a paper already contains, and runs on Claude Code. Planned, **not yet available**:
 
 **Version 2**
 

@@ -10,6 +10,22 @@ Not yet available; see the README's [Roadmap](README.md#roadmap). This version o
 - **Completing unfinished steps:** an optional, longer proof search for steps stopped by formalization difficulty.
 - **Closing conditions automatically** when a cited result is available in Mathlib.
 
+## v1.5.2 (2026-11-04)
+
+Fixes to the mechanical audit and the driver, and two small additions to the gate report. `PVTools.lean` is unchanged. One rule on verdicts changes: an input proved in Lean no longer keeps its result conditional (below).
+
+- **The mechanical audit could compare with an old gate snapshot.** It looked for a gate report by a name of its own and silently took an older passing report, which could give a false PASS or a false FAIL.
+  - It now finds a report as `record` does: the latest since the last reset, for the snapshot and for the audit records of the modules it reaches.
+  - When that report does not pass, or a newer report breaks the naming rule, no older passing report stands in for it. Item 4 fails and says why, and `record` refuses a verified verdict unless the report is given by name.
+  - A report given with `--gate` that is not the latest is noted as a manual item.
+- **A snapshot after the verdict.** A verdict line followed by a long snapshot block was not found, so a passing report did not count, or an older one was used in its place. The verdict is now read outside the block, and none is read from inside it.
+- **A reset starts a new pass.** `round` survived a reset, so a result rewritten in a revision could lose its second pass, and the driver reported that nothing was left to start. `reset` now sets `round` back to 1 and keeps the old value in `history`. `next --second-pass` lists a stopped result whose second pass is used as `SKIPPED`, and the driver's log says so.
+- **Helper limits are counted.** A gate or a ruling sets a limit with a line `HELPER LIMIT: S<k> <n>`. `pv_status.py helper-lines <ID>` counts the helper lines before the final audit, `record --stage PROVED` and `validate` warn about an overrun, and an overrun goes to the gate for a ruling. The mechanical audit lists an overrun as a manual item, and the auditor does not rule on it.
+- **Inputs that are cheap to prove.** A gate that sees a short route writes `DISCHARGEABLE: <input> <route>`. This marks the input as provable, `next` lists it as `DISCHARGE`, and it goes through the existing discharge step once its results are verified. A failed attempt no longer stops the driver for lack of progress.
+- **A changed rule on verdicts.** A fact the paper asserts without proof stays a condition until it is proved in Lean and connected. It then leaves the conditions, so the result can be unconditional, and the report keeps the sentence "The paper asserts this fact without proof; it was proved in Lean for this check." This settles a conflict between `VERDICTS.md` §4.1 and the discharge step of `PIPELINE.md` stage 6b. Earlier records stay valid.
+- For an existing project: `install.sh <project> --upgrade`. No new permission rules are needed.
+- Tests for each of these, and for the session cap of the driver, which counts each run on its own and names itself when it ends a run. The choice of report and the helper limits are also tested on real Lean files. Real runs confirmed the new steps of the gate, the coordinator and the auditor: a gate marked an input, which was then proved and connected, and an overrun went to a gate ruling, with the auditor declining to rule on it.
+
 ## v1.5.1 (2026-11-01)
 
 A bug-fix release. The conditions for each verdict and `PVTools.lean` are unchanged, so earlier records stay valid.

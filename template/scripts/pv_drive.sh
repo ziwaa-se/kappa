@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# pv_drive.sh — run /pv-run unattended in short, fresh coordinator sessions (kit v1.3.1; v1.5.1: reviews without a shell).
+# pv_drive.sh — run /pv-run unattended in short, fresh coordinator sessions (kit v1.3.1; v1.5.1: reviews without a shell; v1.5.2: why a result got no second pass).
 #
 # Why: one long coordinator session re-reads its whole, ever-growing history on every step. Here each batch of at
 # most PV_BATCH ready results gets a NEW headless session; all state passes through RESULTS.json and RESUME.md,
@@ -133,6 +133,8 @@ print(' '.join(ids))")
     fi
     if [[ -z "${ids// /}" && -z "$recon" && -z "${second// /}" ]]; then
       echo "Nothing left to start: every result has a verdict or a recorded reason."
+      # v1.5.2: say why a stopped result got no second pass
+      python3 scripts/pv_status.py next --second-pass --all | awk -F'\t' '$1=="SKIPPED"{print "  " $2 ": " $4}'
       python3 scripts/pv_snapshot.py save --label all-verdicts > /dev/null 2>&1 || true
       [[ $report -eq 1 ]] && make_report
       finish done "every result has a verdict or a recorded reason"

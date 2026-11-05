@@ -16,7 +16,7 @@ Verdicts are based on evidence only, never on confidence.
 All of the following hold:
 
 1. The statement received PASS from an **independent gate** (`verification/audits/<ID>_gate.md`).
-2. The **whole statement** (all clauses) has been proved in Lean along the **source's proof route**.
+2. The **whole statement** (all clauses) has been proved in Lean along the **source's proof route**. A fact the source gives no proof of has no route to follow: an external input proved in Lean and connected (`PIPELINE.md` stage 6b, v1.5.2) does not break this, and the report says that the proof of it is not the source's (§4.1).
    - The gated declarations in the final file match the gate snapshot (compared with `#pv_type_hashes`). The comparison covers types, binder annotations, and the content hash of each `def`.
 3. All compilation checks are clean:
    - `scripts/pv_lean.sh build` exits with code 0, with no `sorry`;
@@ -133,7 +133,7 @@ Mathematical content that the source uses but that this project does not prove i
 | (v) | A standard fact with no interface in the pinned mathlib |
 | (p) | A **consumed clause** of a predecessor result in the paper, used while the predecessor is not yet fully proved, named `<ID>_<PredID>Consumed`. Once the predecessor passes the final audit, it must be reconnected (`PIPELINE.md` stage 6b); if the predecessor ends up ISSUE or UNFINISHED, it counts as (iv) |
 
-**Asserted facts stay inputs (v1.3.2).** A fact that the source states explicitly and justifies only by calling it known ("it is well known that …", "by the classical …", "a standard result") is a (ii) input (or (i) when cited), **even when mathlib proves it**. Do not discharge it as a `FAIR_IMPLICIT_STEP`: the reader of the report must see that the paper asserts it without an argument. When mathlib proves it, say so in the input's `human_check` ("also provable from mathlib: `<lemma>`") and in the report's observations; the result stays CONDITIONAL. `FAIR_IMPLICIT_STEP` is for steps the source does not state at all, or states as an evident consequence of what it has just written.
+**Asserted facts stay inputs (v1.3.2).** A fact that the source states explicitly and justifies only by calling it known ("it is well known that …", "by the classical …", "a standard result") is a (ii) input (or (i) when cited), **even when mathlib proves it**. Do not discharge it as a `FAIR_IMPLICIT_STEP`: the reader of the report must see that the paper asserts it without an argument. When mathlib proves it, say so in the input's `human_check` ("also provable from mathlib: `<lemma>`") and in the report's observations; the result stays CONDITIONAL until the input is proved in Lean and connected (`PIPELINE.md` stage 6b, v1.5.2). It then leaves the conditions, because the theorem no longer depends on it, and the report keeps the sentence "The paper asserts this fact without proof; it was proved in Lean for this check.", so the reader still sees it. `FAIR_IMPLICIT_STEP` is for steps the source does not state at all, or states as an evident consequence of what it has just written.
 
 A **gap hypothesis** `<ID>_S<k>_Gap` is not an external input. It appears only in `<ID>ModGaps.lean`, is recorded in the result's `gaps` field, and is **not** registered in `external_tools`.
 

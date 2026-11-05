@@ -13,6 +13,8 @@ Usage (from the project root):
                                                    (v1.5) mark an external input as provable in Lean now (e.g. a
                                                    person found the route), so that reconnect lists its users;
                                                    --undo after a failed attempt (reconnect stops listing it)
+  python3 scripts/pv_status.py helper-lines ID     (v1.5.2) helper lines of each obligation that has a HELPER LIMIT in
+                                                   a gate report or a ruling; exit status 1 when one is over it
   python3 scripts/pv_status.py tools               external-input registry as a Markdown table
   python3 scripts/pv_status.py paths FILE.md       check that every `path` quoted in a Markdown file exists
   python3 scripts/pv_status.py supersede FILE "reason" [REPLACED_BY]
@@ -119,6 +121,19 @@ def mathlib_built(module):
     return (ROOT / ".lake/packages/mathlib/.lake/build/lib/lean" / (module.replace(".", "/") + ".olean")).exists()
 
 
+PROVED_NOTES = {"i": "The paper cites this result", "ii": "The paper asserts this fact without proof",
+                "iii": "The paper uses this fact without stating it",
+                "iv": "The paper's proof of this clause has a recorded issue",
+                "v": "This standard fact has no interface in the pinned Mathlib"}
+
+
+def proved_note(t):
+    """(v1.5.2) The sentence that stays in the report when an input was proved in Lean (VERDICTS §4.1): the verdict no
+    longer depends on the input, and the reader still sees that the paper gives no argument for it."""
+    what = PROVED_NOTES.get(str(t.get("provenance")), "This input was not proved in the paper")
+    return f"{what}; it was proved in Lean for this check."
+
+
 def discharge_hint(t):
     """(v1.5) Why an external input that is not a predecessor clause can now be proved and connected (PIPELINE
     stage 6b, discharging an external input), or None: it is proved in a Closed file already, a person marked it
@@ -175,14 +190,19 @@ def exists(p):
     return isinstance(p, str) and bool(p) and (ROOT / p.split(":")[0].strip()).exists()
 
 
+SNAP_BLOCK = re.compile(r"<!--\s*PV SNAPSHOT BEGIN\s*-->(.*?)<!--\s*PV SNAPSHOT END\s*-->", re.S)
+
+
 def verdict_line(path, prefix):
-    """Value of the last line starting with `prefix` among the last 5 non-empty lines of a report."""
+    """Value of the last line starting with `prefix` among the last 5 non-empty lines of a report. (v1.5.2) The snapshot
+    block does not count: it may follow the verdict, and no verdict is read from it."""
     if not isinstance(path, str) or not path:
         return None
     f = ROOT / path.split(":")[0]
     if not f.exists():
         return None
-    lines = [l.strip().strip("*` ") for l in f.read_text(errors="replace").splitlines() if l.strip()]
+    text = SNAP_BLOCK.sub("", f.read_text(errors="replace"))
+    lines = [l.strip().strip("*` ") for l in text.splitlines() if l.strip()]
     val = None
     for s in lines[-5:]:
         if s.startswith(prefix):
@@ -425,7 +445,8 @@ def validate(data):
             gv = verdict_line(ev.get("gate"), "STATEMENT GATE:")
             fv = verdict_line(ev.get("final"), "FINAL AUDIT:")
             if not is_pass(gv):
-                errs.append(f"{rid}: evidence.gate must end with 'STATEMENT GATE: PASS' (found {gv})")
+                errs.append(f"{rid}: evidence.gate must end with 'STATEMENT GATE: PASS' (found {gv}"
+                            + ("; the verdict is read from the last 5 lines outside the snapshot block)" if gv is None else ")"))
             if not is_pass(fv):
                 errs.append(f"{rid}: evidence.final must end with 'FINAL AUDIT: PASS' (found {fv})")
             sv = verdict_line(ev.get("final"), "SUGGESTED VERDICT:")
@@ -494,6 +515,8 @@ def validate(data):
                         warns.append(f"{rid}: predecessor clause {c} can now be reconnected to {pred.get('id')} (stage 6b)")
                 elif discharge_hint(t):
                     warns.append(f"{rid}: external input {c} can now be discharged ({discharge_hint(t)}; stage 6b)")
+        if v in ("UNCONDITIONAL", "CONDITIONAL"):
+            warns += helper_overruns(rid, last_reset(r))    # v1.5.2
         # v1.3.1 checks
         if v in ("UNCONDITIONAL", "CONDITIONAL") and st == "FINAL_PASSED":
             stated = audit_conditions(r)
@@ -586,7 +609,7 @@ def next_ready(data, second_pass=False, use_all=False):
         for d in r.get("depends_on", []) if isinstance(r.get("depends_on"), list) else []:
             if d in dependents:
                 dependents[d] += 1
-    ready, blocked, rulings_due = [], [], []
+    ready, blocked, rulings_due, used = [], [], [], []
     for r in res:
         if scope and r["id"] not in scope:
             continue
@@ -594,7 +617,10 @@ def next_ready(data, second_pass=False, use_all=False):
             continue
         if second_pass:
             if not (r.get("stage") == "STOPPED" and r.get("reason") in
-                    ("TRANSLATION_BLOCKED", "BUDGET_EXHAUSTED", "AUDIT_FAILED") and int(r.get("round", 1)) < 2):
+                    ("TRANSLATION_BLOCKED", "BUDGET_EXHAUSTED", "AUDIT_FAILED")):
+                continue
+            if int(r.get("round", 1)) >= 2:
+                used.append(r)      # v1.5.2: say why it is left out
                 continue
         elif r.get("stage") == "STOPPED" and r.get("reason") == "INFRASTRUCTURE_RULING":
             # v1.5: the prover stopped on the infrastructure budget; the gate rules before any further proof session
@@ -621,6 +647,10 @@ def next_ready(data, second_pass=False, use_all=False):
               f"{MAX_RULINGS})")
     for r, _ in ready:
         print(f"READY\t{r['id']}\t{r.get('pdf_number')}\tstage={r.get('stage')}\tdependents={dependents[r['id']]}")
+    for r in used:
+        print(f"SKIPPED\t{r['id']}\t{r.get('pdf_number')}\tits second pass is used (round 2), so it stays "
+              f"{r.get('reason')}; if its proof was rewritten by a reset before kit v1.5.2, record {r['id']} --round 1 "
+              f"gives it a new pass")
     for r, waiting in blocked:
         notes = []
         for d in waiting:
@@ -651,6 +681,17 @@ def next_ready(data, second_pass=False, use_all=False):
             rechecks += 1
         else:
             print(f"BLOCKED\t{r['id']}\t{r.get('pdf_number')}\tre-check waits until {', '.join(ups)} is proved again")
+    # v1.5.2: an input a gate marked as cheap to prove stays listed until it is proved or an attempt failed
+    for t in data.get("external_tools", []) if not second_pass else []:
+        if not (isinstance(t, dict) and isinstance(t.get("provable"), dict)):
+            continue
+        users = [r["id"] for r in res if t.get("id") in as_list(r.get("conditions"))
+                 or any(str(c).split(" ")[0] == r["id"] for c in as_list(t.get("consumers")))]
+        if scope and users and not set(users) & set(scope):
+            continue
+        print(f"DISCHARGE\t{t.get('id')}\t{', '.join(users) or '-'}\tmarked provable"
+              f"{' by ' + t['provable']['by'] if t['provable'].get('by') else ''}: {t['provable'].get('why', '')}. Stage 6b "
+              f"proves it once the results that use it are verified; provable {t.get('id')} --undo --why '...' if it fails")
     if not ready and not blocked and not rechecks and not rulings_due:
         print("nothing to start (all decided or in progress)")
 
@@ -706,7 +747,8 @@ def tool_status(data, t):
         notes.append(f"can be discharged now: {discharge_hint(t)}")
     if t.get("possible_duplicate_of"):
         notes.append(f"possibly the same fact as {t['possible_duplicate_of']}: check once for both")
-    return "; ".join(notes) or "condition of " + ", ".join(users)
+    text = "; ".join(notes) or "condition of " + ", ".join(users)
+    return f"{text}. {proved_note(t)}" if t.get("proved_in") else text
 
 
 def tools_rows(data):
@@ -810,6 +852,24 @@ def latest_report(rid, kind, pass_prefix=None, since=None):
     return ""
 
 
+def current_report(rid, kind, prefix, since=None):
+    """(v1.5.2) The report of rid that counts, as (path, why), for the mechanical audit and for `record` alike. It is
+    the latest report since the last reset. When that one does not pass, or a newer report breaks the naming rule, the
+    path is "" and `why` says so: an older passing report never stands in for it. A review that could not run is
+    passed over, as in latest_report."""
+    named = [str(p.relative_to(ROOT)) for p in reports_of(rid, kind, since)]
+    named = [p for p in named if not not_run(verdict_line(p, prefix))]
+    latest = named[-1] if named else ""
+    stray = unnamed_reports(rid, kind, latest, since)
+    if stray:
+        return "", (f"{stray[-1]} is newer than {latest or 'the reports under the standard names'} but does not follow "
+                    f"the naming rule ({rid}_{kind}.md, then {rid}_{kind}_r2.md …; PIPELINE, 'Files and naming')")
+    v = verdict_line(latest, prefix) if latest else None
+    if latest and not is_pass(v):
+        return "", f"the latest report {latest} does not end with '{prefix} PASS' (found {v})"
+    return latest, ""
+
+
 def last_reset(r):
     """(v1.5.1) When r was last reset, in seconds (to the minute, as `date` in its history), or None."""
     hist = r.get("history") if isinstance(r.get("history"), list) else []
@@ -827,10 +887,11 @@ def newer_report(found, stored):
     return stored if (ROOT / stored.split(":")[0]).stat().st_mtime > (ROOT / found).stat().st_mtime else found
 
 
-def unnamed_reports(rid, kind, than):
+def unnamed_reports(rid, kind, than, since=None):
     """(v1.5.1) Reports of rid that break the naming rule (e.g. <ID>_final_rev5.md) and are newer than the report
-    `than` that would be recorded: `latest_report` cannot see them, so recording now would keep older evidence."""
-    limit = (ROOT / than.split(":")[0]).stat().st_mtime if than and exists(than) else 0
+    `than` that would be recorded and than the last reset (`since`): `latest_report` cannot see them, so recording now
+    would keep older evidence."""
+    limit = max((ROOT / than.split(":")[0]).stat().st_mtime if than and exists(than) else 0, since or 0)
     named = {p.name for p in reports_of(rid, kind)}
     return sorted(str(p.relative_to(ROOT)) for p in AUDITS.glob(f"{rid}_{kind}*.md")
                   if p.name not in named and p.stat().st_mtime > limit)
@@ -1002,7 +1063,7 @@ def gate_fingerprints(rid, path):
         return None
     text = (ROOT / path.split(":")[0]).read_text(errors="replace")
     # v1.5: the snapshot block when the report has one (prose may quote other fingerprints); never a <X>_Gap line
-    blocks = re.findall(r"<!--\s*PV SNAPSHOT BEGIN\s*-->(.*?)<!--\s*PV SNAPSHOT END\s*-->", text, flags=re.S)
+    blocks = SNAP_BLOCK.findall(text)
     fps = {m.group(1): m.groups()[1:] for m in FP.finditer("\n".join(blocks) if blocks else text)
            if m.group(1).startswith(f"Paper.{rid}.") and not m.group(1).endswith("_Gap")}
     return fps or None
@@ -1220,17 +1281,26 @@ def record(rid, argv):
     ev["gate"] = a.evidence_gate or newer_report(latest_report(rid, "gate", "STATEMENT GATE:", since), ev.get("gate"))
     ev["final"] = a.evidence_final or newer_report(latest_report(rid, "final", since=since), ev.get("final"))
     for kind, given, flag in (("gate", a.evidence_gate, "--evidence-gate"), ("final", a.evidence_final, "--evidence-final")):
-        stray = [] if given else unnamed_reports(rid, kind, ev.get(kind))
+        stray = [] if given else unnamed_reports(rid, kind, ev.get(kind), since)
         if stray:
             sys.exit(f"refused: {stray[-1]} does not follow the naming rule ({rid}_{kind}.md, then {rid}_{kind}_r2.md …; "
                      f"a revision adds no tag: PIPELINE, 'Files and naming'), so it would not be recorded. Write it "
                      f"under the right name, or give it with {flag} {stray[-1]}.")
+    # v1.5.2: a verified verdict does not rest on an older gate pass when a later gate report says otherwise
+    gate_now = latest_report(rid, "gate", since=since)
+    if (not a.evidence_gate and r.get("verdict") in ("UNCONDITIONAL", "CONDITIONAL") and gate_now
+            and not is_pass(verdict_line(gate_now, "STATEMENT GATE:")) and newer_report(ev.get("gate"), gate_now) == gate_now):
+        sys.exit(f"refused: the latest gate report {gate_now} does not end with 'STATEMENT GATE: PASS' (found "
+                 f"{verdict_line(gate_now, 'STATEMENT GATE:')}), and an older passing report does not stand in for it. "
+                 f"Fix the report, or give the one that applies with --evidence-gate.")
     if a.evidence_reconnect is not None:
         ev["reconnect"] = a.evidence_reconnect
     if a.evidence_issues is not None:
         ev["issues"] = [x.strip() for x in a.evidence_issues.split(",") if x.strip()]
     r["evidence"] = {k: v for k, v in ev.items() if v not in ("", None, [])}
     r["updated"] = now()
+    for line in apply_gate_marks(data):
+        print(line)
     notes = []
     if r.get("verdict") in ("UNCONDITIONAL", "CONDITIONAL") and r.get("stage") == "FINAL_PASSED":
         # PENDING #24: the conditions are the audit's, not a copy made by hand
@@ -1319,6 +1389,9 @@ def record(rid, argv):
     print(f"recorded {rid}: verdict={r.get('verdict')} stage={r.get('stage')} reason={r.get('reason', '')} "
           f"evidence={r['evidence']}")
     refresh_records(load())
+    if r.get("stage") == "PROVED":
+        for line in helper_overruns(rid, since):     # v1.5.2: before the final audit is dispatched
+            print("WARN " + line)
     return validate(load())
 
 
@@ -1396,6 +1469,30 @@ def human_check(tool_id, argv):
     return validate(load())
 
 
+DISCHARGEABLE = re.compile(r"^[\s`*]*DISCHARGEABLE:[\s`*]*(\S+?)[\s`*:]+(\S.*)$", re.M)
+
+
+def apply_gate_marks(data):
+    """(v1.5.2) A line `DISCHARGEABLE: <input> <route>` in a result's recorded gate report marks that input as provable
+    (PIPELINE stage 3), unless it is proved already or an attempt failed. `data` is not written here. Called when a
+    gate is recorded and when an input is registered, whichever comes last."""
+    tools = [t for t in data.get("external_tools", []) if isinstance(t, dict)]
+    out = []
+    for r in data.get("results", []):
+        rep = (r.get("evidence") or {}).get("gate") if isinstance(r, dict) and isinstance(r.get("evidence"), dict) else None
+        if not exists(rep):
+            continue
+        text = SNAP_BLOCK.sub("", (ROOT / rep.split(":")[0]).read_text(errors="replace"))
+        for name, route in DISCHARGEABLE.findall(text):
+            for t in tools:
+                const = (str(t.get("lean", "")).split() + [""])[1]
+                if (name.strip("`*") in (t.get("id"), const, const.split(".")[-1]) and not is_predecessor_clause(t)
+                        and not any(k in t for k in ("provable", "provable_tried", "proved_in"))):
+                    t["provable"] = {"date": now(), "why": route.strip().strip("*` "), "by": rep}
+                    out.append(f"external input {t.get('id')}: marked as provable by {rep}")
+    return out
+
+
 def provable(tool_id, argv):
     """(v1.5) Mark an external input as provable in Lean now, so that `reconnect` lists the results that use it
     (PIPELINE stage 6b, discharging an external input); --undo records a failed attempt and stops the listing."""
@@ -1422,6 +1519,92 @@ def provable(tool_id, argv):
     print(f"{'removed the provable mark of' if a.undo else 'marked as provable:'} {tool_id}")
     reconnect(data)
     return validate(load())
+
+
+DECL = re.compile(r"^\s*(?:@\[[^\]]*\]\s*)?(?:(?:private|protected|noncomputable|partial|nonrec)\s+)*"
+                  r"(theorem|lemma|def|abbrev|instance|structure|inductive|class|opaque|axiom)\s+([^\s:(\[{]+)", re.M)
+HELPER_LIMIT = re.compile(r"^[\s`*]*HELPER LIMIT:[\s`*]*(\S+?)[\s`*]+(\d+)", re.M)
+
+
+def lean_decls(path):
+    """(v1.5.2) {short name: text} of the declarations in a Lean file, without comments. A declaration runs to the next
+    one, or to a line that closes it (end, namespace, section)."""
+    text = re.sub(r"/-.*?-/", lambda m: "\n" * m.group(0).count("\n"), path.read_text(errors="replace"), flags=re.S)
+    text = re.sub(r"--.*$", "", text, flags=re.M)
+    marks = list(DECL.finditer(text))
+    out = {}
+    for m, nxt in zip(marks, marks[1:] + [None]):
+        body = text[m.start():nxt.start() if nxt else len(text)]
+        out[m.group(2).split(".")[-1]] = re.split(r"^\s*(?:end|namespace|section)\b", body, maxsplit=1, flags=re.M)[0]
+    return out
+
+
+def helper_lines(decls, name, gated):
+    """(v1.5.2) Non-blank lines of the helpers that `name` reaches, read from the text: a helper counts when its name
+    occurs in the proof or in another helper it reaches, and a helper shared by two obligations counts for both. So
+    this can overcount, which only ever adds a manual item, and it does not see helpers in other files."""
+    helpers = set(decls) - set(gated) - {name}
+    seen, todo = set(), [name]
+    while todo:
+        words = set(re.findall(r"[^\W\d][\w'!?]*", decls[todo.pop()]))
+        new = (words & helpers) - seen
+        seen |= new
+        todo += sorted(new)
+    return sum(1 for h in seen for l in decls[h].splitlines() if l.strip())
+
+
+def helper_check(rid, mod, since=None):
+    """(v1.5.2) The HELPER LIMIT lines of rid's gate reports and rulings since the last reset (a later one replaces an
+    earlier one), each with the helper lines of its obligation in pv_work/<mod>.lean. Returns (rows, notes); a row is
+    (state, obligation, lines, limit, report) with state OK, OVER, GAP (not proved: a gap file) or MISSING."""
+    limits, notes = {}, []
+    for kind in ("gate", "infra"):
+        for p in reports_of(rid, kind, since):
+            rel = str(p.relative_to(ROOT))
+            found = HELPER_LIMIT.findall(SNAP_BLOCK.sub("", p.read_text(errors="replace")))
+            for key, n in found:
+                limits[key] = (int(n), rel)
+            v = verdict_line(rel, "INFRASTRUCTURE RULING:") if kind == "infra" else None
+            if v and v.startswith("EXTEND") and not found:
+                notes.append(f"`{rel}` extends a limit ({v}) but has no HELPER LIMIT line naming the obligation")
+    src = ROOT / "pv_work" / f"{mod}.lean"
+    decls = lean_decls(src) if src.exists() else {}
+    fps = gate_fingerprints(rid, latest_report(rid, "gate", "STATEMENT GATE:", since)) or {}
+    gated = {n.split(".")[-1] for n in fps} | {n for n in decls if re.fullmatch(rf"{re.escape(rid)}_(S\w+|main\w*)", n)}
+    rows = []
+    for key, (limit, rel) in sorted(limits.items()):
+        name = next((n for n in decls if n in (key, f"{rid}_{key}") and not n.endswith("_Gap")), None)
+        if name is None:
+            state = "GAP" if f"{rid}_{key}_Gap" in decls or f"{key}_Gap" in decls else "MISSING"
+            rows.append((state, key, 0, limit, rel))
+            continue
+        n = helper_lines(decls, name, gated)
+        rows.append(("OVER" if n > limit else "OK", key, n, limit, rel))
+    return rows, notes
+
+
+def helper_overruns(rid, since=None):
+    """(v1.5.2) A sentence for each obligation of rid over its helper limit, for `record` and `validate`."""
+    mod = rid if (ROOT / "pv_work" / f"{rid}.lean").exists() else f"{rid}ModGaps"
+    return [f"{rid}: {key} has {n} helper lines, over the limit of {limit} set in {rel}: pv-gate rules on this "
+            f"(PIPELINE stage 4), not the final audit" for state, key, n, limit, rel in helper_check(rid, mod, since)[0]
+            if state == "OVER"]
+
+
+def helper_lines_cmd(rid):
+    data = load()
+    r = next((x for x in data.get("results", []) if isinstance(x, dict) and x.get("id") == rid), None)
+    if r is None:
+        sys.exit(f"unknown result id {rid}")
+    mod = rid if (ROOT / "pv_work" / f"{rid}.lean").exists() else f"{rid}ModGaps"
+    rows, notes = helper_check(rid, mod, last_reset(r))
+    for state, key, n, limit, rel in rows:
+        print(f"{state}\t{key}\t{n} helper lines\tlimit {limit} ({rel})")
+    for line in notes:
+        print(f"NOTE\t{line}")
+    if not rows and not notes:
+        print(f"no helper limit recorded for {rid}")
+    return 1 if any(x[0] == "OVER" for x in rows) else 0
 
 
 REPORT_STAMP = ROOT / "verification" / "report" / "REPORT_STAMP.json"
@@ -1515,8 +1698,9 @@ def do_reset(data, ids, revision, reason, note="", move_files=True, cascade_now=
     out = []
     for rid in ids:
         r = byid[rid]
-        keep = {k: r.get(k) for k in ("verdict", "stage", "reason", "conditions", "gaps", "issues", "upstream_issues",
-                                      "debts", "unencoded", "partial", "lean_main", "evidence", "summary_en")}
+        keep = {k: r.get(k) for k in ("verdict", "stage", "reason", "round", "conditions", "gaps", "issues",
+                                      "upstream_issues", "debts", "unencoded", "partial", "lean_main", "evidence",
+                                      "summary_en")}
         keep.update(revision=str(revision), date=now())
         if note:
             keep["note"] = note
@@ -1531,7 +1715,7 @@ def do_reset(data, ids, revision, reason, note="", move_files=True, cascade_now=
                            f"verification/audits/rev{revision}/ ({rid}Stmt.lean stays in place)")
         r.setdefault("history", []).append(keep)
         r.pop("recheck", None)
-        r.update(statement_fixed=False, stage="INVENTORIED", reason=reason, verdict="UNFINISHED", conditions=[],
+        r.update(statement_fixed=False, stage="INVENTORIED", reason=reason, round=1, verdict="UNFINISHED", conditions=[],
                  gaps=[], issues=[], upstream_issues=[], evidence={}, lean_main="", partial="", summary_en="")
         for b in as_list(keep.get("issues")):
             if b in bl and bl[b]["open"]:
@@ -1886,8 +2070,11 @@ def add_tool(raw):
     tools = [x for x in data.get("external_tools", []) if not (isinstance(x, dict) and x.get("id") == t["id"])]
     tools.append(t)
     data["external_tools"] = tools
+    marks = apply_gate_marks(data)
     STATE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
     print(f"registered external input {t['id']} ({t['provenance']})")
+    for line in marks:
+        print(line)
     refresh_records(load())
     return validate(load())
 
@@ -1928,6 +2115,10 @@ def main():
         if len(a) < 2:
             sys.exit('usage: pv_status.py human-check TOOL_ID --by "name" --how "what was checked against what" [--undo]')
         sys.exit(human_check(a[1], a[2:]))
+    if cmd == "helper-lines":
+        if len(a) != 2:
+            sys.exit("usage: pv_status.py helper-lines ID")
+        sys.exit(helper_lines_cmd(a[1]))
     if cmd == "provable":
         if len(a) < 2:
             sys.exit('usage: pv_status.py provable TOOL_ID --why "what makes it provable now" [--undo]')

@@ -131,9 +131,9 @@ def summary(data):
         L.append("No verdict depends on a condition.")
     proved = [t for t in tools.values() if isinstance(t, dict) and t.get("proved_in")]
     if proved:
-        L += ["", "Proved in Lean after their results were verified, and connected (v1.5): " + ", ".join(
-            f"`{S.cell(t.get('id'))}` (in `{S.cell(t['proved_in'])}`)" for t in proved) +
-            ". Where they were connected, they are no longer conditions."]
+        L += ["", "Proved in Lean after their results were verified, and connected. Where they were connected, they "
+              "are no longer conditions:", ""]
+        L += [f"- `{S.cell(t.get('id'))}` (in `{S.cell(t['proved_in'])}`). {S.proved_note(t)}" for t in proved]
 
     L += ["", "## What was not checked", ""]
     unf = [r for r in res if r.get("verdict", "UNFINISHED") == "UNFINISHED"]

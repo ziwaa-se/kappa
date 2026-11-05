@@ -2,12 +2,13 @@
 (scripts/pv_audit_mech.py and the cascade decision in pv_status.py), the check that every Lake package is the pinned,
 unmodified git checkout (item 13), and `scripts/pv_lean.sh module`, which tells a library module that is in the
 source but not built from one that does not exist; (v1.5.1) `pv_lean.sh preflight` and the check of `stopping` entries,
-with a stand-in for `lake`."""
+with a stand-in for `lake`; (v1.5.2) which report counts as a module's record."""
 import importlib.util
 import json
 import os
 import shutil
 import stat
+import sys
 import unittest
 
 from helpers import KitTestCase, Project, result, run
@@ -30,6 +31,7 @@ STATEMENT GATE: PASS
 
 
 def load(project, script):
+    sys.modules.pop("pv_status", None)      # pv_audit_mech.py imports it: this project's, not the last test's
     spec = importlib.util.spec_from_file_location(script, str(project.root / "scripts" / f"{script}.py"))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -186,6 +188,48 @@ class LeanScript(KitTestCase):
         p = self.probe("x.lean:1:0: error: unknown\nWALK module P1 stopping [nope]: 1 roots, 1 constants reached\n", 1)
         self.assertEqual(p.returncode, 1, p.out)
         self.assertIn("STOPPING ERROR", p.out)
+
+
+
+class ReportThatCounts(KitTestCase):
+    def setUp(self):
+        super().setUp()
+        self.pr = Project(self.tmp, results=[result("P1")])
+        self.mech = load(self.pr, "pv_audit_mech")
+
+    def later(self, rel, text):
+        f = self.pr.write(rel, text)
+        t = f.stat().st_mtime + 60
+        os.utime(str(f), (t, t))
+
+    def current(self, rid="P1", kind="gate", prefix="STATEMENT GATE:"):
+        rep, why = self.mech.current(self.pr.state(), rid, kind, prefix)
+        return rep.name if rep else None, why
+
+    def test_the_same_rule_as_record(self):
+        self.pr.write("verification/audits/P1_gate_r3.md", "STATEMENT GATE: PASS\n")
+        self.assertEqual(self.current(), ("P1_gate_r3.md", ""))
+        self.later("verification/audits/P1_gate_rev5_r2.md", "STATEMENT GATE: PASS\n")
+        rep, why = self.current()
+        self.assertIsNone(rep)
+        self.assertIn("P1_gate_rev5_r2.md is newer than", why)
+
+    def test_a_report_from_before_the_reset_is_no_record(self):
+        self.pr.make_passed("P1")
+        self.assertEqual(self.pr.status("reset", "P1", "--revision", "2", "--keep-files").returncode, 0)
+        for rel in ("verification/audits/P1_gate.md", "verification/audits/P1_final.md"):
+            f = self.pr.root / rel
+            t = f.stat().st_mtime - 86400
+            os.utime(str(f), (t, t))
+        self.assertEqual(self.current(), (None, ""))
+        self.assertEqual(self.current(kind="final", prefix="FINAL AUDIT:"), (None, ""))
+
+    def test_a_failed_newest_report_is_no_record(self):
+        self.pr.write("verification/audits/P1_final.md", "FINAL AUDIT: PASS\n")
+        self.pr.write("verification/audits/P1_final_r2.md", "FINAL AUDIT: FAIL\n")
+        rep, why = self.current(kind="final", prefix="FINAL AUDIT:")
+        self.assertIsNone(rep)
+        self.assertIn("P1_final_r2.md does not end with", why)
 
 
 if __name__ == "__main__":

@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""pv_audit_mech.py — the mechanical checks of a final audit in one command (kit v1.3; v1.5: items 4, 7, 13).
+"""pv_audit_mech.py — the mechanical checks of a final audit in one command (kit v1.3; v1.5: items 4, 7, 13; v1.5.2:
+which report counts, item 9).
 
 Run by pv-auditor itself (never by the prover or the coordinator on its behalf), from the project root:
 
   python3 scripts/pv_audit_mech.py <ID>                      audit pv_work/<ID>.lean (or <ID>ModGaps.lean if only that is built)
   python3 scripts/pv_audit_mech.py <ID> --module <ID>ModGaps  choose the module explicitly
   options: --gate <report>      gate report holding the snapshot (default: the latest verification/audits/<ID>_gate*.md
-                                whose last lines say STATEMENT GATE: PASS)
+                                since the last reset, found as `record` finds it. If it does not say STATEMENT GATE:
+                                PASS, or a newer report breaks the naming rule, item 4 fails: an older passing report
+                                never stands in for it. A report given here that is not the latest is a manual item)
            --skip-statement      skip the fingerprint comparison (e.g. for a <X>Closed_r<k> reconnection file)
            --no-rebuild          skip the private rebuild (only when the delivered .olean is intentionally absent)
 
@@ -25,7 +28,8 @@ What it does (VERIFICATION_METHODS.md §1–§3, pv-auditor steps 1–5):
      those walks decide: compiler auxiliaries of a computable def (internal names such as `…._cstage1`) refer to the
      core axiom `lcProof`, which no theorem reaches
   8. project constants reached by the walk, grouped by module, with the audit record that covers each module
-  9. declarations of <module> that are not in the snapshot (helper lemmas): listed for the auditor to review
+  9. declarations of <module> that are not in the snapshot (helper lemmas): listed for the auditor to review.
+     (v1.5.2) An obligation over its `HELPER LIMIT` (gate report or ruling) is a manual item, for the gate to rule on
  10. #pv_hyp_usage of every gated theorem (and <main>_mod_gaps): USED / UNUSED per hypothesis
  11. (v1.3.1) conditions traced from the gated theorems: an external input (RESULTS.json external_tools) is a
      condition when a hypothesis that the proof USES mentions its constant; "formal only" when only UNUSED
@@ -51,6 +55,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pv_status as S  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 WORK = ROOT / "pv_work"
 AUDITS = ROOT / "verification" / "audits"
@@ -70,31 +77,11 @@ def result_fields(out):
     return dict(re.findall(r"(\w+)=(\S+)", m.group(0))) if m else {}
 
 
-def verdict_line(path, prefix):
-    lines = [l.strip().strip("*` ") for l in path.read_text(errors="replace").splitlines() if l.strip()]
-    val = None
-    for s in lines[-5:]:
-        if s.startswith(prefix):
-            val = s[len(prefix):].strip().strip("*` ")
-    return val
-
-
-def rnum(p, stem):
-    m = re.fullmatch(re.escape(stem) + r"(?:_r(\d+))?\.md", p.name)
-    return int(m.group(1) or 1) if m else None
-
-
-def latest_pass(stem, prefix):
-    """Latest verification/audits/<stem>[_r<k>].md whose verdict line starts with PASS."""
-    cands = [(rnum(p, stem), p) for p in AUDITS.glob(stem + "*.md") if rnum(p, stem)]
-    for _, p in sorted(cands, reverse=True):
-        v = verdict_line(p, prefix)
-        if v and re.match(r"PASS(?![A-Z_])", v):
-            return p
-    return None
-
-
-SNAP_BLOCK = re.compile(r"<!--\s*PV SNAPSHOT BEGIN\s*-->(.*?)<!--\s*PV SNAPSHOT END\s*-->", re.S)
+def current(state, rid, kind, prefix):
+    """(v1.5.2) The report of rid that counts, and why none does: pv_status.py decides, as for `record`."""
+    r = next((x for x in state.get("results", []) if isinstance(x, dict) and x.get("id") == rid), {})
+    rep, why = S.current_report(rid, kind, prefix, S.last_reset(r))
+    return (ROOT / rep if rep else None), why
 
 
 def snapshot(path):
@@ -102,7 +89,7 @@ def snapshot(path):
     report may quote other fingerprints in its prose. A <X>_Gap definition is never gated: the prover writes gap
     files after the gate, so a gate report only quotes them (e.g. in a ruling)."""
     text = path.read_text(errors="replace")
-    blocks = SNAP_BLOCK.findall(text)
+    blocks = S.SNAP_BLOCK.findall(text)
     snap = {}
     for m in FP.finditer("\n".join(blocks) if blocks else text):
         name, kind, th, vh, bi = m.groups()
@@ -168,8 +155,7 @@ def parse_probe(text):
     return out
 
 
-DECL = re.compile(r"^\s*(?:@\[[^\]]*\]\s*)?(?:(?:private|protected|noncomputable|partial|nonrec)\s+)*"
-                  r"(theorem|lemma|def|abbrev|instance|structure|inductive|class|opaque|axiom)\s+([^\s:(\[{]+)", re.M)
+DECL = S.DECL
 
 
 def declares_something(lean_file):
@@ -380,13 +366,21 @@ def main():
     for mname in ([stmt] if stmt else []) + [mod]:
         final.update(fps.get(mname, {}))
     new_decls = []
-    gate_path = Path(a.gate) if a.gate else latest_pass(f"{rid}_gate", "STATEMENT GATE:")
+    gate_path, gate_why = current(state, rid, "gate", "STATEMENT GATE:")
+    if a.gate:
+        if (gate_path and gate_path.resolve() != Path(a.gate).resolve()) or (
+                gate_why and Path(gate_why.split()[0]).name != Path(a.gate).name):    # the report given is not the newer one
+            manual.append(f"`--gate {a.gate}` was given, but "
+                          f"{gate_why or f'the latest gate report is `{gate_path.relative_to(ROOT)}`'}: say in the report why "
+                          f"the one given applies")
+        gate_path, gate_why = Path(a.gate), ""
     gated_thms = []
     if a.skip_statement:
         add("| 4 | statement fingerprints vs gate snapshot | SKIPPED | --skip-statement |")
     elif not gate_path or not gate_path.exists():
         fails.append("statement")
-        add("| 4 | statement fingerprints vs gate snapshot | FAIL | no gate report ending in STATEMENT GATE: PASS found |")
+        add(f"| 4 | statement fingerprints vs gate snapshot | FAIL | "
+            f"{gate_why or 'no gate report ending in STATEMENT GATE: PASS found'} |")
     else:
         snap = snapshot(gate_path)
         # Gated declarations are this result's own (namespace Paper.<ID>, PIPELINE "Files and naming"). A gate report
@@ -442,10 +436,10 @@ def main():
         new_decls = sorted({f"{k} {n}" for k, n in DECL.findall(src)
                             if n.split(".")[-1] not in short and not n.endswith("_Gap") and not n.endswith("_mod_gaps")})
     for dm in defs:
-        dgate = latest_pass("DEFS_gate", "STATEMENT GATE:")
+        dgate, dwhy = current(state, "DEFS", "gate", "STATEMENT GATE:")
         if not dgate:
             fails.append("defs")
-            add(f"| 5 | `{dm}` vs DEFS gate snapshot | FAIL | no DEFS gate report ending in PASS |")
+            add(f"| 5 | `{dm}` vs DEFS gate snapshot | FAIL | {dwhy or 'no DEFS gate report ending in PASS'} |")
             continue
         dsnap = snapshot(dgate)
         cur = fps.get(dm, {})
@@ -487,6 +481,21 @@ def main():
         fails.append("walk")
     add(f"| 7 | `#pv_walk {mod}`: sorryAx and closure axioms | {'PASS' if ok else 'FAIL'} | {detail[:900]} |")
 
+    # 9. helper limits set by the gate (v1.5.2): an overrun is for the gate to rule on, so it is a manual item here
+    if not a.skip_statement:
+        since = S.last_reset(next((x for x in state.get("results", []) if isinstance(x, dict) and x.get("id") == rid), {}))
+        limit_rows, limit_notes = S.helper_check(rid, mod, since)
+        over = [x for x in limit_rows if x[0] != "OK"]
+        for st, key, n, limit, rel in over:
+            manual.append(f"`{key}`: {n} helper lines, over the limit of {limit} set in `{rel}`. The gate rules on this, "
+                          f"not the final audit (PIPELINE stage 4)" if st == "OVER" else
+                          f"`{key}`: limit of {limit} in `{rel}`, but "
+                          f"{'it stops as a gap' if st == 'GAP' else 'no such obligation in the file'}")
+        manual.extend(limit_notes)
+        if limit_rows or limit_notes:
+            add(f"| 9 | helper limits | {'MANUAL' if over or limit_notes else 'PASS'} | "
+                + "; ".join(f"`{key}`: {n} of {limit}" for _, key, n, limit, _ in limit_rows) + " |")
+
     # 8. project constants reached, by module, with the record that covers each module
     by_mod = {}
     for parts in reached:
@@ -494,19 +503,21 @@ def main():
             by_mod.setdefault(parts[1], []).append(parts[2])
     cover = []
     for m, names in sorted(by_mod.items()):
-        rec = None
         base = m[:-4] if m.endswith("Stmt") else m
         if m.startswith("Defs"):
-            rec = latest_pass("DEFS_gate", "STATEMENT GATE:")
+            rec, why = current(state, "DEFS", "gate", "STATEMENT GATE:")
         elif m.endswith("Stmt"):
-            rec = latest_pass(f"{base}_gate", "STATEMENT GATE:")
+            rec, why = current(state, base, "gate", "STATEMENT GATE:")
         else:
-            rec = latest_pass(f"{m}_final", "FINAL AUDIT:") or latest_pass(f"{m}_reconnect", "RECONNECT AUDIT:")
+            rec, why = current(state, m, "final", "FINAL AUDIT:")
+            if not rec:
+                rec, _ = current(state, m, "reconnect", "RECONNECT AUDIT:")
         tag = f"`{rec.relative_to(ROOT)}`" if rec else "**NO RECORD: audit these constants individually**"
         cover.append(f"| `{m}` | {len(names)} | {tag} | {', '.join('`' + n + '`' for n in sorted(names)[:12])}"
                      f"{' …' if len(names) > 12 else ''} |")
         if not rec:
-            manual.append(f"module `{m}` reached without an audit record: audit its {len(names)} constants one by one")
+            manual.append(f"module `{m}` reached without an audit record{f' ({why})' if why else ''}: audit its "
+                          f"{len(names)} constants one by one")
 
     # 10. hypothesis usage of gated theorems (probe 2)
     hyp_targets = [n for n in gated_thms if n in final] + [n for n in fps.get(mod, {}) if n.endswith("_mod_gaps")]
