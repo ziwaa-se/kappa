@@ -58,9 +58,16 @@ class ResetTimes(unittest.TestCase):
             from zoneinfo import ZoneInfo
         except ImportError:
             self.skipTest("zoneinfo needs Python 3.9")
-        now = datetime(2026, 10, 12, 1, 0, tzinfo=ZoneInfo("America/Indianapolis"))
+        try:
+            zone = ZoneInfo("America/Indianapolis")
+        except Exception:
+            self.skipTest("no time zone data on this machine")
+        now = datetime(2026, 10, 12, 1, 0, tzinfo=zone)
         w, _ = ds.reset_wait("resets 2:50am (America/Indianapolis)", now=now)
         self.assertEqual(w, 110 * 60 + 300)
+
+    def test_a_zone_that_cannot_be_read_falls_back(self):
+        self.assertEqual(ds.reset_wait("resets 2:50am (Nowhere/Atlantis)", now=self.NOW), (1800, ""))
 
 
 class Classify(KitTestCase):
