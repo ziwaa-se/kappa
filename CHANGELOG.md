@@ -10,6 +10,24 @@ Not yet available; see the README's [Roadmap](README.md#roadmap). This version o
 - **Completing unfinished steps:** an optional, longer proof search for steps stopped by formalization difficulty.
 - **Closing conditions automatically** when a cited result is available in Mathlib.
 
+## v1.6.0 (2026-11-10)
+
+The main change is about what a conditional verdict rests on. Until now no step tried to refute an external input. An input that is false, for example only at sample size zero, which a book excludes without saying so and where Lean's convention `x / 0 = 0` then decides, makes every theorem that takes it vacuous, and no compiler check, axiom check or non-vacuity witness can see it. `PVTools.lean` is unchanged.
+
+- **Every input is tried for refutation (`VERDICTS.md` §4.3).** Before approving an input, the gate tries to prove its negation at the degenerate values its binders allow: zero constants, empty or one-point spaces, `n = 0` or `1`, the zero function or measure, and Lean's values for division by zero, `log`, `sqrt`, `iSup` and Bochner integrals. It writes one line per input, `REFUTATION: <input> NOT REFUTED — tried: …` or `REFUTED — …`.
+  - `record` refuses a pass over a refuted input, and a conditional verdict whose conditions lack such a line or include a refuted one. It also refuses `--statement-fixed true` unless the latest gate report ends PASS: before, a failed gate could be recorded as a pass.
+  - `validate` fails on a refuted condition and warns about a condition gated before v1.6. A new refutation mode of the gate (`<ID>_refute.md`) supplies the line for such results. `pv_status.py refutations` lists every input with what was tried.
+  - The drafter writes the assumptions a source leaves implicit, such as `1 ≤ n`, into the input.
+  - The auditor's non-vacuity check now covers the premises of the final theorem as well as its conclusion: it tries to derive `False` from all premises at once. A witness that takes an input as a hypothesis shows nothing about that input, as `VERIFICATION_METHODS.md` §6 now says.
+  - The report, the summary and the worksheet say that a conditional verdict assumes its conditions are true and consistent, list the attempts for each condition, and warn that a book's implicit assumptions must be written out in Lean.
+- **The discharge stage.** Most inputs that are not deep cited theorems can be proved. `pv_status.py discharge-stage` marks every open input of provenance (ii) or (v) that a conditional verdict uses, and cited textbook facts named with `--include`, and stage 6b tries each with one proof session. A failed attempt is recorded and the input stays on the worksheet with the reason. The coordinator offers this stage at the end of a run; the driver runs it with `--discharge`, and otherwise says how many inputs it could try.
+- **Inputs that left every condition list.** `validate` warns about an input that no verified result uses any more and whose record does not say why. `pv_status.py discharge` records a proof made by hand, and `add-tool --file` takes the input from a file, so no JSON goes on the command line.
+- **Unnumbered claims.** `pv_status.py add-claim` registers a sentence without a number, often a paper's headline. It goes through the same stages and checks, and the tables count it apart from the numbered results.
+- **Imports together.** `scripts/pv_lean.sh imports <modules>` checks that modules can be imported together and names a declaration two of them make (exit 8). `pv_status.py import-plan <ID>` prints the command for a result, and the drafter runs it before writing a statement, so a clash is not worked around by copying a proof.
+- **The report states the current state.** `pv_status.py report-archive` moves the previous report to `verification/report_archive/` with one line in its `INDEX.md`. The driver uses it, and the report skill no longer carries earlier sections forward.
+- For an existing project: `install.sh <project> --upgrade`. No new permission rules are needed. Conditional results verified before v1.6 keep their records; `validate` warns about each condition until the gate's refutation mode has run.
+- Tests for each of these; the import check and the refutation example of `VERIFICATION_METHODS.md` §6b also on real Lean files. Real runs of a small test paper confirmed the new steps: the drafter wrote an assumption the cited book leaves implicit, the gates recorded their attempts, the auditor checked the premises, the report said what a conditional verdict assumes; a gate given the input without that assumption refuted it in Lean and failed the statement; and on a project gated before v1.6 the driver had the gate supply the missing record.
+
 ## v1.5.2 (2026-11-04)
 
 Fixes to the mechanical audit and the driver, and two small additions to the gate report. `PVTools.lean` is unchanged. One rule on verdicts changes: an input proved in Lean no longer keeps its result conditional (below).

@@ -9,7 +9,7 @@ Paper: [arXiv:2610.35596](https://arxiv.org/abs/2610.35596) · [How to cite](#ci
 | Verdict | Meaning |
 |---|---|
 | **Verified unconditionally** | The paper's own proof compiles in Lean, with no unproved input |
-| **Verified conditionally** | It compiles, but relies on results the paper cites or does not prove. These are explicit, named Lean hypotheses that a person should check |
+| **Verified conditionally** | It compiles, but relies on results the paper cites or does not prove. These are explicit, named Lean hypotheses that a person should check. The verdict assumes they are true: a false one would make it say nothing, so each is first tried for refutation in Lean |
 | **Issue recorded** | A confirmed problem, located in the paper and classified by whose fault it is: false statement (`ERROR`), a justification that fails, a missing hypothesis, an uncovered case, an ambiguous domain |
 | **Unfinished** | Stopped, with the reason recorded. **Never counted as an error in the paper** |
 
@@ -71,6 +71,7 @@ Each result goes through separate agents, and none of them reviews its own work:
 - **Independent final audit.** The *auditor* recompiles everything privately, and checks that the statement is unchanged, that only the three standard axioms are used, and that there is no `sorry` anywhere. It also checks which hypotheses each theorem really uses, and whether each step follows the paper.
 - **Problems are double-checked.** A suspected error goes to an *issue-checker*, which builds a Lean counterexample when it can; a second auditor reviews the ruling. A compile failure alone never counts as an error in the paper.
 - **Cited results stay visible.** What the paper cites or assumes without proof becomes an explicit `def … : Prop` hypothesis, listed for a person to check, never a hidden axiom.
+- **Inputs are tried before they are trusted (v1.6).** The gate tries to refute every input in Lean at degenerate values, such as a sample size of zero that a book excludes without saying so, and a refuted input is never approved. Inputs that are not deep cited theorems can then be proved in Lean before they reach a person.
 - **The report is fact-checked.** An independent agent checks the final report against the records before you see it.
 
 - **Who may write what is enforced.** A hook checks every write (v1.3.1): nobody writes outside the project, the coordinator never edits a proof, and reviewers never edit what they review. The mechanical audit report names who ran it.
@@ -238,7 +239,7 @@ BibTeX.
 
 ## Roadmap
 
-This version (v1.5.2) **only verifies** the proofs a paper already contains, and runs on Claude Code. Planned, **not yet available**:
+This version (v1.6.0) **only verifies** the proofs a paper already contains, and runs on Claude Code. Planned, **not yet available**:
 
 **Version 2**
 

@@ -3,7 +3,8 @@ gate snapshots), #8 (reset archives old files; set-deps), #10 (reconnected (p) c
 #21 (generated evidence index, stale fields), #22 (previous manuscript recorded), #23 (definitions by ID),
 #24 (conditions taken from the audit's CONDITIONS line); v1.5.1: reviews that could not run, one naming rule for
 reports and no evidence older than a reset, a changed title; v1.5.2: which report counts, a snapshot after the verdict,
-a new pass after a reset, helper limits, inputs a gate marks as cheap to prove."""
+a new pass after a reset, helper limits, inputs a gate marks as cheap to prove; v1.6: the refutation of every input,
+the discharge stage, inputs that left every condition list, unnumbered claims, the report archive."""
 import importlib.util
 import json
 import os
@@ -25,7 +26,8 @@ class Conditions(KitTestCase):
     def setUp(self):
         super().setUp()
         self.pr = Project(self.tmp, results=[result("L01")], tools=[tool("T1"), tool("T2")])
-        self.pr.write("verification/audits/L01_gate.md", "STATEMENT GATE: PASS\n")
+        self.pr.write("verification/audits/L01_gate.md", "REFUTATION: T1 NOT REFUTED — tried: 0\n"
+                      "REFUTATION: T2 NOT REFUTED — tried: 0\nSTATEMENT GATE: PASS\n")
         self.pr.write("pv_work/L01.lean", "theorem main : True := trivial\n")
 
     def final(self, conds):
@@ -885,7 +887,8 @@ class GateMarksAnInput(KitTestCase):
         return next(x for x in self.pr.state()["external_tools"] if x["id"] == "Ext1")
 
     def gate(self, line=None):
-        self.pr.write("verification/audits/X1_gate.md", (line or self.LINE) + "STATEMENT GATE: PASS\n")
+        self.pr.write("verification/audits/X1_gate.md", (line or self.LINE) + "REFUTATION: Ext1 NOT REFUTED — tried: "
+                      "n = 0\nSTATEMENT GATE: PASS\n")
         p = self.pr.status("record", "X1", "--stage", "GATE_PASSED", "--statement-fixed", "true")
         self.assertEqual(p.returncode, 0, p.out)
         return p
@@ -955,3 +958,265 @@ class GateMarksAnInput(KitTestCase):
     def test_a_line_inside_the_snapshot_block_does_not_mark(self):
         self.gate("<!-- PV SNAPSHOT BEGIN -->\n" + self.LINE + "<!-- PV SNAPSHOT END -->\n")
         self.assertNotIn("provable", self.ext_now())
+
+
+class RefutationOfInputs(KitTestCase):
+    """v1.6 (VERDICTS §4.3): a conditional verdict rests only on inputs that a gate tried to refute in Lean."""
+
+    FINAL = "FINAL AUDIT: PASS\nSUGGESTED VERDICT: CONDITIONAL\nCONDITIONS: T1\n"
+
+    def setUp(self):
+        super().setUp()
+        self.pr = Project(self.tmp, results=[result("L01")],
+                          tools=[tool("T1", "i", lean="pv_work/L01Stmt.lean:3 Paper.L01.StdErrPositive", consumers=["L01"])])
+        self.pr.write("pv_work/L01.lean", "namespace Paper.L01\ntheorem main : True := trivial\nend Paper.L01\n")
+
+    def gate(self, line=""):
+        self.pr.write("verification/audits/L01_gate.md", "# Gate\n\n" + line + "STATEMENT GATE: PASS\n")
+
+    def verify(self):
+        self.pr.write("verification/audits/L01_final.md", self.FINAL)
+        return self.pr.status("record", "L01", "--verdict", "CONDITIONAL", "--stage", "FINAL_PASSED", "--statement-fixed",
+                              "true", "--lean-main", "pv_work/L01.lean:2 Paper.L01.main")
+
+    def test_a_conditional_verdict_needs_an_attempt(self):
+        self.gate()
+        before = self.pr.result("L01")
+        p = self.verify()
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("refused: no attempt to refute the input T1 is recorded", p.out)
+        self.assertIn("dispatch pv-gate in refutation mode for L01", p.out)
+        self.assertEqual(self.pr.result("L01"), before)
+        self.gate("REFUTATION: T1 NOT REFUTED — tried: n = 0, n = 1, σ → 0; probe pv_work/probes/gate/L01/gate_L01_refute.lean\n")
+        p = self.verify()
+        self.assertEqual(p.returncode, 0, p.out)
+        t = next(x for x in self.pr.state()["external_tools"] if x["id"] == "T1")
+        self.assertEqual(t["refutation"], {"result": "NOT REFUTED", "report": "verification/audits/L01_gate.md",
+                                           "tried": "tried: n = 0, n = 1, σ → 0; probe pv_work/probes/gate/L01/gate_L01_refute.lean"})
+        self.assertIn("NOT REFUTED: tried: n = 0, n = 1, σ → 0", self.pr.status("tools").out)
+        self.assertEqual(self.pr.script("pv_summary.py").returncode, 0)
+        summary = self.pr.read("verification/report/CHECK_SUMMARY.md")
+        self.assertIn("says nothing if one of them is false or if they contradict each other", summary)
+        self.assertIn("| Attempts to refute it in Lean |", summary)
+        self.assertIn("NOT REFUTED: tried: n = 0", summary)
+
+    def test_the_gate_may_name_the_lean_constant(self):
+        self.gate("**REFUTATION: `StdErrPositive` NOT REFUTED — tried: n = 0**\n")
+        self.assertEqual(self.verify().returncode, 0)
+
+    def test_a_refuted_input_is_never_approved(self):
+        self.gate("REFUTATION: T1 REFUTED — n = 0, σ = 1: σ / √0 = 0; probe pv_work/probes/gate/L01/gate_L01_refute.lean\n")
+        p = self.pr.status("record", "L01", "--stage", "GATE_PASSED", "--statement-fixed", "true")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("refutes the input T1 (n = 0, σ = 1: σ / √0 = 0;", p.out)
+        self.assertIn("A refuted input is never approved", p.out)
+
+    def test_a_failed_gate_cannot_be_recorded_as_a_pass(self):
+        self.pr.write("verification/audits/L01_gate.md", "REFUTATION: T1 REFUTED — n = 2, q = (1, 0)\n\nSTATEMENT GATE: FAIL\n")
+        p = self.pr.status("record", "L01", "--stage", "GATE_PASSED", "--statement-fixed", "true")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("refused: statement_fixed true needs a gate pass, and the latest gate report "
+                      "verification/audits/L01_gate.md ends FAIL", p.out)
+        self.assertIs(self.pr.result("L01")["statement_fixed"], False)
+
+    def test_an_input_refuted_after_the_verdict_invalidates_it(self):
+        self.gate("REFUTATION: T1 NOT REFUTED — tried: x = 0\n")
+        self.assertEqual(self.verify().returncode, 0)
+        self.pr.write("verification/audits/L01_refute.md", "REFUTATION: T1 REFUTED — n = 0\n\nREFUTATION CHECK: DONE\n")
+        p = self.pr.status("validate")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("ERROR L01: the input T1 is refuted (verification/audits/L01_refute.md: n = 0)", p.out)
+
+    def test_a_result_gated_before_v1_6_is_warned_about_until_the_refutation_mode_ran(self):
+        self.gate()
+        d = self.pr.state()
+        d["results"][0].update(verdict="CONDITIONAL", stage="FINAL_PASSED", statement_fixed=True, conditions=["T1"],
+                               lean_main="pv_work/L01.lean:2 Paper.L01.main",
+                               evidence={"gate": "verification/audits/L01_gate.md", "final": "verification/audits/L01_final.md"})
+        self.pr.write_state(d)
+        self.pr.write("verification/audits/L01_final.md", self.FINAL)
+        self.pr.status("init-checklist", "--force")
+        p = self.pr.status("validate")
+        self.assertIn("WARN L01: no attempt to refute the input T1 is recorded; the verdict assumes it is true", p.out)
+        self.assertEqual(self.pr.status("refutations").returncode, 1)
+        self.assertRegex(self.pr.status("next", "--all").out, r"(?m)^REFUTE\tL01\tL01\tno attempt to refute T1: dispatch pv-gate")
+        self.pr.write("verification/audits/L01_refute.md", "REFUTATION: T1 NOT REFUTED — tried: n = 0\n\nREFUTATION CHECK: DONE\n")
+        self.assertNotIn("REFUTE\t", self.pr.status("next", "--all").out)   # the report counts as soon as it is there
+        p = self.pr.status("refutations")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertIn("NOT REFUTED\tT1\ti\tcondition of: L01\ttried: n = 0\tverification/audits/L01_refute.md", p.out)
+        self.assertNotIn("REFUTE\t", self.pr.status("next", "--all").out)
+        self.assertNotIn("no attempt to refute", self.pr.status("validate").out)
+
+    def test_a_predecessor_clause_is_tried_too(self):
+        pr = Project(self.tmp, results=[result("L01"), result("L02", depends_on=["L01"])],
+                     tools=[tool("L02_L01Consumed", "p", predecessor="L01", consumers=["L02"])], name="p2")
+        pr.write("verification/audits/L02_gate.md", "STATEMENT GATE: PASS\n")
+        pr.write("verification/audits/L02_final.md", "FINAL AUDIT: PASS\nSUGGESTED VERDICT: CONDITIONAL\nCONDITIONS: L02_L01Consumed\n")
+        pr.write("pv_work/L02.lean", "namespace Paper.L02\ntheorem main : True := trivial\nend Paper.L02\n")
+        p = pr.status("record", "L02", "--verdict", "CONDITIONAL", "--stage", "FINAL_PASSED", "--statement-fixed", "true",
+                      "--lean-main", "pv_work/L02.lean:2 Paper.L02.main")
+        self.assertIn("no attempt to refute the input L02_L01Consumed", p.out)
+
+
+class DischargeStage(KitTestCase):
+    """v1.6: before an input goes to a person, the inputs of provenance (ii) and (v) are tried in Lean."""
+
+    def setUp(self):
+        super().setUp()
+        self.pr = Project(self.tmp, results=[result("X1")],
+                          tools=[tool("V1", "v", consumers=["X1"]), tool("A1", "ii", consumers=["X1"]),
+                                 tool("C1", "i", consumers=["X1"]), tool("R1", "ii", consumers=["X1"])])
+        self.pr.make_passed("X1", verdict="CONDITIONAL", conditions=["V1", "A1", "C1", "R1"])
+
+    def test_dry_run_lists_without_marking(self):
+        p = self.pr.status("discharge-stage", "--dry-run")
+        self.assertEqual(p.returncode, 0, p.out)
+        for tid in ("V1", "A1", "R1"):
+            self.assertRegex(p.out, rf"(?m)^CANDIDATE\t{tid}\t")
+        self.assertIn("CITED\tC1\tnot tried: name the textbook facts among them with --include", p.out)
+        self.assertNotIn("provable", json.dumps(self.pr.state()["external_tools"]))
+
+    def test_marks_and_reconnect_lists_them(self):
+        self.pr.write("verification/audits/X1_refute.md", "REFUTATION: R1 REFUTED — n = 0\n\nREFUTATION CHECK: DONE\n")
+        p = self.pr.status("discharge-stage", "--include", "C1")
+        self.assertEqual(p.returncode, 1, p.out)        # validate: X1 rests on a refuted input
+        for tid in ("V1", "A1", "C1"):
+            self.assertRegex(p.out, rf"(?m)^MARKED\t{tid}\t")
+        self.assertNotRegex(p.out, r"(?m)^MARKED\tR1\t")
+        out = self.pr.status("reconnect").out
+        self.assertIn("X1\tuses V1\tmarked provable: discharge stage: provenance (v)", out)
+        self.assertIn("X1\tuses C1\tmarked provable", out)
+        self.assertNotIn("uses R1", out)
+        # a failed attempt is recorded and not tried again
+        self.pr.status("provable", "A1", "--undo", "--why", "needs a theorem the project does not have")
+        self.assertNotIn("A1", self.pr.status("discharge-stage", "--dry-run").out)
+
+
+class InputsThatLeftTheConditions(KitTestCase):
+    """v1.6: an input that is a condition of none of the verified results using it must say why."""
+
+    def setUp(self):
+        super().setUp()
+        self.pr = Project(self.tmp, results=[result("X1")], tools=[tool("V1", "v", consumers=["X1"])])
+        self.pr.make_passed("X1", verdict="CONDITIONAL", conditions=["V1"])
+        self.pr.write("pv_work/X1Closed_r1.lean", "namespace Paper.X1\ntheorem V1_holds : True := trivial\n"
+                                                  "theorem main_closed : True := trivial\nend Paper.X1\n")
+        self.pr.write("verification/audits/X1_reconnect_r1.md", "RECONNECT AUDIT: PASS\nCONDITIONS: none\n")
+
+    def leave(self):
+        d = self.pr.state()
+        d["results"][0].update(verdict="UNCONDITIONAL", conditions=[])
+        self.pr.write_state(d)
+        self.pr.write("verification/audits/X1_final.md", "FINAL AUDIT: PASS\nSUGGESTED VERDICT: UNCONDITIONAL\nCONDITIONS: none\n")
+        self.pr.status("init-checklist", "--force")
+
+    def test_validate_warns_and_discharge_records_it(self):
+        self.leave()
+        self.assertIn("WARN external input V1 is a condition of none of the verified results that use it",
+                      self.pr.status("validate").out)
+        p = self.pr.status("discharge", "V1", "--proved-in", "pv_work/X1Closed_r1.lean:V1_holds",
+                           "--audit", "verification/audits/X1_reconnect_r1.md")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertNotIn("external input V1 is a condition of none", p.out)
+        t = self.pr.state()["external_tools"][0]
+        self.assertEqual(t["proved_in"], "pv_work/X1Closed_r1.lean")
+        self.assertIn("no longer a condition", t["status"])
+
+    def test_discharge_checks_what_it_is_given(self):
+        p = self.pr.status("discharge", "V1", "--proved-in", "pv_work/X1Closed_r1.lean:nothing_here",
+                           "--audit", "verification/audits/X1_reconnect_r1.md")
+        self.assertIn("is not a theorem in an existing file", p.out)
+        self.pr.write("verification/audits/X1_reconnect_r2.md", "RECONNECT AUDIT: FAIL\n")
+        p = self.pr.status("discharge", "V1", "--proved-in", "pv_work/X1Closed_r1.lean:V1_holds",
+                           "--audit", "verification/audits/X1_reconnect_r2.md")
+        self.assertIn("does not end with 'RECONNECT AUDIT: PASS'", p.out)
+
+    def test_add_tool_from_a_file(self):
+        self.pr.write("pv_work/notes/W1.json", json.dumps(tool("W1", "v", consumers=["X1"])))
+        p = self.pr.status("add-tool", "--file", "pv_work/notes/W1.json")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertIn("W1", [t["id"] for t in self.pr.state()["external_tools"]])
+
+
+class FinalAuditSupersededByReconnection(KitTestCase):
+    """The warning about a final audit that suggested CONDITIONAL is not given once a reconnection decides (v1.5)."""
+
+    def test_only_without_the_reconnection(self):
+        pr = Project(self.tmp, results=[result("X1")], tools=[tool("V1", "v", consumers=["X1"])])
+        pr.make_passed("X1", verdict="CONDITIONAL", conditions=["V1"])
+        pr.status("provable", "V1", "--why", "route")
+        pr.write("pv_work/X1Closed_r1.lean", "namespace Paper.X1\ntheorem main_closed : True := trivial\nend Paper.X1\n")
+        pr.write("verification/audits/X1_reconnect_r1.md", "RECONNECT AUDIT: PASS\nCONDITIONS: none\n")
+        p = pr.status("record", "X1", "--verdict", "UNCONDITIONAL", "--stage", "FINAL_PASSED", "--conditions", "",
+                      "--evidence-reconnect", "verification/audits/X1_reconnect_r1.md",
+                      "--lean-main", "pv_work/X1Closed_r1.lean:2 Paper.X1.main_closed")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertNotIn("final audit suggests", p.out)
+        d = pr.state()
+        d["results"][0]["evidence"].pop("reconnect")
+        pr.write_state(d)
+        self.assertIn("recorded verdict UNCONDITIONAL but the final audit suggests CONDITIONAL", pr.status("validate").out)
+
+
+class UnnumberedClaims(KitTestCase):
+    """v1.6: an unnumbered claim is checked like a result and counted apart from the numbered ones."""
+
+    def test_registered_checked_and_counted_apart(self):
+        pr = Project(self.tmp, results=[result("L01")])
+        p = pr.status("add-claim", "U1", "--loc", "source/main.tex:40", "--text", "the minimax rate is n^{-1/3}",
+                      "--depends-on", "L01")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertEqual(pr.result("U1")["aux"], True)
+        self.assertIn("refused", pr.status("add-claim", "U1", "--loc", "x", "--text", "again").out)
+        pr.make_passed("L01")
+        pr.make_passed("U1")
+        self.assertIn("**1 numbered results: 1 verified unconditionally", pr.read("verification/PAPER_VERIFICATION.md"))
+        out = pr.status("table").out
+        self.assertIn("**1 numbered results: 1 verified (unconditional)", out)
+        self.assertIn("**1 unnumbered claims (not counted above): 1 verified (unconditional)", out)
+        self.assertIn("| source/main.tex:40 | U1 | the minimax rate is n^{-1/3} | Verified (unconditional) |", out)
+        self.assertEqual(pr.status("validate").returncode, 0)
+        # its evidence is checked like a result's
+        d = pr.state()
+        next(r for r in d["results"] if r["id"] == "U1")["evidence"]["final"] = "verification/audits/U1_final_missing.md"
+        pr.write_state(d)
+        p = pr.status("validate")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("U1: evidence[final] missing on disk", p.out)
+        self.assertIn("**1 numbered results:", pr.read("verification/PAPER_VERIFICATION.md"))
+        self.assertEqual(pr.script("pv_summary.py").returncode, 0)
+        self.assertIn("**Numbered results:** 1", pr.read("verification/report/CHECK_SUMMARY.md"))
+
+
+class ReportArchive(KitTestCase):
+    """v1.6: the previous report moves to report_archive/ with one line in its INDEX.md."""
+
+    def test_archive_and_index(self):
+        pr = Project(self.tmp, results=[result("L01")])
+        self.assertIn("no report to archive", pr.status("report-archive").out)
+        pr.write("verification/report/AUTHOR_REPORT.md", "# Report\n\n**1 numbered results: 1 verified unconditionally · 0 x.**\n")
+        pr.write("verification/report/CHECK_SUMMARY.md", "summary\n")
+        pr.write("verification/report/work/factcheck.md", "fc\n")
+        pr.write("verification/report/work/.gitkeep", "")
+        p = pr.status("report-archive", "--label", "revision 2")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertFalse((pr.root / "verification/report/AUTHOR_REPORT.md").exists())
+        self.assertTrue((pr.root / "verification/report/work/.gitkeep").exists())
+        dirs = sorted((pr.root / "verification/report_archive").glob("*-revision-2"))
+        self.assertEqual(len(dirs), 1)
+        self.assertTrue((dirs[0] / "AUTHOR_REPORT.md").exists())
+        self.assertTrue((dirs[0] / "work/factcheck.md").exists())
+        self.assertTrue((pr.root / "verification/report/templates/AUTHOR_REPORT.md").exists())
+        index = pr.read("verification/report_archive/INDEX.md")
+        self.assertIn("(revision 2): 1 numbered results: 1 verified unconditionally · 0 x.", index)
+
+
+class ImportPlan(KitTestCase):
+    def test_the_command_for_the_modules_a_result_will_import(self):
+        pr = Project(self.tmp, results=[result("L01"), result("L02"), result("L03", depends_on=["L01", "L02"])])
+        pr.make_passed("L01")
+        pr.write("pv_work/L01.olean", "")
+        out = pr.status("import-plan", "L03").out
+        self.assertIn("scripts/pv_lean.sh imports L01 L02Stmt", out)
+        self.assertIn("nothing to check", pr.status("import-plan", "L01").out)

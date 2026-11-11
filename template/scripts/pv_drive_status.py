@@ -149,8 +149,8 @@ def progress():
         row["conditions"] = sorted(map(str, r.get("conditions") or []))
         rows.append(row)
     # v1.5.2: a failed attempt to prove an input (provable --undo) is progress too: `reconnect` stops listing it
-    tools = sorted(str(t.get("id")) + ":" + str(t.get("status", "")) + ":" + str(t.get("provable_tried", ""))
-                   for t in d.get("external_tools", []) if isinstance(t, dict))
+    tools = sorted(str(t.get("id")) + ":" + str(t.get("status", "")) + ":" + str(t.get("provable_tried", "")) + ":" +
+                   str(t.get("refutation", "")) for t in d.get("external_tools", []) if isinstance(t, dict))   # v1.6
     return json.dumps({"results": rows, "tools": tools, "defs": d.get("defs", [])}, sort_keys=True)
 
 

@@ -56,7 +56,7 @@ If anything is wrong, have pv-architect correct it.
 
 ## 4. Report to the user
 
-- the total number of numbered results (counted by kind), the number of unnumbered claims, the number of levels in the dependency graph;
+- the total number of numbered results (counted by kind), the number of unnumbered claims, the number of levels in the dependency graph. (v1.6) Unnumbered claims are not checked unless the user asks: offer to register the important ones, often the paper's headline sentences, with `python3 scripts/pv_status.py add-claim <ID> --loc <file:line> --text "…"`;
 - the progress table (`python3 scripts/pv_status.py table`), all Unfinished at this point;
 - the candidate external inputs, listed by type (i)–(v), pointing out type (iii) in particular, i.e. those that the source never states;
 - notational ambiguities: ask the user to decide only on readings that affect the whole paper; for the others, write "to be ruled on by the gate according to the source";

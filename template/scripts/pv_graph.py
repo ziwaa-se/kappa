@@ -183,13 +183,13 @@ def page(data, out_file):
             if d in used_by:
                 used_by[d].append(r["id"])
     nodes = [node_data(data, r, used_by[r["id"]], issues, tools, out_file.parent) for r in res]
-    counts = {v: sum(1 for r in res if r.get("verdict", "UNFINISHED") == v) for v in S.VERDICTS}
+    counts = {v: sum(1 for r in S.numbered(res) if r.get("verdict", "UNFINISHED") == v) for v in S.VERDICTS}
     paper = data.get("paper", {}) or {}
     lean = data.get("lean", {}) or {}
     meta = {"title": paper.get("title") or "Untitled paper", "main": paper.get("main_tex", ""),
             "kit": kit_version(), "made": datetime.now().strftime("%Y-%m-%d %H:%M"),
             "toolchain": lean.get("toolchain", ""), "mathlib": lean.get("mathlib_rev", ""),
-            "counts": counts, "names": COUNTED, "total": len(res)}
+            "counts": counts, "names": COUNTED, "total": len(S.numbered(res))}
     graph = svg(res, *place(res), issues) if res else '<p class="empty">No numbered results are recorded yet.</p>'
     blob = json.dumps({"meta": meta, "nodes": nodes}, ensure_ascii=False).replace("</", "<\\/")
     return TEMPLATE.replace("__TITLE__", html.escape(meta["title"])).replace("__GRAPH__", graph) \

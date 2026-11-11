@@ -150,11 +150,41 @@ theorem counterexample : ¬ PrintedClauseW := by
 ```lean
 /-- Witness: the constant density ρ ≡ 1 satisfies the hypothesis class. -/
 example : HolderDensity 3 1 (fun _ => 1) ∧ ∀ x, (1/2 : ℝ) ≤ 1 := …
-/-- Instantiating the main theorem at the witness and compiling it shows that the hypotheses are not vacuous. -/
+/-- Instantiating the main theorem at the witness and compiling it shows that the theorem's own hypotheses can hold
+together. It takes the input as a hypothesis, so it shows nothing about the input. -/
 example (hTool : Tool) : … := main_result hTool (witness_proof)
 ```
 
 - Preferably also have a **non-trivial** witness (e.g. a non-constant density), so that the theorem does not have content only in degenerate cases.
+- (v1.6) **Premises, not only the conclusion.** The witness instantiates all of the theorem's own hypotheses at once. Then try to derive `False` from all premises together, inputs included, at the witness and at degenerate values: `example (hTool : Tool) (h₁ : …) … : False := by …`. Record what was tried; an attempt that succeeds means the theorem is vacuous, which is a FAIL item.
+
+## 6b. Refuting an external input (v1.6, `VERDICTS.md` §4.3)
+
+A `def Tool : Prop` that is false makes every theorem taking it vacuous, and no compiler check can see that. Try the degenerate instances its binders allow; Lean's conventions for undefined values are the usual culprits:
+
+| Where | Lean's value |
+|---|---|
+| `x / 0` | `0` |
+| `Real.log 0`, `Real.log` of a negative number | `0`, `Real.log |x|` |
+| `Real.sqrt x` for `x < 0` | `0` |
+| `sSup`/`iSup` of an empty or unbounded set of reals | `0` |
+| Bochner integral of a non-integrable function | `0` |
+| `0 ^ 0`, `(0 : ℝ) ^ (0 : ℝ)` | `1` |
+| `Fin 0`, an empty type | every `∀` over it holds, every `∃` fails |
+
+```lean
+/-- A cited fact written without `1 ≤ n`: at n = 0, `Real.sqrt 0 = 0` and Lean's `x / 0 = 0` make the standard
+error 0. -/
+def StdErrPositive : Prop := ∀ (n : ℕ) (σ : ℝ), 0 < σ → 0 < σ / Real.sqrt n
+
+example : ¬ StdErrPositive := by
+  intro h
+  simpa using h 0 1 one_pos
+```
+
+An input about the theorem's own variables is different: `def Tool (n : ℕ) (σ : ℝ) : Prop := 0 < σ / Real.sqrt n`, taken as `(hT : Tool n σ)` by a theorem that also assumes `(hn : 1 ≤ n)`, is false at `n = 0`, but that instance is excluded by `hn`, so it makes nothing vacuous. Then try `example (n : ℕ) (σ : ℝ) (hn : 1 ≤ n) … (hT : Tool n σ) : False`, with the theorem's hypotheses, and record the excluded instance as such: `NOT REFUTED — tried: n = 0 (excluded by 1 ≤ n), …`.
+
+Write one line per input in the gate report: `REFUTATION: StdErrPositive REFUTED — n = 0, σ = 1; probe pv_work/probes/gate/P01/gate_P01_refute.lean`. With the assumption the book leaves implicit (`1 ≤ n`), the input is provable, and the line reads `NOT REFUTED — tried: n = 0 (excluded by 1 ≤ n), n = 1, σ → 0; probe …`.
 
 ## 7. Hashes and snapshots
 

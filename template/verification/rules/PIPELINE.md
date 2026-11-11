@@ -55,6 +55,7 @@ This is the only naming rule, also in a later revision (v1.5.1). `pv_status.py r
 | Drafting notes | `pv_work/notes/T01_draft_notes.md` | pv-drafter |
 | Statement gate report | `verification/audits/T01_gate.md` (`_gate_r2.md` …) | pv-gate |
 | Infrastructure ruling (v1.5) | `verification/audits/T01_infra_r<k>.md` | pv-gate |
+| Refutation of the inputs of a result gated before v1.6 (v1.6) | `verification/audits/T01_refute.md` (`_refute_r2.md` …) | pv-gate |
 | Proof file | `pv_work/T01.lean` (and `.olean`) | pv-prover |
 | Gap file (when there are stopped obligations) | `pv_work/T01ModGaps.lean` (and `.olean`) | pv-prover |
 | Proof notes | `pv_work/notes/T01_prover_notes.md` | pv-prover |
@@ -141,6 +142,8 @@ Every report must contain its verdict line within its **last 5 lines**; the scri
   - If the predecessor is already `FINAL_PASSED`, `import` its module and call its main theorem.
   - Otherwise import only `<PredID>Stmt`, and write the consumed clause as a (p) parameter. The notes state where the clause is located in the predecessor, and how its applicability conditions are satisfied in this result.
 - **Use `build` for `<ID>Stmt.lean`** (it contains no `sorry`, and the draft imports its `.olean`); **only `check` `<ID>Draft.lean`**. Then write the drafting notes.
+- **Imports together (v1.6).** Run the command that `python3 scripts/pv_status.py import-plan <ID>` prints (`scripts/pv_lean.sh imports …`). `IMPORTS CLASH` means two statement files declare the same name; then put that declaration in one module (a `Defs` module, stage 1) and import it from both, instead of copying a proof.
+- **Implicit assumptions (v1.6, `VERDICTS.md` §4.2).** Write into each external input what the cited source leaves implicit, such as `1 ≤ n`, so that Lean's conventions for degenerate values cannot make it false.
 
 ## Stage 3: statement gate (pv-gate)
 
@@ -149,8 +152,9 @@ Every report must contain its verdict line within its **last 5 lines**; the scri
 - **Lines the scripts read (v1.5.2)**, above the verdict line and outside the block:
   - `HELPER LIMIT: S<k> <n>`: a limit of n lines on the helper code of obligation `S<k>`, one line per obligation. The coordinator gives it to the prover. See stage 4 for an overrun.
   - `DISCHARGEABLE: <input> <route>`: an approved external parameter that the gate can see is cheap to prove (it names the lemma the proof starts from, at most about 100 lines). The ruling does not change: the input stays a parameter of the gated statement. When the gate is recorded, the input is marked as provable; `next` lists it as `DISCHARGE`, and the input is proved by "Discharging an external input" in stage 6b once the results that use it are verified.
+- **Refutation of every external input (v1.6, `VERDICTS.md` §4.3).** Before approving an input, the gate tries to prove its negation at the degenerate instances its binders allow, and writes one line per input: `REFUTATION: <input> NOT REFUTED — tried: …; probe …` or `REFUTATION: <input> REFUTED — …`. A refuted input is never approved (`record` refuses such a pass), and a conditional verdict is refused while a condition has no such line. **Refutation mode**: for a result gated before v1.6, pv-gate writes only these lines, to `verification/audits/<ID>_refute.md` (then `_refute_r2.md` …), whose last line is `REFUTATION CHECK: DONE`; a refuted input then goes back to the drafter as a statement problem.
 - Verdicts:
-  - **PASS**: the coordinator sets `statement_fixed: true` and reruns `build <ID>Stmt`, so that the `.olean` matches the text the gate read.
+  - **PASS**: the coordinator sets `statement_fixed: true` and reruns `build <ID>Stmt`, so that the `.olean` matches the text the gate read. (v1.6) `record` refuses `--statement-fixed true` unless the latest gate report since the reset ends PASS, or a report is given with `--evidence-gate`.
   - **PASS_WITH_AMENDMENTS**: pv-drafter makes the changes item by item as the report specifies; pv-gate checks them, takes a new snapshot, and writes `_gate_r2.md`, whose last line is PASS. **Proving may start only after PASS.**
   - **FAIL**: return it to the drafter, for at most 2 sessions. If it still FAILs, set `STOPPED` + `GATE_FAILED`.
 
@@ -191,7 +195,7 @@ Item-by-item check; see the `pv-auditor` definition. Items 1–4 and 8, and the 
 4. per-theorem conditionality;
 5. item-by-item review of infrastructure;
 6. route fidelity;
-7. non-vacuity;
+7. non-vacuity, of the premises as well as the conclusion (v1.6, `VERIFICATION_METHODS.md` §6);
 8. the sha256 of `PVTools.lean` matches the record;
 9. verdict lines.
 
@@ -236,6 +240,10 @@ After a predecessor result P becomes `FINAL_PASSED` (UNCONDITIONAL or CONDITIONA
 1. pv-prover writes `pv_work/<X>Closed_r<k>.lean` with `theorem <TOOL>_holds : <the input's proposition>`, proved without new external inputs, and `main_closed` without that parameter; one Closed file may discharge inputs and reconnect predecessors together.
 2. pv-auditor's reconnection audit confirms with the `rfl` method that `main_closed` is X's main theorem with the input supplied by `<TOOL>_holds`, checks the axioms, and lists the remaining conditions.
 3. `record <X> … --evidence-reconnect <report> --lean-main '<X>Closed_r<k>.lean:<line> Paper.<X>.main_closed'` marks the input as proved in that file (`proved_in`); the other results that use it are listed by `reconnect` as "connect it". If the proof fails, run `pv_status.py provable <TOOL> --undo --why "<what failed>"` so that it is not listed again.
+
+**The discharge stage (v1.6).** Most inputs that are not deep cited theorems can be proved in Lean, and a person should only see what could not. Once every result has a verdict, `python3 scripts/pv_status.py discharge-stage` marks every open input of provenance (ii) or (v) that a conditional verdict uses, and the cited inputs (i) that the user names with `--include` (textbook facts), as provable; a refuted input is left alone. Each is then tried once by the steps above: one proof session, with the definition of the input fixed and the proof checked against it by `rfl` in the reconnection audit. A failed attempt is recorded with `provable <TOOL> --undo --why "<where it stopped>"`, and the input stays on the human-check list with that reason. The interactive coordinator offers this stage when the run is finished; the driver runs it with `--discharge`, and otherwise says how many inputs it could try. `pv_status.py discharge <TOOL> --proved-in FILE:THEOREM --audit REPORT` records a proof made outside these steps; `validate` warns about an input that left every condition list without such a record.
+
+**Unnumbered claims (v1.6).** A sentence of the paper without a number (often its headline) can be checked like a numbered result: `python3 scripts/pv_status.py add-claim <ID> --loc <file:line> --text "<the claim>" [--depends-on …]` registers it, with `aux: true`. It goes through the same stages, records and checks, and the tables count it apart from the numbered results.
 
 ## Handling suspected issues: the next step depends on the classification
 

@@ -12,7 +12,7 @@ YYYY-MM-DD, summary by the coordinator; it has passed an independent fact check,
 
 **N numbered results: a verified unconditionally · b verified conditionally · c with recorded issues · d unfinished.**
 
-"Conditionally verified" means that the paper's own proof was checked step by step in Lean, but some cited or unproved inputs remain. Those inputs are explicit Lean parameters, never hidden assumptions (exceptions recorded in words: …). A recorded issue is/is not a counterexample to a main result (state which).
+"Conditionally verified" means that the paper's own proof was checked step by step in Lean, but some cited or unproved inputs remain. Those inputs are explicit Lean parameters, never hidden assumptions (exceptions recorded in words: …). The verdict assumes they are true and consistent with each other: if one is false, the theorem that uses it says nothing, and no compiler check can show that. Before any proof, each input was tried for refutation in Lean at degenerate values; §3 lists what was tried. A recorded issue is/is not a counterexample to a main result (state which).
 
 | PDF no. | Result | Verdict | Remaining conditions / issue |
 |---|---|---|---|

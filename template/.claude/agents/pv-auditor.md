@@ -56,7 +56,7 @@ The audited object is `pv_work/<ID>.lean`; when there are gaps, it is `pv_work/<
    - Were "standard"-type steps filled in fairly?
 
    Record steps that the source does not write out but that were filled in as `FAIR_IMPLICIT_STEP`, and state how each was filled in.
-7. **Non-vacuity.** Instantiate the hypothesis classes with concrete witnesses, preferably including a nontrivial witness, and confirm that it compiles.
+7. **Non-vacuity.** Instantiate the hypothesis classes with concrete witnesses, preferably including a nontrivial witness, and confirm that it compiles. (v1.6, VERIFICATION_METHODS §6) Check the **premises**, not only the conclusion: instantiate all of the theorem's own hypotheses together, then try to derive `False` from all premises at once, external inputs included, at the witness and at degenerate values, and say in the report what you tried. A witness that takes an input as a hypothesis shows nothing about that input. If a condition has no `REFUTATION` line in the gate report, say so; if you can refute one, that is a FAIL item, and the verdict cannot be conditional on it.
 8. **Status for the authors**, in at most 3 lines: what was verified, what it depends on, and your assessment of the source (errors, gaps, ambiguities, editorial slips). The full narrative for the authors is written at `/pv-report`. Put checks in short tables rather than paragraphs.
 9. **Verdict lines**, at the end of the report, three lines (v1.3.1):
 

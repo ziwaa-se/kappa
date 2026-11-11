@@ -62,6 +62,7 @@ Everything this role needs from `verification/rules/` is on this card, so do **n
    - Is it "goal-shaped"?
    - Is the provenance type (i)–(v), (p) marked correctly? For (p), the corresponding location in the predecessor result must be stated, together with how the applicability conditions are satisfied in this result.
    - Naming and location: external parameters and consumed clauses are declared only in `<ID>Stmt.lean`; (p) is named `<ID>_<PredID>Consumed`; no name that already exists in another `Stmt` file is redeclared; everything is written in `namespace Paper.<ID>`.
+   - (v1.6, VERDICTS §4.3) **Try to refute it** before approving it: list the degenerate instances its binders allow (zero constants, `n = 0` or `1`, an empty or one-point space, the zero function, the zero or a Dirac measure, and Lean's values for division by zero, `log`, `sqrt`, `iSup`, Bochner integrals), and try to prove `¬ <input>` at them in `pv_work/probes/gate/<ID>/gate_<ID>_refute.lean` (VERIFICATION_METHODS §6b). For an input about the theorem's own variables, only an instance that the theorem's other hypotheses allow counts; note an excluded one on the line. Write the line `REFUTATION: <input> NOT REFUTED — tried: <instances>; probe <path>` or `REFUTATION: <input> REFUTED — <instance>; probe <path>`. A refuted input is never approved: FAIL, and require the assumption the cited source leaves implicit (for example `1 ≤ n` or `0 < σ`); if the result's own hypotheses cannot supply it, recommend the issue checker (item 7). This applies to (p) clauses too.
    - Does the evidence for "mathlib does not have it" hold up? `#check` it yourself when necessary. (v1.5, VERDICTS §4.2) If your probe's `import` fails with `object file … does not exist`, run `scripts/pv_lean.sh module <Module>`; when it says `in source, not built`, approve the input only if its `mathlib_search` says `in source, not built: <Module>`.
 7. **Doubts about the source itself.** For suspected paper issues found by the drafter or by you, give a **preliminary** classification (`VERDICTS.md` §2), and recommend that the coordinator dispatch `pv-issue-checker`. **Do not** rule in the gate on whether the paper is right or wrong, and do not modify the statement to rescue the proof.
 
@@ -87,6 +88,7 @@ Everything this role needs from `verification/rules/` is on this card, so do **n
 - The statement snapshot (hash output).
 - (v1.5.2; PIPELINE stage 3) Lines the scripts read, in exactly this form, above the verdict and outside the snapshot block:
   - `HELPER LIMIT: S<k> <n>`, one line for each obligation on whose helper code you set a limit;
+  - `REFUTATION: <input> NOT REFUTED — tried: …; probe …` (or `REFUTED — …`), one line for **every** external parameter (v1.6, item 6);
   - `DISCHARGEABLE: <input> <route>`, for an approved external parameter when you can name the lemma the proof would start from and the route is short (at most about 100 lines). This does not change your ruling on the parameter: it stays in the gated statement. A remark in the prose acts on nothing.
 - **Overall verdict**, on the **last line** of the report; the scripts check it:
   - `STATEMENT GATE: PASS`: proof work may begin;
@@ -99,6 +101,10 @@ When the coordinator states that the task is "check amendments":
 1. check only whether each change listed in the report has been implemented, and whether any other change was introduced;
 2. redo the statement snapshot and write it to `verification/audits/<ID>_gate_r<k>.md`;
 3. on the last line write `STATEMENT GATE: PASS` or `STATEMENT GATE: FAIL`.
+
+## Refutation mode (v1.6, PIPELINE stage 3)
+
+For a result gated before v1.6, the coordinator asks only for the refutation of its inputs. Run `scripts/pv_lean.sh preflight` first, as always. For each input named in the task, do item 6's refutation and write its `REFUTATION:` line to `verification/audits/<ID>_refute.md` (the k-th time `_refute_r<k>.md`), with the instances you tried and the probe. The last line is `REFUTATION CHECK: DONE`. Do not change any file of the result; a refuted input is reported, and the coordinator handles it as a statement problem.
 
 ## Infrastructure-ruling mode (v1.5, PIPELINE stage 4)
 

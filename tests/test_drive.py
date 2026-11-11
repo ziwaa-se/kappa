@@ -1,7 +1,8 @@
 """The unattended driver (scripts/pv_drive.sh) and its decisions (scripts/pv_drive_status.py), end to end against a
 scripted stand-in for `claude`. Covers PENDING v1.3.1 #1 (auto-resume), #3 (exit status), #4 (reconnection counts as
 progress), #5 (report mode), #2 (refused kit commands) and #12 (per-result session budget); v1.5.1: a review without
-a shell; v1.5.2: the session cap, a new pass after a reset, a failed attempt to prove an input."""
+a shell; v1.5.2: the session cap, a new pass after a reset, a failed attempt to prove an input; v1.6: the discharge
+stage."""
 import importlib.util
 import json
 import unittest
@@ -24,7 +25,8 @@ def passes(rid, verdict="UNCONDITIONAL", conditions=""):
            f"--lean-main 'pv_work/{rid}.lean:1 Paper.{rid}.main'")
     if conditions:
         cmd += f" --conditions {conditions}"
-    return {"files": {f"verification/audits/{rid}_gate.md": "STATEMENT GATE: PASS\n",
+    tried = "".join(f"REFUTATION: {c} NOT REFUTED — tried: test\n" for c in conditions.split(",") if c)
+    return {"files": {f"verification/audits/{rid}_gate.md": tried + "STATEMENT GATE: PASS\n",
                       f"verification/audits/{rid}_final.md": f"SUGGESTED VERDICT: {verdict}\nFINAL AUDIT: PASS\n",
                       f"pv_work/{rid}.lean": "theorem main : True := trivial\n"},
             "run": [cmd], "result": f"{rid} verified"}
@@ -401,6 +403,41 @@ class Driver(KitTestCase):
         p, st, fc = self.drive(pr, [step])
         self.assertEqual(st["reason"], "done", p.out)
         self.assertEqual(len(fc.calls()), 1)
+
+    def test_the_discharge_stage_tries_the_inputs_before_the_report(self):   # v1.6
+        pr = Project(self.tmp, results=[result("L01")], tools=[tool("V1", "v", consumers=["L01"])])
+        pr.make_passed("L01", verdict="CONDITIONAL", conditions=["V1"])
+        p, st, fc = self.drive(pr, [])
+        self.assertEqual(st["reason"], "done", p.out)
+        self.assertIn("1 input(s) of provenance (ii) or (v) could be proved before they go to a person", p.out)
+        self.assertEqual(len(fc.calls()), 0)
+        fc_dir = self.tmp / "second"
+        fc_dir.mkdir()
+        step = {"run": ["python3 scripts/pv_status.py provable V1 --undo --why 'needs more than the project has'"]}
+        fc2 = FakeClaude(fc_dir, [step])
+        p = run(["scripts/pv_drive.sh", "--discharge"], cwd=pr.root, env=fc2.env(PV_CAFFEINATE="0", PV_SLEEP_CMD="echo SLEPT"))
+        st = json.loads(pr.read("pv_work/logs/drive_status.json"))
+        self.assertEqual(st["reason"], "done", p.out)
+        self.assertIn("discharge stage: MARKED\tV1\t(v)\tused by L01", p.out)
+        self.assertEqual(len(fc2.calls()), 1)
+        self.assertIn("Also do the reconnections", fc2.prompts()[0])
+        self.assertEqual(pr.state()["external_tools"][0]["provable_tried"]["why"], "needs more than the project has")
+
+
+    def test_a_result_gated_before_v1_6_gets_its_refutation(self):        # v1.6
+        pr = Project(self.tmp, results=[result("L01")], tools=[tool("T1", "i", consumers=["L01"])])
+        pr.make_passed("L01", verdict="CONDITIONAL", conditions=["T1"])
+        pr.write("verification/audits/L01_gate.md", "STATEMENT GATE: PASS\n")      # a gate from before v1.6
+        d = pr.state()
+        d["external_tools"][0].pop("refutation", None)
+        pr.write_state(d)
+        step = {"files": {"verification/audits/L01_refute.md": "REFUTATION: T1 NOT REFUTED — tried: n = 0\n\nREFUTATION CHECK: DONE\n"},
+                "run": ["python3 scripts/pv_status.py refutations"]}
+        p, st, fc = self.drive(pr, [step])
+        self.assertEqual(st["reason"], "done", p.out)
+        self.assertEqual(len(fc.calls()), 1)
+        self.assertIn("scope: L01", fc.prompts()[0])
+        self.assertEqual(pr.state()["external_tools"][0]["refutation"]["result"], "NOT REFUTED")
 
 
 if __name__ == "__main__":

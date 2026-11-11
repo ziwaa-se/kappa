@@ -24,7 +24,7 @@ All of the following hold:
    - the `#pv_walk` closure contains no `sorryAx`, and the only axioms are `propext`, `Classical.choice`, `Quot.sound`.
 4. The theorem signature has **no** external tool parameters, and there is no provenance debt recorded in words.
 5. The **independent final audit** gives PASS (`<ID>_final.md`). It includes an infrastructure check: every earlier in-project theorem in the closure has its own individual PASS record.
-6. **Non-vacuity**: the hypothesis class has been instantiated with a concrete witness and compiled; or the final audit states why this is not needed.
+6. **Non-vacuity**: the hypothesis class has been instantiated with a concrete witness and compiled; or the final audit states why this is not needed. (v1.6) This concerns the **premises** of the final theorem, not only its conclusion: the witness instantiates the theorem's own hypotheses together, and the auditor tries to derive `False` from all premises at once (`VERIFICATION_METHODS.md` §6). An external input cannot be instantiated unless it is proved; a witness that takes it as a hypothesis shows nothing about it, which is why §4.3 applies to every input.
 
 ### 1.2 CONDITIONAL — verified conditionally
 
@@ -33,6 +33,10 @@ Items 1, 2, 3, 5 and 6 above hold, but at least one of the following is true:
 - the theorem signature carries ≥1 **visible parameter**: a registered external input (i)–(v), or a consumed clause (p) of a predecessor result that has not yet been reconnected, named `<ID>_<PredID>Consumed`;
 - there is **provenance debt** recorded in words (e.g. the compiled proof of some dependency did not follow the source route);
 - the statement has a part that is **not encoded** (`unencoded` field).
+
+- (v1.6) every condition has a recorded attempt to refute it in Lean, and none is refuted (§4.3). `pv_status.py record` refuses a conditional verdict otherwise.
+
+**What a conditional verdict says (v1.6).** It assumes that its conditions are true and consistent with each other. If one is false, or two contradict each other, the theorem is vacuous: it says nothing, however clean the build and however standard the axioms, and none of the compiler checks can see it. The report says this plainly, and lists for each condition what was tried to refute it.
 
 **A gap hypothesis can never be the basis for verified conditionally.** Gaps are recorded in the result's `gaps` field and do not count as external inputs. A result with gaps can only be ISSUE or UNFINISHED.
 
@@ -144,7 +148,8 @@ A **gap hypothesis** `<ID>_S<k>_Gap` is not an external input. It appears only i
 - **"mathlib does not have it" must have evidence.** Use `#check` or search in `.lake/packages/mathlib`, and record the names searched and the results. Judging "it does not exist" from memory is often wrong (LESSONS 1).
 - **In the source but not built (v1.5).** When an `import` of a library module fails with `object file … does not exist`, run `scripts/pv_lean.sh module <Module>`. If it says `in source, not built`, the fact may well be in Mathlib: it may still be registered as a (v) input, but its `mathlib_search` must say `in source, not built: <Module>`. The coordinator then tells the user that building this one module (the output says how many of its imports are unbuilt) would let the kit prove the input; once it is built, `pv_status.py reconnect` lists it (`PIPELINE.md` stage 6b, discharging an external input). The drafter and the gate never build library modules; for the prover, see `PIPELINE.md` stage 4.
 - The **exact consumed clause** of a **predecessor result** (the paper's own lemma A) may be used as a parameter when checking B. But you must not assume B, must not invent a version stronger than A, and must not derive B from contradictory premises.
-- **Do not re-prove external theory that the source only cites without giving a proof.** Write it as a parameter and leave it to human check.
+- **Do not re-prove external theory that the source only cites without giving a proof.** Write it as a parameter and leave it to human check. (v1.6) An input of provenance (ii) or (v), and a cited textbook fact the user names, is first tried once in Lean before it goes to a person (`PIPELINE.md` stage 6b, "The discharge stage").
+- **Spell out what the source leaves implicit (v1.6).** Books often leave assumptions unstated, such as a positive constant (`0 < σ`), a nonempty space or a nonzero sample size. In Lean they must be written into the input, or Lean's conventions (`x / 0 = 0`, `Real.log 0 = 0`, `Real.sqrt` of a negative number is 0, the supremum of an unbounded set, the Bochner integral of a non-integrable function) can make the input false.
 - **Do not spend large numbers of tokens building infrastructure just to save one parameter.**
   - What the paper **proves itself** must be proved, because that is exactly what is being checked.
   - A standard fact that the paper only **cites or silently uses** is written as a (v) parameter if proving it would need a lot of infrastructure.
@@ -173,9 +178,23 @@ From highest to lowest risk:
 
 ---
 
+### 4.3 Refutation attempts (v1.6)
+
+Every external input, of every provenance including (p), is an assumption the verdict rests on, and a false one makes every theorem that takes it vacuous. Reading the input against the literature does not find this reliably, so the gate tries, in Lean, to refute each input before it is approved:
+
+1. **List the degenerate instances** the input's binders allow: zero or negative constants (`σ = 0`, `ε = 0`, `c = 0`), an empty or one-point space (`Fin 0`, `Fin 1`, `Unit`), `n = 0` and `n = 1`, the zero function, a constant function, the zero measure or a Dirac measure, and the values Lean gives where mathematics leaves a gap: `x / 0 = 0`, `Real.log 0 = 0`, `Real.sqrt` of a negative number, `iSup`/`sSup` of an empty or unbounded set, the Bochner integral of a non-integrable function, `0 ^ 0 = 1`.
+2. **Try to prove `¬ input`** at those instances, in a probe `pv_work/probes/gate/<ID>/gate_<ID>_refute.lean` (`VERIFICATION_METHODS.md` §6b). What counts is whether the input can fail **where the theorem uses it**. A closed input (`def Tool : Prop := ∀ …`) is refuted by any instance of its own binders. An input about the theorem's own variables (`def Tool (U : ℝ) : Prop`, a consumed clause applied to the theorem's objects) is refuted only by an instance that the theorem's other hypotheses allow: then the input and the hypotheses contradict each other, and the theorem is vacuous. An instance that the hypotheses exclude is noted on the line, not counted as a refutation.
+3. **Record the attempt** on one line of the gate report, above the verdict and outside the snapshot block:
+   - `REFUTATION: <input> NOT REFUTED — tried: <the instances>; probe <path>`, or
+   - `REFUTATION: <input> REFUTED — <the instance>; probe <path>`.
+4. **A refuted input is never approved.** The gate FAILs the statement; the drafter writes the assumption the source's cited result needs (for example `1 ≤ n`). If the result's own hypotheses do not supply it, that is a suspected issue of the paper (§2), which the issue checker decides.
+
+`NOT REFUTED` is not a proof: it says which instances were tried. The report lists them for each condition, and the human check still decides whether the input is true. Results verified before v1.6 have no such record: `validate` warns about each of their conditions, and the gate's refutation mode (`PIPELINE.md` stage 3) supplies it.
+
 ## 5. Reporting rules
 
 - The header counts must equal the sum of the per-row verdicts, and the four classes must sum to the total number of numbered results.
 - When any visible parameter or not-encoded part exists, you **must not** claim the whole paper is fully verified, and must not claim Level 4.
+- (v1.6) A conditional verdict is never presented as more than it is: it assumes that its conditions are true and consistent (§1.2), and the report lists, for each condition, what was tried to refute it.
 - The progress table is in English so it can be screenshotted and shared; the body text may be in whichever language the user prefers.
 - Always take timestamps from the `date` command; never estimate them.

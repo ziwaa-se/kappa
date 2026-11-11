@@ -15,6 +15,23 @@ Usage (from the project root):
                                                    --undo after a failed attempt (reconnect stops listing it)
   python3 scripts/pv_status.py helper-lines ID     (v1.5.2) helper lines of each obligation that has a HELPER LIMIT in
                                                    a gate report or a ruling; exit status 1 when one is over it
+  python3 scripts/pv_status.py refutations         (v1.6) every external input with the attempts to refute it in Lean
+                                                   that the gate recorded (VERDICTS §4.3); exit status 1 if one is
+                                                   refuted or a condition of a verdict has none
+  python3 scripts/pv_status.py discharge-stage [--include ID,...] [--dry-run]
+                                                   (v1.6) mark every open input of provenance (ii) or (v), and the
+                                                   cited inputs named with --include, as provable, so that stage 6b
+                                                   tries each before it goes to a person; --dry-run only lists them
+  python3 scripts/pv_status.py discharge TOOL --proved-in FILE:THEOREM --audit REPORT
+                                                   (v1.6) record by hand that an input was proved in Lean and connected
+  python3 scripts/pv_status.py add-claim ID --loc FILE:LINE --text TEXT [--depends-on A,B]
+                                                   (v1.6) register an unnumbered claim of the paper (a sentence in the
+                                                   text): checked like a numbered result, counted apart from them
+  python3 scripts/pv_status.py import-plan ID      (v1.6) the command that checks whether the modules ID will import
+                                                   can be imported together (scripts/pv_lean.sh imports …)
+  python3 scripts/pv_status.py report-archive [--label TEXT]
+                                                   (v1.6) move the current report to verification/report_archive/
+                                                   before a new one is written, with one line in its INDEX.md
   python3 scripts/pv_status.py tools               external-input registry as a Markdown table
   python3 scripts/pv_status.py paths FILE.md       check that every `path` quoted in a Markdown file exists
   python3 scripts/pv_status.py supersede FILE "reason" [REPLACED_BY]
@@ -28,7 +45,8 @@ Usage (from the project root):
                                                    that ended NOT RUN is never evidence, and never AUDIT_FAILED or
                                                    GATE_FAILED: v1.5.1), its PAPER_VERIFICATION.md row
                                                    and header counts, and an AUDIT.md section; then validate
-  python3 scripts/pv_status.py add-tool '<JSON>'   (v1.3) register or update one external input (fields of
+  python3 scripts/pv_status.py add-tool '<JSON>' | --file F.json
+                                                   (v1.3; v1.6: or from a file) register or update one external input (fields of
                                                    _example_tool), then validate
   python3 scripts/pv_status.py reset ID [ID ...] --revision K [--new]
                                                    (v1.3) cascade-reset results after a revision (/pv-revise), keeping
@@ -279,7 +297,8 @@ def all_checked(data, r):
 
 
 def table(data):
-    res = data.get("results", [])
+    allres = data.get("results", [])
+    res = numbered(allres)
     names = EN
     counts = {v: sum(1 for r in res if r.get("verdict") == v) for v in VERDICTS}
     checked = sum(1 for r in res if all_checked(data, r))
@@ -314,6 +333,17 @@ def table(data):
             stage = f"{stage} (re-check {r['recheck'].get('kind')})"
         print(f"| {cell(r.get('pdf_number'))} | {cell(r.get('id'))} | {cell(what)} | {vname} | "
               f"{cell(stage)} | {cell(extra)} |")
+    aux = [r for r in allres if r.get("aux")]
+    if aux:
+        c = {v: sum(1 for r in aux if r.get("verdict") == v) for v in VERDICTS}
+        print(f"\n**{len(aux)} unnumbered claims (not counted above): " +
+              " · ".join(f"{c[v]} {names[v].lower()}" for v in VERDICTS) + ".**\n")
+        print("| Where | ID | Claim | Verdict | Stage | Conditions / issues / where stopped |")
+        print("|---|---|---|---|---|---|")
+        for r in aux:
+            print(f"| {cell(r.get('statement_loc'))} | {cell(r.get('id'))} | {cell(r.get('title'))} | "
+                  f"{names.get(r.get('verdict'), r.get('verdict'))} | {cell(r.get('stage'))} | "
+                  f"{cell(r.get('summary_en') or reason_text(r))} |")
 
 
 def lean_main_check(lm):
@@ -341,6 +371,7 @@ def lean_main_check(lm):
 
 def validate(data):
     errs, warns = [], []
+    apply_gate_marks(data)      # v1.6: the refutation lines of the reports, read now (nothing is written here)
     raw = data.get("results", [])
     for i, r in enumerate(raw):
         if not isinstance(r, dict) or not r.get("id"):
@@ -517,6 +548,10 @@ def validate(data):
                     warns.append(f"{rid}: external input {c} can now be discharged ({discharge_hint(t)}; stage 6b)")
         if v in ("UNCONDITIONAL", "CONDITIONAL"):
             warns += helper_overruns(rid, last_reset(r))    # v1.5.2
+        if v == "CONDITIONAL" and st == "FINAL_PASSED":     # v1.6: VERDICTS §4.3
+            for p in refutation_problems(data, r):
+                (errs if "is refuted" in p else warns).append(f"{rid}: {p}" + ("" if "is refuted" in p else
+                    "; the verdict assumes it is true (VERDICTS §4.3)"))
         # v1.3.1 checks
         if v in ("UNCONDITIONAL", "CONDITIONAL") and st == "FINAL_PASSED":
             stated = audit_conditions(r)
@@ -562,13 +597,23 @@ def validate(data):
 
     for n in list(byid):
         visit(n)
+    # v1.6: an input that left every condition list must say why (proved and connected, or a reason in its status)
+    conds_now = {c for r in res for c in as_list(r.get("conditions"))}
+    for t in tools.values():
+        users = [byid[u] for u in (str(c).split(" ")[0] for c in as_list(t.get("consumers"))) if u in byid]
+        if (users and all(u.get("verdict") in ("UNCONDITIONAL", "CONDITIONAL") for u in users)
+                and t.get("id") not in conds_now and not t.get("proved_in") and not t.get("status")):
+            warns.append(f"external input {t.get('id')} is a condition of none of the verified results that use it, and "
+                         f"its record does not say why: if it was proved and connected, run pv_status.py discharge "
+                         f"{t.get('id')} --proved-in FILE:THEOREM --audit REPORT; otherwise give it a status")
     if CHECKLIST.exists():
         text = CHECKLIST.read_text()
         m = re.search(r"\*\*(\d+) numbered results: (\d+) verified unconditionally, (\d+) verified conditionally, "
                       r"(\d+) with recorded issues, (\d+) unfinished", text)
-        want = [len(res)] + [sum(1 for r in res if r.get("verdict") == x) for x in VERDICTS]
+        num = numbered(res)
+        want = [len(num)] + [sum(1 for r in num if r.get("verdict") == x) for x in VERDICTS]
         if not m:
-            (errs if res else warns).append(
+            (errs if num else warns).append(
                 "PAPER_VERIFICATION.md header count line not found (expected '**N numbered results: a verified "
                 "unconditionally, b verified conditionally, c with recorded issues, d unfinished')")
         elif [int(x) for x in m.groups()] != want:
@@ -692,7 +737,21 @@ def next_ready(data, second_pass=False, use_all=False):
         print(f"DISCHARGE\t{t.get('id')}\t{', '.join(users) or '-'}\tmarked provable"
               f"{' by ' + t['provable']['by'] if t['provable'].get('by') else ''}: {t['provable'].get('why', '')}. Stage 6b "
               f"proves it once the results that use it are verified; provable {t.get('id')} --undo --why '...' if it fails")
-    if not ready and not blocked and not rechecks and not rulings_due:
+    # v1.6: a conditional verdict whose conditions were never tried for refutation (gated before v1.6)
+    refutes = 0
+    if not second_pass:
+        apply_gate_marks(data)
+        for r in res:
+            if scope and r["id"] not in scope:
+                continue
+            if r.get("verdict") == "CONDITIONAL" and r.get("stage") == "FINAL_PASSED":
+                missing = [p.split("input ")[-1].split(" is recorded")[0] for p in refutation_problems(data, r)
+                           if p.startswith("no attempt")]
+                if missing:
+                    print(f"REFUTE\t{r['id']}\t{r.get('pdf_number')}\tno attempt to refute {', '.join(missing)}: dispatch "
+                          f"pv-gate in refutation mode (pv-run §2), then run pv_status.py refutations")
+                    refutes += 1
+    if not ready and not blocked and not rechecks and not rulings_due and not refutes:
         print("nothing to start (all decided or in progress)")
 
 
@@ -752,16 +811,26 @@ def tool_status(data, t):
 
 
 def tools_rows(data):
-    rows = ["| ID | Lean | Meaning | Type | Source location | Used by | Status | Human check | Checked by a person |",
-            "|---|---|---|---|---|---|---|---|---|"]
+    rows = ["| ID | Lean | Meaning | Type | Source location | Used by | Status | Attempts to refute it (v1.6) | "
+            "Human check | Checked by a person |",
+            "|---|---|---|---|---|---|---|---|---|---|"]
     for t in data.get("external_tools", []):
         if not isinstance(t, dict):
             continue
         prov = str(t.get("provenance", "")) + (f" (predecessor {t['predecessor']})" if t.get("predecessor") else "")
         rows.append(f"| {cell(t.get('id'))} | {cell(t.get('lean'))} | {cell(t.get('meaning'))} | {cell(prov)} | "
                     f"{cell(t.get('source_loc'))} | {cell(', '.join(map(str, as_list(t.get('consumers')))))} | "
-                    f"{cell(tool_status(data, t))} | {cell(t.get('human_check'))} | {cell(checked_text(t))} |")
+                    f"{cell(tool_status(data, t))} | {cell(refutation_text(t))} | {cell(t.get('human_check'))} | "
+                    f"{cell(checked_text(t))} |")
     return rows
+
+
+def refutation_text(t):
+    """(v1.6) What the gate tried in order to refute an input in Lean, for the tables (VERDICTS §4.3)."""
+    ref = t.get("refutation") if isinstance(t.get("refutation"), dict) else None
+    if not ref:
+        return "proved in Lean" if t.get("proved_in") else "not tried"
+    return f"{ref.get('result')}: {ref.get('tried') or 'no detail'} ({ref.get('report')})"
 
 
 def tools_table(data):
@@ -959,8 +1028,13 @@ def outputs(rid):
         print(f"NOTES\t{p.relative_to(ROOT)}\t{p.stat().st_size} bytes")
 
 
+def numbered(res):
+    """(v1.6) The numbered results: an unnumbered claim (add-claim) is checked the same way but counted apart."""
+    return [r for r in res if not r.get("aux")]
+
+
 def header_line(data):
-    res = [r for r in data.get("results", []) if isinstance(r, dict) and r.get("id")]
+    res = numbered([r for r in data.get("results", []) if isinstance(r, dict) and r.get("id")])
     c = {v: sum(1 for r in res if r.get("verdict") == v) for v in VERDICTS}
     return (f"**{len(res)} numbered results: {c['UNCONDITIONAL']} verified unconditionally, {c['CONDITIONAL']} verified "
             f"conditionally, {c['ISSUE']} with recorded issues, {c['UNFINISHED']} unfinished ({now()}).**")
@@ -1319,6 +1393,27 @@ def record(rid, argv):
         if a.partial is None and r.get("partial"):
             print(f"cleared the stale 'partial' of {rid} (a verified verdict covers the whole statement): {r['partial']!r}")
             r["partial"] = ""
+    # v1.6 (VERDICTS §4.3): a refuted input is never approved, and a conditional verdict rests only on inputs that the
+    # gate tried to refute in Lean
+    gate_pass = latest_report(rid, "gate", "STATEMENT GATE:", since)
+    gate_last = latest_report(rid, "gate", since=since)
+    if a.statement_fixed == "true" and not was_fixed and not a.evidence_gate and (
+            not gate_last or not is_pass(verdict_line(gate_last, "STATEMENT GATE:"))):
+        sys.exit(f"refused: statement_fixed true needs a gate pass, and the latest gate report "
+                 f"{gate_last or '(none since the last reset)'} ends {verdict_line(gate_last, 'STATEMENT GATE:') if gate_last else '-'}, "
+                 f"not 'STATEMENT GATE: PASS' (PIPELINE stage 3)")
+    if a.statement_fixed == "true" and gate_pass:
+        bad = [f"{n} ({tried or 'no detail'})" for n, res, tried, rel in refutation_lines(rid, since)
+               if res == "REFUTED" and rel == gate_pass]
+        if bad:
+            sys.exit(f"refused: {gate_pass} refutes the input {', '.join(bad)} and still passes the statement. A refuted "
+                     f"input is never approved (VERDICTS §4.3): the drafter states the assumption the cited result needs, "
+                     f"and the gate reviews it again.")
+    if r.get("verdict") == "CONDITIONAL" and r.get("stage") == "FINAL_PASSED":
+        problems = refutation_problems(data, r)
+        if problems:
+            sys.exit("refused: " + "; ".join(problems) + ". A conditional verdict assumes its conditions are true "
+                     "(VERDICTS §4.3): dispatch pv-gate in refutation mode for " + rid + " (pv-run §2), then record again.")
     # PENDING #10: a (p) clause that a reconnection removed is no longer a condition anywhere
     tools = {t.get("id"): t for t in data.get("external_tools", []) if isinstance(t, dict)}
     for c in set(old_conds) - set(as_list(r.get("conditions"))):
@@ -1470,6 +1565,44 @@ def human_check(tool_id, argv):
 
 
 DISCHARGEABLE = re.compile(r"^[\s`*]*DISCHARGEABLE:[\s`*]*(\S+?)[\s`*:]+(\S.*)$", re.M)
+REFUTATION = re.compile(r"^[\s`*]*REFUTATION:[\s`*]*(\S+?)[\s`*:]+(NOT REFUTED|REFUTED)\b[\s`*:.,;—–-]*(.*)$", re.M)
+
+
+def tool_named(tools, name):
+    """The registered input that a gate line names: by id, by its Lean constant, or by the constant's last part."""
+    name = name.strip("`*")
+    for t in tools:
+        const = (str(t.get("lean", "")).split() + [""])[1]
+        if name in (t.get("id"), const) or (const and name == const.split(".")[-1]):
+            return t
+    return None
+
+
+def refutation_lines(rid, since=None):
+    """(v1.6) The REFUTATION lines of rid's gate and refutation reports since the last reset, oldest report first:
+    [(name, NOT REFUTED | REFUTED, what was tried, report)]."""
+    reps = sorted(reports_of(rid, "gate", since) + reports_of(rid, "refute", since), key=lambda p: p.stat().st_mtime)
+    out = []
+    for p in reps:
+        text = SNAP_BLOCK.sub("", p.read_text(errors="replace"))
+        out += [(n, res, tried.strip().strip("*` "), str(p.relative_to(ROOT))) for n, res, tried in REFUTATION.findall(text)]
+    return out
+
+
+def refutation_problems(data, r):
+    """(v1.6) Why the conditions of r cannot back a conditional verdict: an input that is refuted, or that nobody
+    tried to refute in Lean (VERDICTS §4.3)."""
+    tools = {t.get("id"): t for t in data.get("external_tools", []) if isinstance(t, dict)}
+    out = []
+    for c in as_list(r.get("conditions")):
+        ref = (tools.get(c) or {}).get("refutation")
+        if c not in tools:
+            continue
+        if not isinstance(ref, dict):
+            out.append(f"no attempt to refute the input {c} is recorded")
+        elif ref.get("result") == "REFUTED":
+            out.append(f"the input {c} is refuted ({ref.get('report')}: {ref.get('tried') or 'no detail'})")
+    return out
 
 
 def apply_gate_marks(data):
@@ -1478,6 +1611,13 @@ def apply_gate_marks(data):
     gate is recorded and when an input is registered, whichever comes last."""
     tools = [t for t in data.get("external_tools", []) if isinstance(t, dict)]
     out = []
+    # v1.6: the attempts to refute each input (VERDICTS §4.3); whichever result's report it is in, the latest decides
+    lines = [x for r in data.get("results", []) if isinstance(r, dict) and r.get("id")
+             for x in refutation_lines(r["id"], last_reset(r))]
+    for name, res, tried, rel in sorted(lines, key=lambda x: (ROOT / x[3]).stat().st_mtime):
+        t = tool_named(tools, name)
+        if t is not None:
+            t["refutation"] = {"result": res, "tried": tried, "report": rel}
     for r in data.get("results", []):
         rep = (r.get("evidence") or {}).get("gate") if isinstance(r, dict) and isinstance(r.get("evidence"), dict) else None
         if not exists(rep):
@@ -1581,6 +1721,180 @@ def helper_check(rid, mod, since=None):
         n = helper_lines(decls, name, gated)
         rows.append(("OVER" if n > limit else "OK", key, n, limit, rel))
     return rows, notes
+
+
+def refutations_cmd():
+    """(v1.6) Every external input with its recorded refutation attempts (VERDICTS §4.3)."""
+    data = load()
+    before = json.dumps(data, sort_keys=True)
+    apply_gate_marks(data)
+    if json.dumps(data, sort_keys=True) != before:
+        STATE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    res = [r for r in data.get("results", []) if isinstance(r, dict) and r.get("id")]
+    bad = 0
+    for t in data.get("external_tools", []):
+        if not isinstance(t, dict):
+            continue
+        users = [r["id"] for r in res if t.get("id") in as_list(r.get("conditions"))]
+        ref = t.get("refutation") if isinstance(t.get("refutation"), dict) else None
+        state = ref["result"] if ref else ("PROVED" if t.get("proved_in") else "NOT TRIED")
+        bad += state == "REFUTED" or (state == "NOT TRIED" and bool(users))
+        print(f"{state}\t{t.get('id')}\t{t.get('provenance')}\tcondition of: {', '.join(users) or '-'}\t"
+              f"{(ref or {}).get('tried', '')}\t{(ref or {}).get('report', '')}")
+    return 1 if bad else 0
+
+
+def discharge_stage(argv):
+    """(v1.6) Before an input goes to a person, try to prove it: mark every open input of provenance (ii) or (v), and
+    the cited inputs named with --include, as provable; `reconnect` then lists the verified results that use them, and
+    stage 6b tries each with one proof session (a failed attempt: provable --undo). A refuted input is left alone."""
+    import argparse
+    ap = argparse.ArgumentParser(prog="pv_status.py discharge-stage")
+    ap.add_argument("--include", default="", help="comma-separated ids of cited inputs (i) worth trying: textbook facts")
+    ap.add_argument("--dry-run", action="store_true")
+    a = ap.parse_args(argv)
+    data = load()
+    apply_gate_marks(data)
+    include = {x.strip() for x in a.include.split(",") if x.strip()}
+    res = [r for r in data.get("results", []) if isinstance(r, dict) and r.get("id")]
+    picked, cited = [], []
+    for t in data.get("external_tools", []):
+        if not isinstance(t, dict) or is_predecessor_clause(t):
+            continue
+        if any(k in t for k in ("proved_in", "provable", "provable_tried")) or (t.get("refutation") or {}).get("result") == "REFUTED":
+            continue
+        users = [r["id"] for r in res if r.get("verdict") == "CONDITIONAL" and t.get("id") in as_list(r.get("conditions"))]
+        if not users:
+            continue
+        if str(t.get("provenance")) in ("ii", "v") or t.get("id") in include:
+            picked.append((t, users))
+        elif str(t.get("provenance")) == "i":
+            cited.append(t.get("id"))
+    for t, users in picked:
+        print(f"{'CANDIDATE' if a.dry_run else 'MARKED'}\t{t.get('id')}\t({t.get('provenance')})\tused by {', '.join(users)}")
+        if not a.dry_run:
+            t["provable"] = {"date": now(), "why": f"discharge stage: provenance ({t.get('provenance')}), tried before it "
+                                                   f"goes to a person", "by": "discharge stage"}
+    if cited:
+        print(f"CITED\t{', '.join(cited)}\tnot tried: name the textbook facts among them with --include")
+    if not picked:
+        print("no input to try")
+    if a.dry_run or not picked:
+        return 0
+    STATE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    reconnect(data)
+    return validate(load())
+
+
+def discharge_cmd(tool_id, argv):
+    """(v1.6) Record by hand that an input was proved in Lean and connected, when it did not go through `record`."""
+    import argparse
+    ap = argparse.ArgumentParser(prog=f"pv_status.py discharge {tool_id}")
+    ap.add_argument("--proved-in", required=True, help="FILE:THEOREM, e.g. pv_work/X1Closed_r1.lean:Ext1_holds")
+    ap.add_argument("--audit", required=True, help="the reconnection audit that confirmed it")
+    a = ap.parse_args(argv)
+    data = load()
+    t = next((x for x in data.get("external_tools", []) if isinstance(x, dict) and x.get("id") == tool_id), None)
+    if t is None:
+        sys.exit(f"unknown external input {tool_id}; see python3 scripts/pv_status.py tools")
+    path, _, thm = a.proved_in.partition(":")
+    if not (ROOT / path).is_file() or not thm or not re.search(rf"\b{re.escape(thm.split('.')[-1])}\b", (ROOT / path).read_text(errors="replace")):
+        sys.exit(f"refused: {a.proved_in} is not a theorem in an existing file (give FILE:THEOREM)")
+    if not is_pass(verdict_line(a.audit, "RECONNECT AUDIT:")):
+        sys.exit(f"refused: {a.audit} does not end with 'RECONNECT AUDIT: PASS'")
+    still = [r.get("id") for r in data.get("results", []) if isinstance(r, dict) and tool_id in as_list(r.get("conditions"))]
+    t["proved_in"] = path
+    t.pop("provable", None)
+    t["status"] = (f"proved in Lean in {path} ({thm}), audit {a.audit} ({now()})" +
+                   (f"; still a condition of {', '.join(still)} until connected there" if still else "; no longer a condition"))
+    STATE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    print(f"external input {tool_id}: marked as proved in {path}")
+    refresh_records(load())
+    return validate(load())
+
+
+def add_claim(cid, argv):
+    """(v1.6) Register an unnumbered claim of the paper. It is a result like the others, with aux: true, so the gate,
+    the proof, the audits, `record` and `validate` treat it the same way; the counts of numbered results leave it out."""
+    import argparse
+    ap = argparse.ArgumentParser(prog=f"pv_status.py add-claim {cid}")
+    ap.add_argument("--loc", required=True, help="where the claim is, e.g. source/main.tex:120 or :120-122")
+    ap.add_argument("--text", required=True, help="the claim in a few words")
+    ap.add_argument("--depends-on", default="")
+    a = ap.parse_args(argv)
+    data = load()
+    ids = {r.get("id") for r in data.get("results", []) if isinstance(r, dict)}
+    if cid in ids:
+        sys.exit(f"refused: {cid} is already registered")
+    deps = [x.strip() for x in a.depends_on.split(",") if x.strip()]
+    unknown = [d for d in deps if d not in ids]
+    if unknown:
+        sys.exit(f"refused: unknown dependencies {unknown}")
+    data.setdefault("results", []).append({
+        "id": cid, "aux": True, "pdf_number": "unnumbered", "kind": "Claim", "title": a.text, "label": "",
+        "statement_loc": a.loc, "proof_loc": a.loc, "depends_on": deps, "stage": "INVENTORIED", "statement_fixed": False,
+        "round": 1, "reason": "", "verdict": "UNFINISHED", "conditions": [], "gaps": [], "debts": [], "unencoded": [],
+        "issues": [], "upstream_issues": [], "partial": "", "lean_main": "", "evidence": {}, "summary_en": ""})
+    STATE.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    print(f"registered unnumbered claim {cid} ({a.loc}); it is checked like a numbered result and counted apart")
+    set_header(data)
+    return validate(load())
+
+
+def import_plan(rid):
+    """(v1.6) The modules rid will import, as one `scripts/pv_lean.sh imports` command: two statement files that declare
+    the same name cannot be imported together, which is better found before any proof is written."""
+    data = load()
+    byid = {r.get("id"): r for r in data.get("results", []) if isinstance(r, dict)}
+    if rid not in byid:
+        sys.exit(f"unknown result id {rid}")
+    mods = [Path(d.get("file", "")).stem for d in data.get("defs", []) if isinstance(d, dict) and d.get("file")]
+    for d in as_list(byid[rid].get("depends_on")):
+        dep = byid.get(d, {})
+        lm = (dep.get("lean_main") or "").split(" ")[0].split(":")[0]
+        main = Path(lm).stem if lm else ""
+        mods.append(main if dep.get("stage") == "FINAL_PASSED" and main and (ROOT / "pv_work" / f"{main}.olean").exists()
+                    else f"{d}Stmt")
+    if (ROOT / "pv_work" / f"{rid}Stmt.olean").exists():
+        mods.append(f"{rid}Stmt")
+    mods = [m for m in dict.fromkeys(mods) if m]
+    if len(mods) < 2:
+        print(f"{rid} imports at most one project module ({', '.join(mods) or 'none'}): nothing to check")
+        return 0
+    print("scripts/pv_lean.sh imports " + " ".join(mods))
+    return 0
+
+
+def report_archive(argv):
+    """(v1.6) Move the current report to verification/report_archive/<date>[-label]/ before a new one is written, and
+    add one line to report_archive/INDEX.md, so that the new report states the current state only. The driver's
+    --report does this too."""
+    import argparse
+    ap = argparse.ArgumentParser(prog="pv_status.py report-archive")
+    ap.add_argument("--label", default="", help="e.g. 'revision 2'")
+    a = ap.parse_args(argv)
+    rep_dir = ROOT / "verification" / "report"
+    files = [p for p in sorted(rep_dir.glob("*")) if p.is_file() and p.suffix in (".md", ".html", ".json")]
+    work = [p for p in sorted((rep_dir / "work").glob("*")) if p.is_file() and p.name != ".gitkeep"]
+    if not (rep_dir / "AUTHOR_REPORT.md").exists():
+        print("no report to archive")
+        return 0
+    old = (rep_dir / "AUTHOR_REPORT.md").read_text(errors="replace")
+    counts = re.search(r"\*\*\d+ numbered results:[^*]*\*\*", old)
+    slug = re.sub(r"[^A-Za-z0-9]+", "-", a.label).strip("-").lower()
+    arch = ROOT / "verification" / "report_archive"
+    dest = arch / (datetime.now().strftime("%Y%m%d-%H%M%S") + (f"-{slug}" if slug else ""))
+    (dest / "work").mkdir(parents=True, exist_ok=False)
+    for p in files:
+        shutil.move(str(p), str(dest / p.name))
+    for p in work:
+        shutil.move(str(p), str(dest / "work" / p.name))
+    index = arch / "INDEX.md"
+    line = (f"- {now()}{' (' + a.label + ')' if a.label else ''}: "
+            f"{counts.group(0).strip('*') if counts else 'report'} `{dest.relative_to(ROOT)}/`\n")
+    index.write_text((index.read_text() if index.exists() else "# Earlier reports, one line each\n\n") + line)
+    print(f"archived the previous report to {dest.relative_to(ROOT)}/ and added a line to {index.relative_to(ROOT)}")
+    return 0
 
 
 def helper_overruns(rid, since=None):
@@ -2130,9 +2444,31 @@ def main():
             sys.exit("usage: pv_status.py reset ID [ID ...] --revision K [--reason SOURCE_CHANGED|''] [--new]")
         sys.exit(reset(rest[:k], rest[k:]))
     if cmd == "add-tool":
+        if len(a) == 3 and a[1] == "--file":         # v1.6: no JSON on the command line
+            if not (ROOT / a[2]).is_file():
+                sys.exit(f"no such file: {a[2]}")
+            sys.exit(add_tool((ROOT / a[2]).read_text()))
         if len(a) < 2:
-            sys.exit("usage: pv_status.py add-tool '<JSON object with the fields of _example_tool>'")
+            sys.exit("usage: pv_status.py add-tool '<JSON object with the fields of _example_tool>' | --file F.json")
         sys.exit(add_tool(a[1]))
+    if cmd == "refutations":
+        sys.exit(refutations_cmd())
+    if cmd == "discharge-stage":
+        sys.exit(discharge_stage(a[1:]))
+    if cmd == "discharge":
+        if len(a) < 2:
+            sys.exit("usage: pv_status.py discharge TOOL --proved-in FILE:THEOREM --audit REPORT")
+        sys.exit(discharge_cmd(a[1], a[2:]))
+    if cmd == "add-claim":
+        if len(a) < 2:
+            sys.exit('usage: pv_status.py add-claim ID --loc FILE:LINE --text "..." [--depends-on A,B]')
+        sys.exit(add_claim(a[1], a[2:]))
+    if cmd == "import-plan":
+        if len(a) != 2:
+            sys.exit("usage: pv_status.py import-plan ID")
+        sys.exit(import_plan(a[1]))
+    if cmd == "report-archive":
+        sys.exit(report_archive(a[1:]))
     if cmd == "set-main":
         if len(a) < 2:
             sys.exit("usage: pv_status.py set-main source/<file>.tex")

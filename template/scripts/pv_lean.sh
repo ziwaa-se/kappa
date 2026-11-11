@@ -15,6 +15,8 @@
 #                                               how many of its imports are unbuilt), or not in any package
 #   scripts/pv_lean.sh preflight               (v1.5.1) a review's first command: can this session run the kit's
 #                                               scripts and compile a trivial file? Exit 6 if Lean cannot
+#   scripts/pv_lean.sh imports <M> <M> …       (v1.6) can these pv_work modules be imported together? Exit 8 when
+#                                               two of them declare the same name (IMPORTS CLASH)
 #
 # Every compile writes a numbered log pv_work/logs/<name>_<k>.log whose last line is "EXIT=<code>", and prints one
 # RESULT line with the same code. Exit codes: the compiler's own code; 3 for a refused build; 5 for a file that uses
@@ -31,7 +33,7 @@ mkdir -p "$LOGS"
 
 mode="${1:-}"
 target="${2:-}"
-usage() { sed -n '2,25p' "$0"; exit 2; }
+usage() { sed -n '2,26p' "$0"; exit 2; }
 # sha256 of a file on macOS (shasum) and Linux (sha256sum), with a python3 fallback.
 sha256() {
   if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1
@@ -157,6 +159,26 @@ print(f"write 'in source, not built: {mod}' in mathlib_search; only the user bui
 sys.exit(3)
 PYEOF
   exit $?
+fi
+
+if [[ "$mode" == "imports" ]]; then
+  # v1.6: can these modules be imported together? Two statement files that declare the same name cannot, which is
+  # better found before any proof is written (pv_status.py import-plan <ID> prints this command for a result).
+  dir="$WORK/probes/imports"; mkdir -p "$dir"
+  printf 'import %s\n' "${@:2}" > "$dir/imports_check.lean"
+  k=1; while [[ -e "$LOGS/imports_check_${k}.log" ]]; do k=$((k + 1)); done
+  log="$LOGS/imports_check_${k}.log"
+  cd "$ROOT" || exit 2
+  LEAN_PATH="$WORK:${LEAN_PATH:-}" lake env lean "$dir/imports_check.lean" > "$log" 2>&1; ec=$?
+  echo "EXIT=$ec" >> "$log"
+  clash=$(sed -n "s/.*import \([A-Za-z0-9_.']*\) failed, environment already contains '\([^']*\)' from \([A-Za-z0-9_.']*\).*/\2 (declared in \3 and in \1)/p" "$log")
+  if [[ -n "$clash" ]]; then
+    echo "IMPORTS CLASH: $clash; put the shared declaration in one module (a Defs module) and import it from both. log=${log#$ROOT/}"
+    exit 8
+  fi
+  [[ $ec -eq 0 ]] && { echo "IMPORTS OK: ${*:2} import together. log=${log#$ROOT/}"; exit 0; }
+  echo "IMPORTS FAILED exit=$ec: $(grep -m1 ': error' "$log" | cut -c1-300) log=${log#$ROOT/}"
+  exit "$ec"
 fi
 
 case "$mode" in

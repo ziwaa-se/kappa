@@ -7,6 +7,7 @@ None of the items below has been **proved in Lean**. Theorems that depend on an 
 1. **Direction.** What must be confirmed is that "the theorem in the literature implies our Lean parameter". The Lean parameter may be weaker than the literature's conclusion (extra hypotheses, only a special case), but not stronger.
 2. **Compare item by item.** Domain, quantifier order (which determines what the constants depend on), every hypothesis, the constants in the conclusion.
 3. **Notation.** `∫⁻` is an integral with values in `[0,∞]`; `ENNReal.ofReal` truncates negative numbers to 0; ...
+4. **Implicit assumptions and degenerate values.** Books often leave an assumption unstated, such as a positive constant (`σ > 0`), a nonempty space or `n ≥ 1`. Check the parameter **as written in Lean** at its degenerate values: zero constants, empty or one-point spaces, the zero function, and Lean's own values where mathematics leaves a gap (`x / 0 = 0`, `Real.log 0 = 0`, `Real.sqrt` of a negative number is 0, the supremum of an empty or unbounded set is 0, the Bochner integral of a non-integrable function is 0). A parameter that is false at one of them is false, even when the book's theorem is true, and every conclusion that takes it is then vacuous. Each item below lists what the gate tried in Lean to refute it.
 
 ## Priority overview
 

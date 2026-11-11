@@ -33,7 +33,7 @@ Repeat the following steps until every result in scope has a verdict, or is UNFI
 
 1. **Pick work.**
    1. First run `python3 scripts/pv_status.py reconnect`; if anything needs reconnection, do that first (stage 6b).
-   2. Then run `python3 scripts/pv_status.py next`: `READY` rows are results that can start; `BLOCKED` rows state which predecessor blocks them; `RECHECK` rows (v1.3.1) are verified results whose upstream was re-proved with an unchanged statement; `RULING` rows (v1.5) wait for the gate's infrastructure ruling (step 4); `NOT_RUN` rows (v1.5.1) are reviews that had no shell, to be started again (step 4); `DISCHARGE` rows (v1.5.2) are inputs a gate found cheap to prove, proved through `reconnect` once the results that use them are verified.
+   2. Then run `python3 scripts/pv_status.py next`: `READY` rows are results that can start; `BLOCKED` rows state which predecessor blocks them; `RECHECK` rows (v1.3.1) are verified results whose upstream was re-proved with an unchanged statement; `RULING` rows (v1.5) wait for the gate's infrastructure ruling (step 4); `NOT_RUN` rows (v1.5.1) are reviews that had no shell, to be started again (step 4); `DISCHARGE` rows (v1.5.2) are inputs a gate found cheap to prove, proved through `reconnect` once the results that use them are verified. `REFUTE` rows (v1.6) are conditional verdicts gated before v1.6 whose conditions were never tried for refutation (§3). Unnumbered claims registered with `add-claim` (v1.6) are results like the others here.
    3. **A `RECHECK` row** (`PIPELINE.md`, "Cascade reset on statement change", step 3): rebuild the result's modules with `scripts/pv_lean.sh build <module>` in dependency order (its `Stmt`, then the files of `lean_main` and of any `Closed` file), then dispatch pv-auditor in re-check mode (template in §2). After `RECHECK: PASS`, run `python3 scripts/pv_status.py record <ID> --recheck-passed`; after `RECHECK: FAIL`, reset the result with `pv_status.py reset <ID> --revision <k>`.
 2. **Parallelism.** **No more than 3** subagents may run at the same time in total; issue rulings and reviews count toward this. Each Lean file may have only one writer at a time. **In an unattended (headless) session, never end your turn while subagents you started are still running**: wait for them, because they are stopped when the session ends. **Wait through their completion notifications** (v1.3.1): do not set timers, `sleep` commands, scheduled wake-ups or monitors to wait for them. Such a timer keeps firing after the agents have returned, and every wake-up re-reads the whole context. If one was started anyway, cancel it as soon as the agents are back.
 3. **Before starting a subagent**, add a row to the "Running subagents" table in `RESUME.md`: role, target, files it should produce, start time. Delete the row after the subagent returns.
@@ -95,6 +95,8 @@ Stmt may be built; Draft is only checked. No network, no downloads.
 ```
 Amendment mode: `Make the "Required changes" in verification/audits/<ID>_gate<…>.md one by one; make no other changes.`
 
+Refutation mode (v1.6), for pv-gate: `Refutation of the inputs of <ID> (PIPELINE stage 3, VERDICTS §4.3): <input ids>, declared in pv_work/<ID>Stmt.lean; source <file:line>. Output: verification/audits/<ID>_refute.md (the k-th time _refute_r<k>.md), one REFUTATION line per input, last line REFUTATION CHECK: DONE. Do not change any file of the result. No network, no downloads.`
+
 **DEFS (shared definitions):**
 - pv-drafter: `Shared-definitions mode: write pv_work/Defs.lean; source definition locations <file:line …>. Write only definitions; only check.`
 - pv-gate: `Review whether the shared definitions pv_work/Defs.lean agree with the source <file:line …>; take a #pv_type_hashes_here snapshot; write the report to verification/audits/DEFS_gate.md.`
@@ -150,7 +152,10 @@ python3 scripts/pv_status.py record <ID> --verdict <V> --stage <S> [--reason <R>
     [--lean-main "pv_work/<ID>.lean:<line> <full name>"] [--models-used sonnet,opus] \
     [--summary-en "…"] [--row "text of the checklist row"] [--audit-note "reviewer, FAIL items, assessment"]
 python3 scripts/pv_status.py add-tool '<JSON object with the fields of _example_tool>'    # each external input, once
+python3 scripts/pv_status.py add-tool --file pv_work/notes/<TOOL>.json     # (v1.6) the same, from a file you wrote
 ```
+
+(v1.6, `VERDICTS.md` §4.3) `record` refuses a conditional verdict while one of its conditions has no `REFUTATION` line from a gate, or is refuted. For a result gated before v1.6, `next` lists it as `REFUTE`: dispatch pv-gate in refutation mode (template in §2), then run `python3 scripts/pv_status.py refutations`, which records the lines. A refuted input is a statement problem (§1 step 4, "When the final audit FAILs"). `python3 scripts/pv_status.py refutations` lists every input with what was tried.
 
 The judgements (verdict, conditions, codes, summaries) are yours, as below; the scripts only write, count and look up paths. (v1.5.1) `record` takes the latest gate and final report since the last reset, so normally you give no paths; it refuses when a newer report breaks the naming rule, and `validate` warns about evidence older than the reset.
 
@@ -207,6 +212,7 @@ Every step of a long session re-reads the whole history, so a long coordinator s
 ## 7. Finish
 
 When every result in scope has a verdict, or is UNFINISHED with the reason recorded:
+- (v1.6) **offer the discharge stage** (`PIPELINE.md` stage 6b): run `python3 scripts/pv_status.py discharge-stage --dry-run` and show the user the inputs it lists, which would otherwise go to a person, and the cited ones it does not try. With their approval run `python3 scripts/pv_status.py discharge-stage` (with `--include <ids>` for cited textbook facts they name), then do the reconnections that `reconnect` lists: one proof session per input, and `provable <TOOL> --undo --why "…"` when it fails. Unattended, the driver does this with `--discharge`;
 - update `RESUME.md`;
 - take a snapshot `--label all-verdicts`;
 - report to the user: the four counts, the progress table, the main issues, the human-check to-do list, and recommend running `/pv-report`.

@@ -52,7 +52,7 @@ def kinds(res):
 
 
 def summary(data):
-    res = [r for r in data.get("results", []) if isinstance(r, dict) and r.get("id")]
+    res = S.numbered([r for r in data.get("results", []) if isinstance(r, dict) and r.get("id")])
     paper = data.get("paper", {}) or {}
     lean = data.get("lean", {}) or {}
     tools = {t.get("id"): t for t in data.get("external_tools", []) if isinstance(t, dict)}
@@ -89,7 +89,7 @@ def summary(data):
         L.append(f"| {S.cell(r.get('pdf_number'))} | {S.cell(what)} | {name} | "
                  f"{S.cell(r.get('summary_en') or S.reason_text(r))} |")
     L += ["", "*Verified unconditionally*: the paper's proof of the whole statement compiles in Lean with no unproved "
-          "input. *Verified conditionally*: it compiles, but assumes the conditions listed below. *Issue recorded*: "
+          "input. *Verified conditionally*: it compiles, but assumes the conditions listed below, and says nothing if one of them is false or if they contradict each other; each condition lists the attempts made to refute it in Lean. *Issue recorded*: "
           "an independently confirmed problem in the result's own statement or proof. *Unfinished*: not decided; "
           "never counted as an error in the paper.", ""]
 
@@ -118,15 +118,20 @@ def summary(data):
                 used_tools.append(c)
     if used_tools:
         L += ["What the conditional verdicts assume. Each condition is a named hypothesis of the Lean theorem; the "
-              "Lean kernel did not check it, so a person should.", "",
-              "| Condition | Meaning | Kind | Used by | In the paper | Checked by a person |", "|---|---|---|---|---|---|"]
+              "Lean kernel did not check it, so a person should. A false condition, or two that contradict each other, "
+              "would make the verdicts that use it say nothing. Before any proof, an independent agent tried to refute "
+              "each condition in Lean at degenerate instances (zero constants, empty or one-point spaces, Lean's values "
+              "for division by zero and the like); the table says what was tried. Books often leave an assumption such "
+              "as a positive constant unstated: in Lean it must be written out.", "",
+              "| Condition | Meaning | Kind | Used by | In the paper | Attempts to refute it in Lean | Checked by a person |",
+              "|---|---|---|---|---|---|---|"]
         for c in used_tools:
             t = tools.get(c, {})
             users = [r["id"] for r in res if c in S.as_list(r.get("conditions"))]
             hc = t.get("human_checked") if isinstance(t.get("human_checked"), dict) else None
             who = f"{hc.get('by', '?')}, {hc.get('date', '')}: {hc.get('how', '')}" if hc else "not yet"
             L.append(f"| `{S.cell(c)}` | {S.cell(t.get('meaning'))} | {S.cell(PROVENANCE.get(t.get('provenance'), ''))} | "
-                     f"{', '.join(users)} | {S.cell(t.get('source_loc'))} | {S.cell(who)} |")
+                     f"{', '.join(users)} | {S.cell(t.get('source_loc'))} | {S.cell(S.refutation_text(t))} | {S.cell(who)} |")
     else:
         L.append("No verdict depends on a condition.")
     proved = [t for t in tools.values() if isinstance(t, dict) and t.get("proved_in")]

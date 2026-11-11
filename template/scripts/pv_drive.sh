@@ -6,12 +6,14 @@
 # exactly as /pv-resume already relies on. The interactive /pv-run stays available as before.
 #
 # Usage (from the project root, after /pv-setup, or with --setup):
-#   scripts/pv_drive.sh [--setup source/main.tex] [--max-sessions N] [--auto-resume] [--report | --report-only]
+#   scripts/pv_drive.sh [--setup source/main.tex] [--max-sessions N] [--auto-resume] [--report | --report-only] [--discharge]
 #     --auto-resume  when the account's usage limit is reached, sleep until the reset time it states (plus 5 min;
 #                    30 min if no time can be read) and continue. On macOS the driver keeps the machine awake with
 #                    `caffeinate -i` while it runs; closing the lid still puts it to sleep
 #     --report       after every result has a verdict, archive any previous report and run /pv-report
 #     --report-only  only (re)make the report
+#     --discharge    (v1.6) when every result has a verdict, try to prove the open inputs of provenance (ii) and (v)
+#                    before they go to a person (pv_status.py discharge-stage), one proof session each, then go on
 # Environment:
 #   PV_COORD_MODEL  coordinator model (default: sonnet; subagents use the model in their own definition)
 #   PV_BATCH        results per session (default: 3)
@@ -42,7 +44,7 @@ main() {
   LOGDIR="${PV_LOG_DIR:-pv_work/logs/drive}"
   MAX_RESTARTS="${PV_MAX_RESTARTS:-20}"
   local setup="" max=20 report_only=0 n
-  auto=0; report=0
+  auto=0; report=0; discharge=0; discharged=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --setup) setup="$2"; shift 2 ;;
@@ -50,7 +52,8 @@ main() {
       --auto-resume) auto=1; shift ;;
       --report) report=1; shift ;;
       --report-only) report_only=1; shift ;;
-      *) sed -n '2,34p' "$0"; exit 2 ;;
+      --discharge) discharge=1; shift ;;
+      *) sed -n '2,35p' "$0"; exit 2 ;;
     esac
   done
   command -v claude >/dev/null || { echo "the 'claude' command is not installed"; exit 2; }
@@ -113,7 +116,7 @@ d=json.load(open('verification/RESULTS.json'))
 print(' '.join(r['id'] for r in d.get('results',[]) if r.get('verdict')=='UNFINISHED' and r.get('stage') not in ('NOT_STARTED','INVENTORIED','STOPPED')))")
     # --all: a batch session writes its own scope into run_scope; the driver looks at every result.
     # v1.5: RULING rows (the prover stopped on the infrastructure budget) go to the gate in the same kind of session
-    ready=$(python3 scripts/pv_status.py next --all | awk -F'\t' '$1=="READY"||$1=="RECHECK"||$1=="RULING"{print $2}' | tr '\n' ' ')
+    ready=$(python3 scripts/pv_status.py next --all | awk -F'\t' '$1=="READY"||$1=="RECHECK"||$1=="RULING"||$1=="REFUTE"{print $2}' | tr '\n' ' ')
     recon=$(python3 scripts/pv_status.py reconnect | grep -v "^no pending" || true)
     ids=$(echo $inflight $ready | tr ' ' '\n' | awk 'NF && !seen[$0]++' | head -n "$BATCH" | tr '\n' ' ')
     # Also take results that wait only on results of this batch (pv-run handles that order within one session).
@@ -131,8 +134,19 @@ print(' '.join(ids))")
     if [[ -z "${ids// /}" && -z "$recon" ]]; then
       second=$(python3 scripts/pv_status.py next --second-pass --all | awk -F'\t' '$1=="READY"{print $2}' | tr '\n' ' ')
     fi
+    if [[ -z "${ids// /}" && -z "$recon" && -z "${second// /}" && $discharge -eq 1 && $discharged -eq 0 ]]; then
+      # v1.6: before the inputs go to a person, try to prove them; the reconnections it lists run in the next sessions
+      discharged=1
+      out=$(python3 scripts/pv_status.py discharge-stage 2>&1)
+      echo "$out" | grep -E '^(MARKED|CITED)' | sed 's/^/  discharge stage: /'
+      echo "$out" | grep -q '^MARKED' && continue
+    fi
     if [[ -z "${ids// /}" && -z "$recon" && -z "${second// /}" ]]; then
       echo "Nothing left to start: every result has a verdict or a recorded reason."
+      if [[ $discharge -eq 0 ]]; then
+        n=$(python3 scripts/pv_status.py discharge-stage --dry-run 2>/dev/null | grep -c '^CANDIDATE' || true)
+        [[ "${n:-0}" -gt 0 ]] && echo "  $n input(s) of provenance (ii) or (v) could be proved before they go to a person: run the driver again with --discharge"
+      fi
       # v1.5.2: say why a stopped result got no second pass
       python3 scripts/pv_status.py next --second-pass --all | awk -F'\t' '$1=="SKIPPED"{print "  " $2 ": " $4}'
       python3 scripts/pv_snapshot.py save --label all-verdicts > /dev/null 2>&1 || true
@@ -246,13 +260,8 @@ make_report() {
   local dest f
   python3 scripts/pv_status.py validate > "$LOGDIR/validate.txt" 2>&1 || {
     cat "$LOGDIR/validate.txt"; finish validate_failed "validate is not VALID before the report (see $LOGDIR/validate.txt)"; }
-  if [[ -f verification/report/AUTHOR_REPORT.md ]]; then
-    dest="verification/report_archive/$(date +%Y%m%d-%H%M%S)"
-    mkdir -p "$dest/work"
-    for f in verification/report/*.md verification/report/*.html verification/report/*.json; do [[ -f "$f" ]] && mv "$f" "$dest/"; done
-    for f in verification/report/work/*; do [[ -f "$f" && "$(basename "$f")" != .gitkeep ]] && mv "$f" "$dest/work/"; done
-    echo "archived the previous report to $dest/"
-  fi
+  # v1.6: one line per earlier report in verification/report_archive/INDEX.md; the new report states the current state
+  [[ -f verification/report/AUTHOR_REPORT.md ]] && python3 scripts/pv_status.py report-archive
   before=""
   while true; do
     session "$UNATTENDED

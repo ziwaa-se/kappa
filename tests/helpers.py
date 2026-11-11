@@ -90,7 +90,8 @@ class Project:
 
     def make_passed(self, rid, verdict="UNCONDITIONAL", conditions=(), lean_main=None):
         """Give rid the files and records of a result that passed its gate and final audit."""
-        self.write(f"verification/audits/{rid}_gate.md", f"# Gate {rid}\n\nSTATEMENT GATE: PASS\n")
+        tried = "".join(f"REFUTATION: {c} NOT REFUTED — tried: the degenerate instances of the test\n" for c in conditions)
+        self.write(f"verification/audits/{rid}_gate.md", f"# Gate {rid}\n\n{tried}STATEMENT GATE: PASS\n")
         self.write(f"verification/audits/{rid}_final.md", f"# Final audit {rid}\n\nFINAL AUDIT: PASS\n"
                                                            f"SUGGESTED VERDICT: {verdict}\n"
                                                            f"CONDITIONS: {', '.join(conditions) or 'none'}\n")

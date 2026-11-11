@@ -6,7 +6,7 @@ ready shared environment (autosetup/lean_env.sh), e.g.
 They compile small files, so they take a few minutes. They cover the mechanical audit (pv_audit_mech.py), including
 the conditions traced from the gated theorems (PENDING v1.3.1 #16, #24) and the writer checks (#19, #26), and (v1.5)
 the walk past compiler auxiliaries, the snapshot block of a gate report and the package check; (v1.5.2) which gate report
-counts, and helper limits."""
+counts, and helper limits; (v1.6) the import check, and the refutation probe of VERIFICATION_METHODS §6b."""
 import json
 import os
 import re
@@ -77,7 +77,9 @@ class MechanicalAudit(KitTestCase):
         log = self.pr.read(re.search(r"log=(\S+)", s.out).group(1))
         fps = [l.strip() for l in log.splitlines() if re.search(r"\|(thm|def)\|th=", l)]
         self.assertTrue(fps, log)
-        self.pr.write("verification/audits/P01_gate.md", "# Gate P01\n\n```\n" + "\n".join(fps) + "\n```\n\nSTATEMENT GATE: PASS\n")
+        self.pr.write("verification/audits/P01_gate.md", "# Gate P01\n\n```\n" + "\n".join(fps) + "\n```\n\n"
+                      "REFUTATION: P01_Tool NOT REFUTED — tried: x = 0\nREFUTATION: P01_Unused NOT REFUTED — tried: it is True\n\n"
+                      "STATEMENT GATE: PASS\n")
 
     def log_writes(self, *recs):
         self.pr.write("pv_work/logs/writes.jsonl", "".join(json.dumps(r) + "\n" for r in recs))
@@ -245,6 +247,36 @@ class MechanicalAudit(KitTestCase):
         rep = self.pr.read("verification/audits/P02_mech_r2.md")
         self.assertRegex(rep, r"\| `P01` \| \d+ \| \*\*NO RECORD")
         self.assertIn("module `P01` reached without an audit record (verification/audits/P01_final_rev5.md is newer", rep)
+
+    # v1.6
+    def test_two_statement_files_that_cannot_be_imported_together(self):
+        for m in ("AStmt", "BStmt"):
+            self.pr.write(f"pv_work/{m}.lean", "import Mathlib.Data.Real.Basic\nnamespace Paper.Legacy\n"
+                                               "noncomputable def coeff : ℝ := 1\nend Paper.Legacy\n")
+            self.assertEqual(self.pr.script("pv_lean.sh", "build", m).returncode, 0)
+        p = self.pr.script("pv_lean.sh", "imports", "AStmt", "BStmt")
+        self.assertEqual(p.returncode, 8, p.out)
+        self.assertIn("IMPORTS CLASH: Paper.Legacy.coeff (declared in AStmt and in BStmt)", p.out)
+        p = self.pr.script("pv_lean.sh", "imports", "P01Stmt", "AStmt")
+        self.assertEqual(p.returncode, 0, p.out)
+        self.assertIn("IMPORTS OK: P01Stmt AStmt import together", p.out)
+
+    def test_the_refutation_probe_of_the_methods_compiles(self):
+        self.pr.write("pv_work/probes/gate/P01/gate_P01_refute.lean", """import Mathlib.Analysis.SpecialFunctions.Sqrt
+
+def StdErrPositive : Prop := ∀ (n : ℕ) (σ : ℝ), 0 < σ → 0 < σ / Real.sqrt n
+
+example : ¬ StdErrPositive := by
+  intro h
+  simpa using h 0 1 one_pos
+
+example : ∀ (n : ℕ) (σ : ℝ), 1 ≤ n → 0 < σ → 0 < σ / Real.sqrt n := by
+  intro n σ hn hσ
+  have h : (0 : ℝ) < n := by exact_mod_cast hn
+  exact div_pos hσ (Real.sqrt_pos.mpr h)
+""")
+        p = self.pr.script("pv_lean.sh", "probe", "pv_work/probes/gate/P01/gate_P01_refute.lean")
+        self.assertEqual(p.returncode, 0, p.out)
 
 
 if __name__ == "__main__":
